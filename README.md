@@ -1,6 +1,6 @@
-# Cheer Eltern App
+# Member App
 
-Eine moderne Eltern-Portal App für Cheerleading-Vereine. Die App ermöglicht Eltern, Trainings zu verwalten, Ankündigungen zu sehen und den Fortschritt ihrer Kinder zu verfolgen.
+Eine moderne Member-Portal App für Cheerleading-Vereine. Die App ermöglicht Mitgliedern, Trainings zu verwalten, Ankündigungen zu sehen und den Fortschritt zu verfolgen.
 
 ## Features
 
