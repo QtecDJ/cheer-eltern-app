@@ -35,7 +35,7 @@
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -161,5 +161,58 @@ body {
 
 .safe-top {
   padding-top: env(safe-area-inset-top, 0);
+}
+
+/* PWA Safe Area Insets */
+.safe-area-inset {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* iOS Standalone Mode Anpassungen */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari spezifisch */
+  .standalone-ios {
+    padding-top: constant(safe-area-inset-top); /* iOS < 11.2 */
+    padding-top: env(safe-area-inset-top); /* iOS >= 11.2 */
+  }
+}
+
+/* Verhindert Pull-to-Refresh in PWA */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
+/* Touch Feedback für native Feel */
+.touch-feedback {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.touch-feedback:active {
+  opacity: 0.7;
+  transform: scale(0.98);
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+/* Verhindert Text-Selection für App-Feel */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Hardware-beschleunigte Animationen */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Smooth scrolling für native Feel */
+.smooth-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 

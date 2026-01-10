@@ -1,7 +1,8 @@
 {
   "name": "member-app",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
+  "author": "ICA-Dev Kai Püttmann",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
