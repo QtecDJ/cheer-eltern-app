@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Team {
+  id           Int               @id @default(autoincrement())
+  name         String            @unique
+  description  String?
+  color        String?
+  status       String            @default("active")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  Announcement Announcement[]
+  members      Member[]
+  trainings    TrainingSession[]
+
+  @@index([status])
+}
+
+model Member {
+  name             String
+  firstName        String
+  lastName         String
+  email            String?           @unique
+  phone            String?
+  birthDate        String
+  role             String
+  status           String            @default("active")
+  joinDate         String
+  address          String?
+  emergencyContact String?
+  emergencyPhone   String?
+  photoUrl         String?
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  teamId           Int?
+  id               Int               @id @default(autoincrement())
+  lastLogin        DateTime?
+  passwordHash     String?
+  userRole         String?           @default("coach")
+  activities       Activity[]
+  Announcement     Announcement[]
+  attendances      Attendance[]
+  team             Team?             @relation(fields: [teamId], references: [id])
+  notifications    Notification[]
+  competitions     Competition[]     @relation("CompetitionParticipants")
+  events           Event[]           @relation("EventParticipations")
+  trainings        TrainingSession[] @relation("TrainingParticipants")
+
+  @@index([email])
+  @@index([status])
+  @@index([teamId])
+  @@index([createdAt])
+  @@index([status, teamId])
+}
+
+model TrainingSession {
+  title           String
+  date            String
+  time            String
+  location        String
+  maxParticipants Int
+  type            String
+  status          String         @default("upcoming")
+  description     String?
+  trainer         String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  id              Int            @id @default(autoincrement())
+  archivedAt      DateTime?
+  isArchived      Boolean        @default(false)
+  teamId          Int?
+  notifications   Notification[]
+  team            Team?          @relation(fields: [teamId], references: [id])
+  participants    Member[]       @relation("TrainingParticipants")
+
+  @@index([date])
+  @@index([status])
+  @@index([type])
+  @@index([isArchived])
+  @@index([status, isArchived])
+  @@index([date, status])
+  @@index([teamId])
+}
+
+model TrainingAssessment {
+  id                 Int      @id @default(autoincrement())
+  memberId           Int
+  trainingSessionId  Int
+  assessedBy         String
+  date               DateTime @default(now())
+  tumblingTechnique  Float
+  stuntExecution     Float
+  heightControl      Float
+  choreographyMemory Float
+  synchronization    Float
+  facialExpression   Float
+  sharpness          Float
+  flexibility        Float
+  strength           Float
+  endurance          Float
+  speed              Float
+  teamwork           Float
+  leadership         Float
+  coachability       Float
+  attitude           Float
+  overallScore       Float
+  performanceLevel   String
+  strengths          String?
+  areasToImprove     String?
+  goals              String?
+  privateNotes       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([memberId])
+  @@index([trainingSessionId])
+  @@index([date])
+  @@index([performanceLevel])
+}
+
+model Attendance {
+  id            Int      @id @default(autoincrement())
+  memberId      Int
+  date          DateTime @default(now())
+  type          String
+  status        String
+  notes         String?
+  trainingId    Int?
+  eventId       Int?
+  competitionId Int?
+  recordedBy    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  teamId        Int?
+  reason        String?
+  member        Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([date])
+  @@index([type])
+  @@index([status])
+  @@index([teamId])
+  @@index([memberId, date])
+  @@index([type, date])
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  memberId    Int
+  type        String
+  category    String
+  title       String
+  description String?
+  value       Float?
+  date        DateTime @default(now())
+  recordedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([type])
+  @@index([category])
+  @@index([date])
+}
+
+model Notification {
+  id                Int              @id @default(autoincrement())
+  memberId          Int
+  type              String
+  title             String
+  message           String
+  link              String?
+  isRead            Boolean          @default(false)
+  trainingSessionId Int?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  member            Member           @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  trainingSession   TrainingSession? @relation(fields: [trainingSessionId], references: [id])
+
+  @@index([memberId])
+  @@index([memberId, isRead])
+  @@index([trainingSessionId])
+  @@index([createdAt])
+}
+
+model Competition {
+  title        String
+  date         String
+  location     String
+  category     String
+  result       String?
+  status       String   @default("upcoming")
+  rank         Int?
+  score        Float?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  participants Member[] @relation("CompetitionParticipants")
+
+  @@index([date])
+  @@index([status])
+  @@index([category])
+  @@index([status, date])
+}
+
+model Event {
+  title        String
+  date         String
+  time         String
+  location     String
+  type         String
+  status       String   @default("upcoming")
+  description  String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  participants Member[] @relation("EventParticipations")
+
+  @@index([date])
+  @@index([status])
+  @@index([type])
+  @@index([status, date])
+}
+
+model Announcement {
+  id        Int       @id @default(autoincrement())
+  title     String    @db.VarChar(255)
+  content   String
+  category  String    @default("news") @db.VarChar(50)
+  priority  String    @default("normal") @db.VarChar(20)
+  authorId  Int
+  teamId    Int?
+  isPinned  Boolean   @default(false)
+  expiresAt DateTime? @db.Timestamp(6)
+  createdAt DateTime  @default(now()) @db.Timestamp(6)
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+  Member    Member    @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Team      Team?     @relation(fields: [teamId], references: [id], onUpdate: NoAction)
+}
