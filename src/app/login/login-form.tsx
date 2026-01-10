@@ -55,7 +55,7 @@ export function LoginForm() {
           <div className="text-center">
             <h1 className="text-2xl font-bold">MEMBER</h1>
             <p className="text-muted-foreground mt-1">
-              Melde dich mit deinem Namen an
+              Melde dich mit deinem Vornamen an
             </p>
           </div>
         </div>
@@ -74,8 +74,8 @@ export function LoginForm() {
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
                 type="text"
-                name="name"
-                placeholder="Vor- und Nachname"
+                name="firstName"
+                placeholder="Vorname"
                 required
                 className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
               />

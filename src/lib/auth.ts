@@ -29,21 +29,15 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-export async function login(name: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function login(firstName: string, password: string): Promise<{ success: boolean; error?: string }> {
   try {
-    // Finde das Mitglied über den Namen (firstName + lastName kombiniert)
+    // Finde das Mitglied über den Vornamen
     const member = await prisma.member.findFirst({
       where: {
-        OR: [
-          { name: name },
-          { firstName: name },
-          {
-            AND: [
-              { firstName: { contains: name.split(" ")[0], mode: "insensitive" } },
-              { lastName: { contains: name.split(" ").slice(1).join(" ") || "", mode: "insensitive" } },
-            ],
-          },
-        ],
+        firstName: {
+          equals: firstName,
+          mode: "insensitive",
+        },
         status: "active",
       },
       include: {
@@ -52,14 +46,14 @@ export async function login(name: string, password: string): Promise<{ success: 
     });
 
     if (!member) {
-      return { success: false, error: "Name oder Passwort falsch" };
+      return { success: false, error: "Vorname oder Passwort falsch" };
     }
 
     // Prüfe Passwort (falls vorhanden, sonst erstmaliger Login)
     if (member.passwordHash) {
       const isValid = await verifyPassword(password, member.passwordHash);
       if (!isValid) {
-        return { success: false, error: "Name oder Passwort falsch" };
+        return { success: false, error: "Vorname oder Passwort falsch" };
       }
     } else {
       // Erstes Login - setze das Passwort (gehasht mit bcrypt)
