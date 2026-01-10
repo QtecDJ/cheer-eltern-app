@@ -58,7 +58,7 @@ interface HomeContentProps {
     overallScore: number;
     performanceLevel: string;
     date: Date;
-  };
+  } | null;
   unreadNotifications: number;
   announcements: Array<{
     id: number;

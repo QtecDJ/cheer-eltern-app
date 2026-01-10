@@ -50,7 +50,7 @@ interface ProfileContentProps {
   latestAssessment?: {
     overallScore: number;
     performanceLevel: string;
-  };
+  } | null;
   teamMembers: TeamMember[];
 }
 
