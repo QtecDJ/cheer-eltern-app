@@ -107,15 +107,15 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const child = await getChildData(session.childId);
+  const child = await getChildData(session.id);
 
   if (!child) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         <div className="text-center">
-          <h1 className="text-xl font-semibold mb-2">Kein Kind gefunden</h1>
+          <h1 className="text-xl font-semibold mb-2">Mitglied nicht gefunden</h1>
           <p className="text-muted-foreground">
-            Bitte kontaktiere den Trainer, um dein Kind hinzuzufügen.
+            Bitte kontaktiere den Trainer.
           </p>
         </div>
       </div>

@@ -38,28 +38,28 @@ export default async function TrainingPage() {
     redirect("/login");
   }
 
-  const child = await prisma.member.findUnique({
+  const member = await prisma.member.findUnique({
     where: {
-      id: session.childId,
+      id: session.id,
     },
     include: {
       team: true,
     },
   });
 
-  if (!child || !child.teamId) {
+  if (!member || !member.teamId) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         <div className="text-center">
-          <h1 className="text-xl font-semibold mb-2">Kein Kind gefunden</h1>
+          <h1 className="text-xl font-semibold mb-2">Mitglied nicht gefunden</h1>
         </div>
       </div>
     );
   }
 
   const [trainings, attendances] = await Promise.all([
-    getTrainings(child.teamId),
-    getAttendanceByTraining(child.id),
+    getTrainings(member.teamId),
+    getAttendanceByTraining(member.id),
   ]);
 
   // Erstelle eine Map für schnellen Zugriff auf Anwesenheit
@@ -69,7 +69,7 @@ export default async function TrainingPage() {
 
   return (
     <TrainingContent
-      child={child}
+      member={member}
       trainings={trainings}
       attendanceMap={Object.fromEntries(attendanceMap)}
     />

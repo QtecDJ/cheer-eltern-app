@@ -23,7 +23,7 @@ import {
 import { respondToTraining, ResponseStatus } from "./actions";
 
 interface TrainingContentProps {
-  child: {
+  member: {
     id: number;
     firstName: string;
     team: {
@@ -227,7 +227,7 @@ function ResponseButtons({
 }
 
 export function TrainingContent({
-  child,
+  member,
   trainings,
   attendanceMap,
 }: TrainingContentProps) {
@@ -243,10 +243,10 @@ export function TrainingContent({
       <header className="mb-6 animate-fade-in">
         <h1 className="text-2xl font-bold">Training</h1>
         <p className="text-muted-foreground mt-1">
-          Trainingsplan für {child.firstName}
-          {child.team && (
+          Trainingsplan für {member.firstName}
+          {member.team && (
             <span className="ml-1">
-              · <span style={{ color: child.team.color || "#ec4899" }}>{child.team.name}</span>
+              · <span style={{ color: member.team.color || "#ec4899" }}>{member.team.name}</span>
             </span>
           )}
         </p>
@@ -346,7 +346,7 @@ export function TrainingContent({
                     {/* Zu-/Absage Buttons */}
                     <ResponseButtons
                       trainingId={training.id}
-                      memberId={child.id}
+                      memberId={member.id}
                       currentStatus={attendanceMap[training.id]}
                     />
                   </div>

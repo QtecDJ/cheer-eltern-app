@@ -2,15 +2,14 @@ import { cookies } from "next/headers";
 import { prisma } from "./db";
 import bcrypt from "bcryptjs";
 
-const SESSION_COOKIE = "eltern_session";
+const SESSION_COOKIE = "member_session";
 
 export interface SessionUser {
   id: number;
-  email: string;
+  name: string;
   firstName: string;
   lastName: string;
-  childId: number;
-  childName: string;
+  email: string | null;
   teamId: number | null;
   teamName: string | null;
 }
@@ -26,16 +25,25 @@ async function verifyPassword(inputPassword: string, storedHash: string): Promis
 }
 
 // Passwort hashen mit bcrypt
-async function hashPassword(password: string): Promise<string> {
+export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
 
-export async function login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+export async function login(name: string, password: string): Promise<{ success: boolean; error?: string }> {
   try {
-    // Finde den Elternteil über die E-Mail
+    // Finde das Mitglied über den Namen (firstName + lastName kombiniert)
     const member = await prisma.member.findFirst({
       where: {
-        email: email,
+        OR: [
+          { name: name },
+          { firstName: name },
+          {
+            AND: [
+              { firstName: { contains: name.split(" ")[0], mode: "insensitive" } },
+              { lastName: { contains: name.split(" ").slice(1).join(" ") || "", mode: "insensitive" } },
+            ],
+          },
+        ],
         status: "active",
       },
       include: {
@@ -44,14 +52,14 @@ export async function login(email: string, password: string): Promise<{ success:
     });
 
     if (!member) {
-      return { success: false, error: "E-Mail oder Passwort falsch" };
+      return { success: false, error: "Name oder Passwort falsch" };
     }
 
     // Prüfe Passwort (falls vorhanden, sonst erstmaliger Login)
     if (member.passwordHash) {
       const isValid = await verifyPassword(password, member.passwordHash);
       if (!isValid) {
-        return { success: false, error: "E-Mail oder Passwort falsch" };
+        return { success: false, error: "Name oder Passwort falsch" };
       }
     } else {
       // Erstes Login - setze das Passwort (gehasht mit bcrypt)
@@ -74,11 +82,10 @@ export async function login(email: string, password: string): Promise<{ success:
     // Erstelle Session
     const sessionData: SessionUser = {
       id: member.id,
-      email: member.email || "",
+      name: member.name,
       firstName: member.firstName,
       lastName: member.lastName,
-      childId: member.id,
-      childName: `${member.firstName} ${member.lastName}`,
+      email: member.email,
       teamId: member.teamId,
       teamName: member.team?.name || null,
     };
@@ -125,4 +132,20 @@ export async function requireAuth(): Promise<SessionUser> {
     throw new Error("Nicht eingeloggt");
   }
   return session;
+}
+
+// Session aktualisieren (z.B. nach Profil-Änderungen)
+export async function updateSession(updates: Partial<SessionUser>): Promise<void> {
+  const session = await getSession();
+  if (!session) return;
+  
+  const newSession = { ...session, ...updates };
+  const cookieStore = await cookies();
+  cookieStore.set(SESSION_COOKIE, JSON.stringify(newSession), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30,
+    path: "/",
+  });
 }

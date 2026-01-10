@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { loginAction } from "./actions";
-import { Loader2, Mail, Lock, AlertCircle } from "lucide-react";
+import { Loader2, User, Lock, AlertCircle } from "lucide-react";
 import Image from "next/image";
 
 function SubmitButton() {
@@ -46,16 +46,16 @@ export function LoginForm() {
           <div className="relative w-24 h-24">
             <Image
               src="/logo.png"
-              alt="Cheer Logo"
+              alt="Logo"
               fill
               className="object-contain"
               priority
             />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold">Cheer Eltern</h1>
+            <h1 className="text-2xl font-bold">MEMBER</h1>
             <p className="text-muted-foreground mt-1">
-              Melde dich an, um fortzufahren
+              Melde dich mit deinem Namen an
             </p>
           </div>
         </div>
@@ -71,11 +71,11 @@ export function LoginForm() {
 
           <div className="space-y-4">
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
-                type="email"
-                name="email"
-                placeholder="E-Mail Adresse"
+                type="text"
+                name="name"
+                placeholder="Vor- und Nachname"
                 required
                 className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
               />

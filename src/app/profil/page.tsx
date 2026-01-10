@@ -10,9 +10,9 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const child = await prisma.member.findUnique({
+  const member = await prisma.member.findUnique({
     where: {
-      id: session.childId,
+      id: session.id,
     },
     include: {
       team: true,
@@ -20,11 +20,11 @@ export default async function ProfilePage() {
     },
   });
 
-  if (!child) {
+  if (!member) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
         <div className="text-center">
-          <h1 className="text-xl font-semibold mb-2">Kein Kind gefunden</h1>
+          <h1 className="text-xl font-semibold mb-2">Mitglied nicht gefunden</h1>
         </div>
       </div>
     );
@@ -32,17 +32,17 @@ export default async function ProfilePage() {
 
   // Lade neueste Bewertung separat
   const latestAssessment = await prisma.trainingAssessment.findFirst({
-    where: { memberId: child.id },
+    where: { memberId: member.id },
     orderBy: { date: "desc" },
   });
 
-  // Lade Team-Mitglieder (ohne das aktuelle Kind)
-  const teamMembers = child.teamId
+  // Lade Team-Mitglieder (ohne das aktuelle Mitglied)
+  const teamMembers = member.teamId
     ? await prisma.member.findMany({
         where: {
-          teamId: child.teamId,
+          teamId: member.teamId,
           status: "active",
-          id: { not: child.id },
+          id: { not: member.id },
         },
         orderBy: { firstName: "asc" },
         select: {
@@ -57,14 +57,14 @@ export default async function ProfilePage() {
     : [];
 
   // Berechne Statistiken
-  const totalTrainings = child.attendances.length;
-  const presentCount = child.attendances.filter((a) => a.status === "present").length;
+  const totalTrainings = member.attendances.length;
+  const presentCount = member.attendances.filter((a) => a.status === "present").length;
   const attendanceRate =
     totalTrainings > 0 ? Math.round((presentCount / totalTrainings) * 100) : 0;
 
   return (
     <ProfileContent
-      child={child}
+      member={member}
       attendanceRate={attendanceRate}
       totalTrainings={totalTrainings}
       latestAssessment={latestAssessment}
