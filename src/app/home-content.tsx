@@ -258,9 +258,13 @@ export function HomeContent({
         ) : (
           <div className="space-y-3">
             {upcomingTrainings.map((training, index) => (
-              <Card
+              <a
                 key={training.id}
-                className={`animate-slide-up stagger-${index + 1}`}
+                href="/training"
+                className={`block animate-slide-up stagger-${index + 1}`}
+              >
+              <Card
+                className="hover:bg-muted/50 transition-colors cursor-pointer"
               >
                 <div className="flex items-start gap-3">
                   {/* Datum Badge */}
@@ -302,6 +306,7 @@ export function HomeContent({
                   </div>
                 </div>
               </Card>
+              </a>
             ))}
           </div>
         )}

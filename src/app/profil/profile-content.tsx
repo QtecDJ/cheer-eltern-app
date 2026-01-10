@@ -515,7 +515,7 @@ export function ProfileContent({
           </button>
         </form>
         <p className="text-xs text-muted-foreground">
-          Member App · Version 1.1
+          Member App · Version 1.1.1
         </p>
       </footer>
     </div>

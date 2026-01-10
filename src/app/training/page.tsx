@@ -9,7 +9,7 @@ async function getTrainings(teamId: number) {
       teamId,
       isArchived: false,
     },
-    orderBy: { date: "desc" },
+    orderBy: { date: "asc" },
     take: 20,
     include: {
       team: true,
