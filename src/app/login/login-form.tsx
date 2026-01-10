@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { loginAction } from "./actions";
 import { Loader2, User, Lock, AlertCircle } from "lucide-react";
 import Image from "next/image";
+import { InstallPrompt } from "@/components/install-prompt";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -103,6 +104,9 @@ export function LoginForm() {
           Verwende die E-Mail deines Kindes.
         </p>
       </div>
+      
+      {/* PWA Install Prompt */}
+      <InstallPrompt />
     </div>
   );
 }
