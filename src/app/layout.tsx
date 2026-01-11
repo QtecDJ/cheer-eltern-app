@@ -4,6 +4,8 @@ import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
 import { getSession } from "@/lib/auth";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
+import { InstallPrompt } from "@/components/install-prompt";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -111,9 +113,12 @@ export default async function RootLayout({
         className={`${inter.variable} font-sans antialiased bg-slate-900 text-white`}
       >
         <ServiceWorkerRegistration />
-        <main className={session ? "min-h-screen pb-20 safe-area-inset" : "min-h-screen safe-area-inset"}>
-          {children}
-        </main>
+        <InstallPrompt />
+        <PullToRefresh>
+          <main className={session ? "min-h-screen pb-20 safe-area-inset" : "min-h-screen safe-area-inset"}>
+            {children}
+          </main>
+        </PullToRefresh>
         {session && <BottomNav />}
       </body>
     </html>

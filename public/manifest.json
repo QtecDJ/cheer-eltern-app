@@ -5,14 +5,21 @@
   "start_url": "/",
   "id": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "orientation": "portrait",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
   "background_color": "#0f172a",
   "theme_color": "#ec4899",
   "scope": "/",
   "lang": "de",
   "dir": "ltr",
-  "categories": ["lifestyle", "sports"],
+  "categories": ["lifestyle", "sports", "health"],
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "handle_links": "preferred",
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
   "icons": [
     {
       "src": "/icons/icon-72.png",
@@ -67,16 +74,47 @@
     {
       "name": "Training",
       "short_name": "Training",
+      "description": "Trainingsübersicht und Anmeldung",
       "url": "/training",
       "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
     },
     {
       "name": "Events",
       "short_name": "Events",
+      "description": "Veranstaltungen und Termine",
       "url": "/events",
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Profil",
+      "short_name": "Profil",
+      "description": "Dein Profil und Einstellungen",
+      "url": "/profil",
       "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
     }
   ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Startseite der Member App"
+    },
+    {
+      "src": "/screenshots/training.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Trainingsübersicht"
+    }
+  ],
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+member",
+      "url": "/?action=%s"
+    }
+  ]
 }
