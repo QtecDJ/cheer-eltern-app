@@ -56,7 +56,7 @@ export function LoginForm() {
           <div className="text-center">
             <h1 className="text-2xl font-bold">MEMBER</h1>
             <p className="text-muted-foreground mt-1">
-              Melde dich mit deinem Vornamen an
+              Melde dich mit Vor- und Nachnamen an
             </p>
           </div>
         </div>
@@ -78,6 +78,19 @@ export function LoginForm() {
                 name="firstName"
                 placeholder="Vorname"
                 required
+                autoComplete="given-name"
+                className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <input
+                type="text"
+                name="lastName"
+                placeholder="Nachname"
+                required
+                autoComplete="family-name"
                 className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
               />
             </div>
@@ -90,6 +103,7 @@ export function LoginForm() {
                 placeholder="Passwort"
                 required
                 minLength={4}
+                autoComplete="current-password"
                 className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
               />
             </div>
@@ -97,12 +111,6 @@ export function LoginForm() {
 
           <SubmitButton />
         </form>
-
-        <p className="text-center text-xs text-muted-foreground">
-          Beim ersten Login wird dein Passwort gesetzt.
-          <br />
-          Verwende die E-Mail deines Kindes.
-        </p>
       </div>
       
       {/* PWA Install Prompt */}

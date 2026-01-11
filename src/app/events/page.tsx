@@ -9,6 +9,16 @@ async function getEvents() {
     where: {
       status: { in: ["upcoming", "completed"] },
     },
+    include: {
+      participants: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          photoUrl: true,
+        },
+      },
+    },
     orderBy: { date: "asc" },
     take: 20,
   });
@@ -20,6 +30,16 @@ async function getCompetitions() {
   const competitions = await prisma.competition.findMany({
     where: {
       status: { in: ["upcoming", "completed"] },
+    },
+    include: {
+      participants: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          photoUrl: true,
+        },
+      },
     },
     orderBy: { date: "asc" },
     take: 20,
@@ -70,6 +90,14 @@ async function getEventAnnouncements(teamId?: number, memberId?: number) {
             },
           },
           PollVote: true,
+        },
+      },
+      rsvps: {
+        select: {
+          id: true,
+          memberId: true,
+          status: true,
+          respondedAt: true,
         },
       },
     },
@@ -126,6 +154,11 @@ async function getEventAnnouncements(teamId?: number, memberId?: number) {
       };
     }
 
+    // RSVP-Daten berechnen
+    const acceptedCount = announcement.rsvps.filter((r) => r.status === "accepted").length;
+    const declinedCount = announcement.rsvps.filter((r) => r.status === "declined").length;
+    const myRsvp = announcement.rsvps.find((r) => r.memberId === memberId);
+
     return {
       id: announcement.id,
       title: announcement.title,
@@ -133,9 +166,15 @@ async function getEventAnnouncements(teamId?: number, memberId?: number) {
       category: announcement.category,
       priority: announcement.priority,
       isPinned: announcement.isPinned,
+      allowRsvp: announcement.allowRsvp,
       createdAt: announcement.createdAt,
       expiresAt: announcement.expiresAt,
       poll: pollData,
+      rsvp: {
+        acceptedCount,
+        declinedCount,
+        myStatus: myRsvp?.status ?? null,
+      },
     };
   });
 }

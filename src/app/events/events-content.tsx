@@ -6,6 +6,17 @@ import { Poll, PollData } from "@/components/ui/poll";
 import { cn, getRelativeDate } from "@/lib/utils";
 import { votePoll, removePollVote } from "./poll-actions";
 import {
+  acceptEvent,
+  declineEvent,
+  acceptCompetition,
+  declineCompetition,
+} from "./rsvp-actions";
+import {
+  acceptAnnouncement,
+  declineAnnouncement,
+  removeAnnouncementRSVP,
+} from "./announcement-rsvp-actions";
+import {
   CalendarDays,
   Clock,
   MapPin,
@@ -14,7 +25,18 @@ import {
   Sparkles,
   Bell,
   Star,
+  Check,
+  X,
+  Users,
 } from "lucide-react";
+import { useState, useTransition } from "react";
+
+interface Participant {
+  id: number;
+  firstName: string;
+  lastName: string;
+  photoUrl: string | null;
+}
 
 interface Event {
   id: number;
@@ -25,6 +47,7 @@ interface Event {
   type: string;
   status: string;
   description: string | null;
+  participants: Participant[];
 }
 
 interface Competition {
@@ -36,6 +59,7 @@ interface Competition {
   status: string;
   rank: number | null;
   score: number | null;
+  participants: Participant[];
 }
 
 interface EventAnnouncement {
@@ -45,9 +69,15 @@ interface EventAnnouncement {
   category: string;
   priority: string;
   isPinned: boolean;
+  allowRsvp: boolean | null;
   createdAt: Date;
   expiresAt: Date | null;
   poll: PollData | null;
+  rsvp: {
+    acceptedCount: number;
+    declinedCount: number;
+    myStatus: string | null;
+  };
 }
 
 interface EventsContentProps {
@@ -59,6 +89,8 @@ interface EventsContentProps {
 
 export function EventsContent({ events, competitions, eventAnnouncements = [], memberId }: EventsContentProps) {
   const today = new Date().toISOString().split("T")[0];
+  const [isPending, startTransition] = useTransition();
+  const [loadingItem, setLoadingItem] = useState<string | null>(null);
 
   // Handler für Poll-Abstimmung
   const handleVote = async (pollId: number, optionIds: number[]) => {
@@ -68,6 +100,90 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
   // Handler für Stimme zurückziehen
   const handleRemoveVote = async (pollId: number) => {
     await removePollVote(pollId, memberId);
+  };
+
+  // Handler für Event-Zusage
+  const handleAcceptEvent = (eventId: number) => {
+    setLoadingItem(`event-${eventId}`);
+    startTransition(async () => {
+      const result = await acceptEvent(eventId, memberId);
+      if (!result.success) {
+        alert(result.error);
+      }
+      setLoadingItem(null);
+    });
+  };
+
+  // Handler für Event-Absage
+  const handleDeclineEvent = (eventId: number) => {
+    setLoadingItem(`event-${eventId}`);
+    startTransition(async () => {
+      const result = await declineEvent(eventId, memberId);
+      if (!result.success) {
+        alert(result.error);
+      }
+      setLoadingItem(null);
+    });
+  };
+
+  // Handler für Competition-Zusage
+  const handleAcceptCompetition = (competitionId: number) => {
+    setLoadingItem(`competition-${competitionId}`);
+    startTransition(async () => {
+      const result = await acceptCompetition(competitionId, memberId);
+      if (!result.success) {
+        alert(result.error);
+      }
+      setLoadingItem(null);
+    });
+  };
+
+  // Handler für Competition-Absage
+  const handleDeclineCompetition = (competitionId: number) => {
+    setLoadingItem(`competition-${competitionId}`);
+    startTransition(async () => {
+      const result = await declineCompetition(competitionId, memberId);
+      if (!result.success) {
+        alert(result.error);
+      }
+      setLoadingItem(null);
+    });
+  };
+
+  // Handler für Announcement-Zusage
+  const handleAcceptAnnouncement = (announcementId: number) => {
+    setLoadingItem(`announcement-${announcementId}`);
+    startTransition(async () => {
+      const result = await acceptAnnouncement(announcementId, memberId);
+      if (!result.success) {
+        alert(result.error);
+      }
+      setLoadingItem(null);
+    });
+  };
+
+  // Handler für Announcement-Absage
+  const handleDeclineAnnouncement = (announcementId: number) => {
+    setLoadingItem(`announcement-${announcementId}`);
+    startTransition(async () => {
+      const result = await declineAnnouncement(announcementId, memberId);
+      if (!result.success) {
+        alert(result.error);
+      }
+      setLoadingItem(null);
+    });
+  };
+
+  // Handler für Announcement-RSVP zurückziehen
+  const handleRemoveAnnouncementRSVP = (announcementId: number) => {
+    setLoadingItem(`announcement-${announcementId}`);
+    startTransition(async () => {
+      const result = await removeAnnouncementRSVP(announcementId, memberId);
+      if (!result.success) {
+        alert(result.error);
+      }
+      setLoadingItem(null);
+    });
   };
 
   // Kombiniere und sortiere alle Termine
@@ -112,7 +228,11 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
               </h2>
 
               <div className="space-y-5">
-                {eventAnnouncements.map((announcement) => (
+                {eventAnnouncements.map((announcement) => {
+                  const isLoading = loadingItem === `announcement-${announcement.id}`;
+                  const hasExpired = announcement.expiresAt && new Date(announcement.expiresAt) < new Date();
+
+                  return (
                   <article
                     key={`announcement-${announcement.id}`}
                     className={cn(
@@ -163,6 +283,83 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                         />
                       )}
 
+                      {/* RSVP-Sektion (Zu-/Absagen) */}
+                      {announcement.allowRsvp && (
+                        <div className="mt-5 pt-4 border-t border-border/60">
+                          <div className="flex items-center justify-between gap-3 flex-wrap">
+                            {/* RSVP-Statistik */}
+                            <div className="flex items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1.5">
+                                <Check className="w-4 h-4 text-emerald-500" />
+                                <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                                  {announcement.rsvp.acceptedCount} Zusagen
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <X className="w-4 h-4 text-red-500" />
+                                <span className="font-medium text-red-600 dark:text-red-400">
+                                  {announcement.rsvp.declinedCount} Absagen
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* RSVP-Buttons */}
+                            {!hasExpired && (
+                              <div className="flex items-center gap-2">
+                                {announcement.rsvp.myStatus === "accepted" ? (
+                                  <>
+                                    <Badge variant="success" size="sm" className="gap-1">
+                                      <Check className="w-3 h-3" />
+                                      Zugesagt
+                                    </Badge>
+                                    <button
+                                      onClick={() => handleRemoveAnnouncementRSVP(announcement.id)}
+                                      disabled={isLoading || isPending}
+                                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {isLoading ? "..." : "Zurückziehen"}
+                                    </button>
+                                  </>
+                                ) : announcement.rsvp.myStatus === "declined" ? (
+                                  <>
+                                    <Badge variant="danger" size="sm" className="gap-1">
+                                      <X className="w-3 h-3" />
+                                      Abgesagt
+                                    </Badge>
+                                    <button
+                                      onClick={() => handleRemoveAnnouncementRSVP(announcement.id)}
+                                      disabled={isLoading || isPending}
+                                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {isLoading ? "..." : "Zurückziehen"}
+                                    </button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() => handleAcceptAnnouncement(announcement.id)}
+                                      disabled={isLoading || isPending}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                      {isLoading ? "..." : "Zusagen"}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeclineAnnouncement(announcement.id)}
+                                      disabled={isLoading || isPending}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                      {isLoading ? "..." : "Absagen"}
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Meta-Info Footer */}
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-5 pt-4 border-t border-border/60 text-xs text-muted-foreground">
                         <span>
@@ -183,7 +380,8 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                       </div>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}
@@ -197,7 +395,13 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
               </h2>
 
               <div className="space-y-4">
-                {upcomingItems.map((item, index) => (
+                {upcomingItems.map((item, index) => {
+                  const isParticipant = item.participants?.some((p) => p.id === memberId);
+                  const participantCount = item.participants?.length || 0;
+                  const isLoading = loadingItem === `${item.itemType}-${item.id}`;
+                  const isPastEvent = item.date < today;
+
+                  return (
                   <article
                     key={`${item.itemType}-${item.id}`}
                     className={cn(
@@ -205,84 +409,139 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                       index === 0 && "ring-2 ring-primary/20 shadow-lg shadow-primary/5"
                     )}
                   >
-                    <div className="flex gap-4 p-4">
-                      {/* Datum Badge - größer und prominenter */}
-                      <div
-                        className={cn(
-                          "flex flex-col items-center justify-center w-16 h-16 rounded-xl shrink-0 font-bold",
-                          item.itemType === "competition"
-                            ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400"
-                            : "bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-600 dark:text-purple-400"
-                        )}
-                      >
-                        <span className="text-[11px] font-semibold uppercase tracking-wide">
-                          {new Date(item.date).toLocaleDateString("de-DE", {
-                            weekday: "short",
-                          })}
-                        </span>
-                        <span className="text-2xl font-bold leading-none">
-                          {new Date(item.date).getDate()}
-                        </span>
-                        <span className="text-[10px] font-medium uppercase mt-0.5">
-                          {new Date(item.date).toLocaleDateString("de-DE", {
-                            month: "short",
-                          })}
-                        </span>
+                    <div className="p-4">
+                      <div className="flex gap-4">
+                        {/* Datum Badge - größer und prominenter */}
+                        <div
+                          className={cn(
+                            "flex flex-col items-center justify-center w-16 h-16 rounded-xl shrink-0 font-bold",
+                            item.itemType === "competition"
+                              ? "bg-gradient-to-br from-amber-500/20 to-orange-500/20 text-amber-600 dark:text-amber-400"
+                              : "bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-600 dark:text-purple-400"
+                          )}
+                        >
+                          <span className="text-[11px] font-semibold uppercase tracking-wide">
+                            {new Date(item.date).toLocaleDateString("de-DE", {
+                              weekday: "short",
+                            })}
+                          </span>
+                          <span className="text-2xl font-bold leading-none">
+                            {new Date(item.date).getDate()}
+                          </span>
+                          <span className="text-[10px] font-medium uppercase mt-0.5">
+                            {new Date(item.date).toLocaleDateString("de-DE", {
+                              month: "short",
+                            })}
+                          </span>
+                        </div>
+
+                        <div className="flex-1 min-w-0 py-1">
+                          {/* Titel und Badge */}
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {item.itemType === "competition" ? (
+                                <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
+                              ) : (
+                                <PartyPopper className="w-5 h-5 text-purple-500 shrink-0" />
+                              )}
+                              <h3 className="text-base font-bold truncate">
+                                {item.title}
+                              </h3>
+                            </div>
+                            <Badge
+                              variant={item.itemType === "competition" ? "warning" : "default"}
+                              size="sm"
+                              className="shrink-0"
+                            >
+                              {getRelativeDate(item.date)}
+                            </Badge>
+                          </div>
+
+                          {/* Details */}
+                          <div className="space-y-1.5">
+                            {item.time && item.time !== "TBA" && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Clock className="w-4 h-4 shrink-0" />
+                                <span>{item.time} Uhr</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <MapPin className="w-4 h-4 shrink-0" />
+                              <span className="truncate">{item.location}</span>
+                            </div>
+                          </div>
+
+                          {/* Beschreibung */}
+                          {item.itemType === "event" && item.description && (
+                            <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
+                              {item.description}
+                            </p>
+                          )}
+
+                          {/* Kategorie Badge */}
+                          {item.itemType === "competition" && (
+                            <Badge variant="outline" size="sm" className="mt-3">
+                              {(item as Competition).category}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex-1 min-w-0 py-1">
-                        {/* Titel und Badge */}
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {item.itemType === "competition" ? (
-                              <Trophy className="w-5 h-5 text-amber-500 shrink-0" />
-                            ) : (
-                              <PartyPopper className="w-5 h-5 text-purple-500 shrink-0" />
-                            )}
-                            <h3 className="text-base font-bold truncate">
-                              {item.title}
-                            </h3>
+                      {/* Teilnehmer und Zu-/Absage Section */}
+                      <div className="mt-4 pt-4 border-t border-border/60">
+                        <div className="flex items-center justify-between gap-3">
+                          {/* Teilnehmer-Anzeige */}
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Users className="w-4 h-4 shrink-0" />
+                            <span className="font-medium">
+                              {participantCount} {participantCount === 1 ? "Teilnehmer" : "Teilnehmer"}
+                            </span>
                           </div>
-                          <Badge
-                            variant={item.itemType === "competition" ? "warning" : "default"}
-                            size="sm"
-                            className="shrink-0"
-                          >
-                            {getRelativeDate(item.date)}
-                          </Badge>
-                        </div>
 
-                        {/* Details */}
-                        <div className="space-y-1.5">
-                          {item.time && item.time !== "TBA" && (
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Clock className="w-4 h-4 shrink-0" />
-                              <span>{item.time} Uhr</span>
+                          {/* Zu-/Absage Buttons - nur für anstehende Events */}
+                          {!isPastEvent && (
+                            <div className="flex items-center gap-2">
+                              {isParticipant ? (
+                                <>
+                                  <Badge variant="success" size="sm" className="gap-1">
+                                    <Check className="w-3 h-3" />
+                                    Zugesagt
+                                  </Badge>
+                                  <button
+                                    onClick={() =>
+                                      item.itemType === "event"
+                                        ? handleDeclineEvent(item.id)
+                                        : handleDeclineCompetition(item.id)
+                                    }
+                                    disabled={isLoading || isPending}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                    {isLoading ? "..." : "Absagen"}
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() =>
+                                    item.itemType === "event"
+                                      ? handleAcceptEvent(item.id)
+                                      : handleAcceptCompetition(item.id)
+                                  }
+                                  disabled={isLoading || isPending}
+                                  className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  {isLoading ? "..." : "Zusagen"}
+                                </button>
+                              )}
                             </div>
                           )}
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <MapPin className="w-4 h-4 shrink-0" />
-                            <span className="truncate">{item.location}</span>
-                          </div>
                         </div>
-
-                        {/* Beschreibung */}
-                        {item.itemType === "event" && item.description && (
-                          <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
-                            {item.description}
-                          </p>
-                        )}
-
-                        {/* Kategorie Badge */}
-                        {item.itemType === "competition" && (
-                          <Badge variant="outline" size="sm" className="mt-3">
-                            {(item as Competition).category}
-                          </Badge>
-                        )}
                       </div>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}

@@ -5,13 +5,14 @@ import { redirect } from "next/navigation";
 
 export async function loginAction(formData: FormData) {
   const firstName = formData.get("firstName") as string;
+  const lastName = formData.get("lastName") as string;
   const password = formData.get("password") as string;
 
-  if (!firstName || !password) {
-    return { success: false, error: "Vorname und Passwort sind erforderlich" };
+  if (!firstName || !lastName || !password) {
+    return { success: false, error: "Vorname, Nachname und Passwort sind erforderlich" };
   }
 
-  const result = await login(firstName, password);
+  const result = await login(firstName, lastName, password);
   
   if (result.success) {
     redirect("/");

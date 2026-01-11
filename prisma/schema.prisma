@@ -7,57 +7,59 @@ datasource db {
 }
 
 model Team {
-  id           Int               @id @default(autoincrement())
-  name         String            @unique
-  description  String?
-  color        String?
-  status       String            @default("active")
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  Announcement Announcement[]
-  members      Member[]
-  trainings    TrainingSession[]
+  id               Int                @id @default(autoincrement())
+  name             String             @unique
+  description      String?
+  color            String?
+  status           String             @default("active")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  Announcement     Announcement[]
+  AnnouncementTeam AnnouncementTeam[]
+  members          Member[]
+  trainings        TrainingSession[]
 
   @@index([status])
 }
 
 model Member {
-  name             String
-  firstName        String
-  lastName         String
-  email            String?           @unique
-  phone            String?
-  birthDate        String
-  role             String
-  status           String            @default("active")
-  joinDate         String
-  address          String?
-  emergencyContact String?
-  emergencyPhone   String?
-  emergencyContact2 String?
-  emergencyPhone2   String?
+  name              String
+  firstName         String
+  lastName          String
+  email             String?            @unique
+  phone             String?
+  birthDate         String
+  role              String
+  status            String             @default("active")
+  joinDate          String
+  address           String?
+  emergencyContact  String?
+  emergencyPhone    String?
+  photoUrl          String?
+  notes             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  teamId            Int?
+  id                Int                @id @default(autoincrement())
+  lastLogin         DateTime?
+  passwordHash      String?
+  userRole          String?            @default("coach")
   allergies         String?
   diseases          String?
+  emergencyContact2 String?
+  emergencyPhone2   String?
   medications       String?
-  photoUrl         String?
-  notes            String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  teamId           Int?
-  id               Int               @id @default(autoincrement())
-  lastLogin        DateTime?
-  passwordHash     String?
-  userRole         String?           @default("coach")
-  activities       Activity[]
-  Announcement     Announcement[]
-  attendances      Attendance[]
-  LoginLog         LoginLog[]
-  team             Team?             @relation(fields: [teamId], references: [id])
-  notifications    Notification[]
-  PollVote         PollVote[]
-  competitions     Competition[]     @relation("CompetitionParticipants")
-  events           Event[]           @relation("EventParticipations")
-  trainings        TrainingSession[] @relation("TrainingParticipants")
+  activities        Activity[]
+  Announcement      Announcement[]
+  AnnouncementRSVP  AnnouncementRSVP[]
+  attendances       Attendance[]
+  LoginLog          LoginLog[]
+  team              Team?              @relation(fields: [teamId], references: [id])
+  notifications     Notification[]
+  PollVote          PollVote[]
+  competitions      Competition[]      @relation("CompetitionParticipants")
+  events            Event[]            @relation("EventParticipations")
+  trainings         TrainingSession[]  @relation("TrainingParticipants")
 
   @@index([email])
   @@index([status])
@@ -239,20 +241,37 @@ model Event {
 }
 
 model Announcement {
-  id        Int       @id @default(autoincrement())
-  title     String    @db.VarChar(255)
-  content   String
-  category  String    @default("news") @db.VarChar(50)
-  priority  String    @default("normal") @db.VarChar(20)
-  authorId  Int
-  teamId    Int?
-  isPinned  Boolean   @default(false)
-  expiresAt DateTime? @db.Timestamp(6)
-  createdAt DateTime  @default(now()) @db.Timestamp(6)
-  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamp(6)
-  Member    Member    @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  Team      Team?     @relation(fields: [teamId], references: [id], onUpdate: NoAction)
-  Poll      Poll[]
+  id               Int                @id @default(autoincrement())
+  title            String             @db.VarChar(255)
+  content          String
+  category         String             @default("news") @db.VarChar(50)
+  priority         String             @default("normal") @db.VarChar(20)
+  authorId         Int
+  teamId           Int?
+  isPinned         Boolean            @default(false)
+  expiresAt        DateTime?          @db.Timestamp(6)
+  createdAt        DateTime           @default(now()) @db.Timestamp(6)
+  updatedAt        DateTime           @default(now()) @updatedAt @db.Timestamp(6)
+  allowRsvp        Boolean?           @default(false)
+  Member           Member             @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Team             Team?              @relation(fields: [teamId], references: [id], onUpdate: NoAction)
+  rsvps            AnnouncementRSVP[]
+  AnnouncementTeam AnnouncementTeam[]
+  Poll             Poll[]
+}
+
+model AnnouncementRSVP {
+  id             Int          @id @default(autoincrement())
+  announcementId Int
+  memberId       Int
+  status         String       @db.VarChar(20)
+  respondedAt    DateTime?    @default(now()) @db.Timestamp(6)
+  Announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Member         Member       @relation(fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([announcementId, memberId])
+  @@index([announcementId], map: "idx_announcement_rsvp_announcement")
+  @@index([memberId], map: "idx_announcement_rsvp_member")
 }
 
 model LoginLog {
@@ -299,4 +318,17 @@ model PollVote {
   Poll       Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([pollId, optionId, memberId])
+}
+
+model AnnouncementTeam {
+  id             Int          @id @default(autoincrement())
+  announcementId Int
+  teamId         Int
+  createdAt      DateTime?    @default(now()) @db.Timestamp(6)
+  Announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Team           Team         @relation(fields: [teamId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([announcementId, teamId])
+  @@index([announcementId], map: "idx_announcement_team_announcement")
+  @@index([teamId], map: "idx_announcement_team_team")
 }
