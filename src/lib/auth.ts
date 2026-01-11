@@ -12,6 +12,12 @@ export interface SessionUser {
   email: string | null;
   teamId: number | null;
   teamName: string | null;
+  userRole: string | null;
+}
+
+// Hilfsfunktion zum Prüfen ob User Admin oder Trainer ist
+export function isAdminOrTrainer(userRole: string | null): boolean {
+  return userRole === "admin" || userRole === "trainer" || userRole === "coach";
 }
 
 // Passwort-Vergleich: unterstützt bcrypt-Hashes und Klartext-Passwörter
@@ -82,6 +88,7 @@ export async function login(firstName: string, password: string): Promise<{ succ
       email: member.email,
       teamId: member.teamId,
       teamName: member.team?.name || null,
+      userRole: member.userRole || null,
     };
 
     const cookieStore = await cookies();

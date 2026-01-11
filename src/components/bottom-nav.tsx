@@ -3,24 +3,35 @@
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, CalendarDays, User } from "lucide-react";
+import { Home, Calendar, CalendarDays, User, ClipboardList } from "lucide-react";
 
-const navItems = [
-  { href: "/", icon: Home, label: "Home" },
-  { href: "/training", icon: Calendar, label: "Training" },
-  { href: "/events", icon: CalendarDays, label: "Events" },
-  { href: "/profil", icon: User, label: "Profil" },
-];
+const iconMap = {
+  Home,
+  Calendar,
+  CalendarDays,
+  User,
+  ClipboardList,
+};
 
-export function BottomNav() {
+export interface NavItem {
+  href: string;
+  icon: keyof typeof iconMap;
+  label: string;
+}
+
+interface BottomNavProps {
+  items: NavItem[];
+}
+
+export function BottomNav({ items }: BottomNavProps) {
   const pathname = usePathname();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t border-border safe-bottom">
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const isActive = pathname === item.href;
-          const Icon = item.icon;
+          const Icon = iconMap[item.icon];
 
           return (
             <Link

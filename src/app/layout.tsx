@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { BottomNav } from "@/components/bottom-nav";
+import { BottomNav, type NavItem } from "@/components/bottom-nav";
 import { getSession } from "@/lib/auth";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { InstallPrompt } from "@/components/install-prompt";
 import { PullToRefresh } from "@/components/pull-to-refresh";
+import { prisma } from "@/lib/db";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -95,6 +96,28 @@ export default async function RootLayout({
 }>) {
   const session = await getSession();
   
+  // Hole userRole aus DB für Navigation
+  let userRole: string | null = null;
+  if (session) {
+    const member = await prisma.member.findUnique({
+      where: { id: session.id },
+      select: { userRole: true },
+    });
+    userRole = member?.userRole || null;
+  }
+  
+  // Nav-Items basierend auf Rolle erstellen (serverseitig)
+  const isAdminOrTrainer = userRole === "admin" || userRole === "trainer" || userRole === "coach";
+  const navItems: NavItem[] = [
+    { href: "/", icon: "Home", label: "Home" },
+    { href: "/training", icon: "Calendar", label: "Training" },
+    { href: "/events", icon: "CalendarDays", label: "Events" },
+  ];
+  if (isAdminOrTrainer) {
+    navItems.push({ href: "/info", icon: "ClipboardList", label: "Info" });
+  }
+  navItems.push({ href: "/profil", icon: "User", label: "Profil" });
+  
   return (
     <html lang="de">
       <head>
@@ -119,7 +142,7 @@ export default async function RootLayout({
             {children}
           </main>
         </PullToRefresh>
-        {session && <BottomNav />}
+        {session && <BottomNav items={navItems} />}
       </body>
     </html>
   );
