@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 import { EventsContent } from "./events-content";
 import { PollData } from "@/components/ui/poll";
 
+// Revalidate every 30 seconds for events
+export const revalidate = 30;
+
 async function getEvents() {
   const events = await prisma.event.findMany({
     where: {
@@ -76,7 +79,9 @@ async function getEventAnnouncements(teamId?: number, memberId?: number) {
             orderBy: { order: "asc" },
             include: {
               PollVote: {
-                include: {
+                select: {
+                  id: true,
+                  memberId: true,
                   Member: {
                     select: {
                       id: true,
@@ -89,7 +94,12 @@ async function getEventAnnouncements(teamId?: number, memberId?: number) {
               },
             },
           },
-          PollVote: true,
+          PollVote: {
+            select: {
+              id: true,
+              memberId: true,
+            },
+          },
         },
       },
       rsvps: {
@@ -97,7 +107,6 @@ async function getEventAnnouncements(teamId?: number, memberId?: number) {
           id: true,
           memberId: true,
           status: true,
-          respondedAt: true,
         },
       },
     },

@@ -3,6 +3,9 @@ import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { InfoContent } from "./info-content";
 
+// Revalidate every 5 minutes
+export const revalidate = 300;
+
 export default async function InfoPage() {
   const session = await getSession();
   
@@ -39,7 +42,21 @@ export default async function InfoPage() {
       // Team-Filter für Trainer
       ...(isAdmin ? {} : { teamId: trainerTeamId }),
     },
-    include: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      name: true,
+      birthDate: true,
+      photoUrl: true,
+      emergencyContact: true,
+      emergencyPhone: true,
+      emergencyContact2: true,
+      emergencyPhone2: true,
+      allergies: true,
+      diseases: true,
+      medications: true,
+      teamId: true,
       team: {
         select: {
           id: true,

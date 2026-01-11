@@ -92,6 +92,9 @@ const nextConfig: NextConfig = {
   experimental: {
     // Optimierte Package-Imports
   },
+  
+  // Komprimierung aktivieren
+  compress: true,
 };
 
 export default nextConfig;

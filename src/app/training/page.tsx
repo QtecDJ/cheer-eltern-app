@@ -3,6 +3,9 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { TrainingContent } from "./training-content";
 
+// Revalidate every 120 seconds
+export const revalidate = 120;
+
 async function getTrainings(teamId: number) {
   const trainings = await prisma.trainingSession.findMany({
     where: {
@@ -12,7 +15,13 @@ async function getTrainings(teamId: number) {
     orderBy: { date: "asc" },
     take: 20,
     include: {
-      team: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+        },
+      },
     },
   });
 
@@ -26,6 +35,13 @@ async function getAttendanceByTraining(memberId: number) {
       type: "training",
     },
     orderBy: { date: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      trainingId: true,
+      status: true,
+      date: true,
+    },
   });
 
   return attendances;
@@ -43,7 +59,13 @@ export default async function TrainingPage() {
       id: session.id,
     },
     include: {
-      team: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+        },
+      },
     },
   });
 

@@ -1,8 +1,8 @@
-// Member App Service Worker v1.3.0
+// Member App Service Worker v1.4.0
 // Entwickelt von ICA-Dev Kai Püttmann
 // Moderne PWA mit verbessertem Caching
 
-const SW_VERSION = '1.3.0';
+const SW_VERSION = '1.4.0';
 const CACHE_NAME = `member-app-v${SW_VERSION}`;
 const STATIC_CACHE = `member-static-v${SW_VERSION}`;
 const DYNAMIC_CACHE = `member-dynamic-v${SW_VERSION}`;
@@ -27,12 +27,12 @@ const STATIC_ASSETS = [
 
 // Cache-Konfiguration
 const CACHE_CONFIG = {
-  maxDynamicSize: 50,
-  maxApiSize: 30,
-  maxImageSize: 100,
-  apiCacheDuration: 5 * 60 * 1000, // 5 Minuten
+  maxDynamicSize: 25,
+  maxApiSize: 15,
+  maxImageSize: 50,
+  apiCacheDuration: 3 * 60 * 1000, // 3 Minuten
   staticCacheDuration: 7 * 24 * 60 * 60 * 1000, // 7 Tage
-  imageCacheDuration: 30 * 24 * 60 * 60 * 1000, // 30 Tage
+  imageCacheDuration: 14 * 24 * 60 * 60 * 1000, // 14 Tage
 };
 
 // ============================================

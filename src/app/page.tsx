@@ -3,6 +3,9 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { HomeContent } from "./home-content";
 
+// Revalidate every 60 seconds
+export const revalidate = 60;
+
 // Kind-Daten basierend auf Session laden
 async function getChildData(memberId: number) {
   const child = await prisma.member.findUnique({
@@ -10,15 +13,33 @@ async function getChildData(memberId: number) {
       id: memberId,
     },
     include: {
-      team: true,
+      team: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          description: true,
+        },
+      },
       attendances: {
         orderBy: { date: "desc" },
-        take: 20,
+        take: 10,
+        select: {
+          id: true,
+          status: true,
+          date: true,
+        },
       },
       notifications: {
         where: { isRead: false },
         orderBy: { createdAt: "desc" },
         take: 5,
+        select: {
+          id: true,
+          message: true,
+          createdAt: true,
+          isRead: true,
+        },
       },
     },
   });
@@ -59,6 +80,10 @@ async function getUpcomingTrainings(teamId: number) {
 async function getAttendanceStats(memberId: number) {
   const attendances = await prisma.attendance.findMany({
     where: { memberId },
+    select: {
+      id: true,
+      status: true,
+    },
   });
 
   const total = attendances.length;

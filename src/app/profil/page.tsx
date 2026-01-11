@@ -3,6 +3,9 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ProfileContent } from "./profile-content";
 
+// Revalidate every 120 seconds
+export const revalidate = 120;
+
 export default async function ProfilePage() {
   const session = await getSession();
   
@@ -16,7 +19,10 @@ export default async function ProfilePage() {
     },
     include: {
       team: true,
-      attendances: true,
+      attendances: {
+        orderBy: { date: "desc" },
+        take: 50,
+      },
     },
   });
 
