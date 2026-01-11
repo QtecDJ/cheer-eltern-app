@@ -1,6 +1,6 @@
 {
   "name": "member-app",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "author": "ICA-Dev Kai Püttmann",
   "scripts": {
@@ -14,6 +14,7 @@
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",

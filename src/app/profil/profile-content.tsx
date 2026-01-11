@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
+import { AvatarUpload } from "@/components/ui/avatar-upload";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateAge, formatDate } from "@/lib/utils";
@@ -23,7 +24,8 @@ import {
   X,
 } from "lucide-react";
 import { logoutAction } from "@/app/login/actions";
-import { updateEmail, updatePassword, updateEmergencyContact } from "./actions";
+import { updateEmail, updatePassword, updateEmergencyContact, updateProfilePhoto, deleteProfilePhoto } from "./actions";
+import { useRouter } from "next/navigation";
 
 interface TeamMember {
   id: number;
@@ -70,7 +72,11 @@ export function ProfileContent({
   latestAssessment,
   teamMembers,
 }: ProfileContentProps) {
+  const router = useRouter();
   const age = calculateAge(member.birthDate);
+  
+  // Photo State
+  const [currentPhotoUrl, setCurrentPhotoUrl] = useState(member.photoUrl);
   
   // Edit States
   const [editingEmail, setEditingEmail] = useState(false);
@@ -149,7 +155,29 @@ export function ProfileContent({
       {/* Profil Card */}
       <Card variant="gradient" className="mb-6 animate-slide-up">
         <div className="flex flex-col items-center text-center">
-          <Avatar name={member.name} src={member.photoUrl} size="xl" />
+          <AvatarUpload
+            name={member.name}
+            currentPhotoUrl={currentPhotoUrl}
+            onUploadComplete={async (url) => {
+              const result = await updateProfilePhoto(url);
+              if (result.success) {
+                setCurrentPhotoUrl(url);
+                router.refresh();
+              } else {
+                throw new Error(result.error);
+              }
+            }}
+            onDelete={async () => {
+              const result = await deleteProfilePhoto();
+              if (result.success) {
+                setCurrentPhotoUrl(null);
+                router.refresh();
+              } else {
+                throw new Error(result.error);
+              }
+            }}
+            size="xl"
+          />
           <h2 className="text-xl font-bold mt-4">{member.name}</h2>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="default">{member.role}</Badge>

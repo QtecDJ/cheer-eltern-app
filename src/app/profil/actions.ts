@@ -142,3 +142,47 @@ export async function updateEmergencyContact(formData: FormData) {
     return { success: false, error: "Fehler beim Speichern" };
   }
 }
+
+export async function updateProfilePhoto(photoUrl: string) {
+  const session = await getSession();
+  if (!session) {
+    return { success: false, error: "Nicht eingeloggt" };
+  }
+
+  if (!photoUrl || !photoUrl.startsWith("https://")) {
+    return { success: false, error: "Ungültige Bild-URL" };
+  }
+
+  try {
+    await prisma.member.update({
+      where: { id: session.id },
+      data: { photoUrl },
+    });
+
+    revalidatePath("/profil");
+    return { success: true };
+  } catch (error) {
+    console.error("Update profile photo error:", error);
+    return { success: false, error: "Fehler beim Speichern" };
+  }
+}
+
+export async function deleteProfilePhoto() {
+  const session = await getSession();
+  if (!session) {
+    return { success: false, error: "Nicht eingeloggt" };
+  }
+
+  try {
+    await prisma.member.update({
+      where: { id: session.id },
+      data: { photoUrl: null },
+    });
+
+    revalidatePath("/profil");
+    return { success: true };
+  } catch (error) {
+    console.error("Delete profile photo error:", error);
+    return { success: false, error: "Fehler beim Löschen" };
+  }
+}

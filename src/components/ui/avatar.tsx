@@ -60,6 +60,7 @@ export function Avatar({ name, src, size = "md", className }: AvatarProps) {
         <img
           src={src}
           alt={name}
+          loading="lazy"
           className="w-full h-full object-cover"
         />
       ) : (
