@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { EventsContent } from "./events-content";
+import { PollData } from "@/components/ui/poll";
 
 async function getEvents() {
   const events = await prisma.event.findMany({
@@ -27,7 +28,7 @@ async function getCompetitions() {
   return competitions;
 }
 
-async function getEventAnnouncements(teamId?: number) {
+async function getEventAnnouncements(teamId?: number, memberId?: number) {
   const now = new Date();
   
   const announcements = await prisma.announcement.findMany({
@@ -48,11 +49,95 @@ async function getEventAnnouncements(teamId?: number) {
         },
       ],
     },
+    include: {
+      Poll: {
+        include: {
+          PollOption: {
+            orderBy: { order: "asc" },
+            include: {
+              PollVote: {
+                include: {
+                  Member: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      photoUrl: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          PollVote: true,
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
     take: 20,
   });
 
-  return announcements;
+  // Transformiere Announcements mit Poll-Daten
+  return announcements.map((announcement) => {
+    const poll = announcement.Poll[0]; // Eine Poll pro Announcement
+    
+    let pollData: PollData | null = null;
+    
+    if (poll && memberId) {
+      // Berechne Gesamtstimmen (unique Mitglieder)
+      const uniqueVoters = new Set(poll.PollVote.map((v) => v.memberId));
+      const totalVotes = uniqueVoters.size;
+
+      // Prüfe ob Mitglied bereits abgestimmt hat
+      const hasVoted = poll.PollVote.some((v) => v.memberId === memberId);
+
+      // Transformiere Optionen
+      const options = poll.PollOption.map((option) => {
+        const voteCount = option.PollVote.length;
+        const percentage = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0;
+        const isSelected = option.PollVote.some((v) => v.memberId === memberId);
+
+        return {
+          id: option.id,
+          text: option.text,
+          voteCount,
+          percentage,
+          isSelected,
+          voters: poll.isAnonymous
+            ? []
+            : option.PollVote.map((v) => ({
+                id: v.Member.id,
+                firstName: v.Member.firstName,
+                lastName: v.Member.lastName,
+                photoUrl: v.Member.photoUrl,
+              })),
+        };
+      });
+
+      pollData = {
+        id: poll.id,
+        question: poll.question,
+        allowMultiple: poll.allowMultiple,
+        isAnonymous: poll.isAnonymous,
+        endsAt: poll.endsAt,
+        totalVotes,
+        hasVoted,
+        options,
+      };
+    }
+
+    return {
+      id: announcement.id,
+      title: announcement.title,
+      content: announcement.content,
+      category: announcement.category,
+      priority: announcement.priority,
+      isPinned: announcement.isPinned,
+      createdAt: announcement.createdAt,
+      expiresAt: announcement.expiresAt,
+      poll: pollData,
+    };
+  });
 }
 
 export default async function EventsPage() {
@@ -65,7 +150,7 @@ export default async function EventsPage() {
   const [events, competitions, eventAnnouncements] = await Promise.all([
     getEvents(),
     getCompetitions(),
-    getEventAnnouncements(session.teamId ?? undefined),
+    getEventAnnouncements(session.teamId ?? undefined, session.id),
   ]);
 
   return (
@@ -73,6 +158,7 @@ export default async function EventsPage() {
       events={events} 
       competitions={competitions} 
       eventAnnouncements={eventAnnouncements}
+      memberId={session.id}
     />
   );
 }

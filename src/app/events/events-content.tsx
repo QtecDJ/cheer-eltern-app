@@ -1,9 +1,10 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Poll, PollData } from "@/components/ui/poll";
 import { cn, getRelativeDate } from "@/lib/utils";
+import { votePoll, removePollVote } from "./poll-actions";
 import {
   CalendarDays,
   Clock,
@@ -46,16 +47,28 @@ interface EventAnnouncement {
   isPinned: boolean;
   createdAt: Date;
   expiresAt: Date | null;
+  poll: PollData | null;
 }
 
 interface EventsContentProps {
   events: Event[];
   competitions: Competition[];
   eventAnnouncements?: EventAnnouncement[];
+  memberId: number;
 }
 
-export function EventsContent({ events, competitions, eventAnnouncements = [] }: EventsContentProps) {
+export function EventsContent({ events, competitions, eventAnnouncements = [], memberId }: EventsContentProps) {
   const today = new Date().toISOString().split("T")[0];
+
+  // Handler für Poll-Abstimmung
+  const handleVote = async (pollId: number, optionIds: number[]) => {
+    await votePoll(pollId, optionIds, memberId);
+  };
+
+  // Handler für Stimme zurückziehen
+  const handleRemoveVote = async (pollId: number) => {
+    await removePollVote(pollId, memberId);
+  };
 
   // Kombiniere und sortiere alle Termine
   const allItems = [
@@ -139,6 +152,16 @@ export function EventsContent({ events, competitions, eventAnnouncements = [] }:
                           {announcement.content}
                         </p>
                       </div>
+
+                      {/* Poll (Umfrage) */}
+                      {announcement.poll && (
+                        <Poll
+                          poll={announcement.poll}
+                          memberId={memberId}
+                          onVote={handleVote}
+                          onRemoveVote={handleRemoveVote}
+                        />
+                      )}
 
                       {/* Meta-Info Footer */}
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-5 pt-4 border-t border-border/60 text-xs text-muted-foreground">

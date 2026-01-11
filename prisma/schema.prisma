@@ -46,8 +46,10 @@ model Member {
   activities       Activity[]
   Announcement     Announcement[]
   attendances      Attendance[]
+  LoginLog         LoginLog[]
   team             Team?             @relation(fields: [teamId], references: [id])
   notifications    Notification[]
+  PollVote         PollVote[]
   competitions     Competition[]     @relation("CompetitionParticipants")
   events           Event[]           @relation("EventParticipations")
   trainings        TrainingSession[] @relation("TrainingParticipants")
@@ -245,4 +247,51 @@ model Announcement {
   updatedAt DateTime  @default(now()) @updatedAt @db.Timestamp(6)
   Member    Member    @relation(fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   Team      Team?     @relation(fields: [teamId], references: [id], onUpdate: NoAction)
+  Poll      Poll[]
+}
+
+model LoginLog {
+  id            Int      @id @default(autoincrement())
+  memberId      Int?
+  loginAt       DateTime @default(now()) @db.Timestamp(6)
+  ipAddress     String?  @db.VarChar(45)
+  userAgent     String?
+  success       Boolean  @default(true)
+  failureReason String?
+  Member        Member?  @relation(fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model Poll {
+  id             Int          @id @default(autoincrement())
+  announcementId Int
+  question       String
+  allowMultiple  Boolean      @default(false)
+  isAnonymous    Boolean      @default(false)
+  endsAt         DateTime?    @db.Timestamp(6)
+  createdAt      DateTime     @default(now()) @db.Timestamp(6)
+  Announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  PollOption     PollOption[]
+  PollVote       PollVote[]
+}
+
+model PollOption {
+  id       Int        @id @default(autoincrement())
+  pollId   Int
+  text     String     @db.VarChar(255)
+  order    Int        @default(0)
+  Poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  PollVote PollVote[]
+}
+
+model PollVote {
+  id         Int        @id @default(autoincrement())
+  pollId     Int
+  optionId   Int
+  memberId   Int
+  votedAt    DateTime   @default(now()) @db.Timestamp(6)
+  Member     Member     @relation(fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  PollOption PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Poll       Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([pollId, optionId, memberId])
 }

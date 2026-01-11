@@ -60,15 +60,10 @@ export function ServiceWorkerRegistration() {
 // Hook für PWA Install-Prompt
 export function useInstallPrompt() {
   useEffect(() => {
-    let deferredPrompt: BeforeInstallPromptEvent | null = null;
-
     const handleBeforeInstallPrompt = (e: Event) => {
       // Verhindere automatisches Prompt
       e.preventDefault();
-      deferredPrompt = e as BeforeInstallPromptEvent;
-      
       // Custom Install-Button zeigen könnte hier implementiert werden
-      console.log("[PWA] Install prompt available");
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -77,14 +72,4 @@ export function useInstallPrompt() {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
   }, []);
-}
-
-// TypeScript Interface für BeforeInstallPromptEvent
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: "accepted" | "dismissed";
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
 }

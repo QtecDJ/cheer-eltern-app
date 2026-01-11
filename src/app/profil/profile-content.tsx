@@ -543,7 +543,7 @@ export function ProfileContent({
           </button>
         </form>
         <p className="text-xs text-muted-foreground">
-          Member App · Version 1.2.1
+          Member App · Version 1.3.0
         </p>
         <p className="text-[10px] text-muted-foreground/50">
           Entwickelt von ICA-Dev Kai Püttmann

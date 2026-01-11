@@ -31,30 +31,27 @@ function isIOS(): boolean {
 }
 
 export function InstallPrompt() {
+  // Initialer Zustand direkt berechnen (kein setState in useEffect)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showIOSPrompt, setShowIOSPrompt] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [showIOSPrompt, setShowIOSPrompt] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const wasDismissed = sessionStorage.getItem("pwa-install-dismissed");
+    return isIOS() && !wasDismissed && !isStandalone();
+  });
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("pwa-install-dismissed") === "true";
+  });
+  const [isInstalled, setIsInstalled] = useState(() => isStandalone());
 
   useEffect(() => {
-    // Prüfe ob schon installiert
-    if (isStandalone()) {
-      setIsInstalled(true);
+    // Frühe Rückkehr wenn schon installiert
+    if (isInstalled) {
       return;
     }
 
-    // Prüfe ob Prompt bereits geschlossen wurde (für diese Session)
-    const wasDismissed = sessionStorage.getItem("pwa-install-dismissed");
-    if (wasDismissed) {
-      setDismissed(true);
-    }
-
-    // iOS: Zeige manuelle Anleitung
+    // iOS: Keine Event-Listener nötig
     if (isIOS()) {
-      // Nur zeigen wenn nicht dismissed
-      if (!wasDismissed) {
-        setShowIOSPrompt(true);
-      }
       return;
     }
 
@@ -79,7 +76,7 @@ export function InstallPrompt() {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [isInstalled]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;

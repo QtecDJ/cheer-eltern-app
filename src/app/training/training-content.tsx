@@ -12,7 +12,6 @@ import {
   MapPin,
   Users,
   XCircle,
-  AlertCircle,
   Check,
   X,
   Loader2,
