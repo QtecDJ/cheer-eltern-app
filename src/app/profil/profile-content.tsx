@@ -7,15 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { calculateAge, formatDate } from "@/lib/utils";
 import {
+  AlertTriangle,
   Calendar,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Edit2,
+  Heart,
   Key,
   Loader2,
   LogOut,
   Mail,
   Phone,
+  Pill,
   Save,
   Shield,
   Star,
@@ -24,7 +29,7 @@ import {
   X,
 } from "lucide-react";
 import { logoutAction } from "@/app/login/actions";
-import { updateEmail, updatePassword, updateEmergencyContact, updateProfilePhoto, deleteProfilePhoto } from "./actions";
+import { updateEmail, updatePassword, updateEmergencyContact, updateHealthInfo, updateProfilePhoto, deleteProfilePhoto } from "./actions";
 import { useRouter } from "next/navigation";
 
 interface TeamMember {
@@ -48,6 +53,11 @@ interface ProfileContentProps {
     email: string | null;
     emergencyContact: string | null;
     emergencyPhone: string | null;
+    emergencyContact2: string | null;
+    emergencyPhone2: string | null;
+    allergies: string | null;
+    diseases: string | null;
+    medications: string | null;
     photoUrl: string | null;
     team: {
       id: number;
@@ -78,20 +88,26 @@ export function ProfileContent({
   // Photo State
   const [currentPhotoUrl, setCurrentPhotoUrl] = useState(member.photoUrl);
   
+  // Collapsible State
+  const [emergencyExpanded, setEmergencyExpanded] = useState(false);
+  
   // Edit States
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
   const [editingEmergency, setEditingEmergency] = useState(false);
+  const [editingHealth, setEditingHealth] = useState(false);
   
   // Loading States
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingEmergency, setSavingEmergency] = useState(false);
+  const [savingHealth, setSavingHealth] = useState(false);
   
   // Message States
   const [emailMessage, setEmailMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [emergencyMessage, setEmergencyMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [healthMessage, setHealthMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   async function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -137,13 +153,35 @@ export function ProfileContent({
     const result = await updateEmergencyContact(formData);
     
     if (result.success) {
-      setEmergencyMessage({ type: "success", text: "Notfallkontakt gespeichert!" });
+      setEmergencyMessage({ type: "success", text: "Notfallkontakte gespeichert!" });
       setEditingEmergency(false);
     } else {
       setEmergencyMessage({ type: "error", text: result.error || "Fehler" });
     }
     setSavingEmergency(false);
   }
+
+  async function handleHealthSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSavingHealth(true);
+    setHealthMessage(null);
+    
+    const formData = new FormData(e.currentTarget);
+    const result = await updateHealthInfo(formData);
+    
+    if (result.success) {
+      setHealthMessage({ type: "success", text: "Gesundheitsinfos gespeichert!" });
+      setEditingHealth(false);
+    } else {
+      setHealthMessage({ type: "error", text: result.error || "Fehler" });
+    }
+    setSavingHealth(false);
+  }
+
+  // Check if any emergency/health info exists
+  const hasEmergencyInfo = member.emergencyContact || member.emergencyPhone || 
+    member.emergencyContact2 || member.emergencyPhone2;
+  const hasHealthInfo = member.allergies || member.diseases || member.medications;
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
@@ -413,92 +451,306 @@ export function ProfileContent({
         </Card>
       </section>
 
-      {/* Notfallkontakt */}
+      {/* Wichtige Informationen (Aufklappbar) */}
       <section className="animate-slide-up stagger-5">
-        <CardHeader className="px-0">
-          <CardTitle size="lg" className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-red-500" />
-            Notfallkontakt
-          </CardTitle>
-        </CardHeader>
+        <button
+          onClick={() => setEmergencyExpanded(!emergencyExpanded)}
+          className="w-full"
+        >
+          <Card className={`border-l-4 ${hasEmergencyInfo || hasHealthInfo ? 'border-l-red-500' : 'border-l-amber-500'}`}>
+            <CardContent className="py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-red-500/10 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold">Wichtige Informationen</p>
+                    <p className="text-xs text-muted-foreground">
+                      {hasEmergencyInfo || hasHealthInfo 
+                        ? "Notfall & Gesundheit" 
+                        : "Bitte ausfüllen"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(!hasEmergencyInfo && !hasHealthInfo) && (
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  )}
+                  {emergencyExpanded ? (
+                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </button>
 
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent>
-            {emergencyMessage && (
-              <div className={`mb-3 p-2 rounded-lg text-sm ${
-                emergencyMessage.type === "success" 
-                  ? "bg-emerald-500/10 text-emerald-600" 
-                  : "bg-red-500/10 text-red-600"
-              }`}>
-                {emergencyMessage.text}
-              </div>
-            )}
-            
-            {editingEmergency ? (
-              <form onSubmit={handleEmergencySubmit} className="space-y-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Name</label>
-                  <input
-                    type="text"
-                    name="emergencyContact"
-                    placeholder="Name des Notfallkontakts"
-                    defaultValue={member.emergencyContact || ""}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Telefon</label>
-                  <input
-                    type="tel"
-                    name="emergencyPhone"
-                    placeholder="Telefonnummer"
-                    defaultValue={member.emergencyPhone || ""}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    disabled={savingEmergency}
-                    className="flex-1 py-2 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {savingEmergency ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Speichern
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingEmergency(false)}
-                    className="py-2 px-3 bg-muted text-muted-foreground text-sm font-medium rounded-lg hover:bg-muted/80"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="space-y-2">
-                {member.emergencyContact && (
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    <span>{member.emergencyContact}</span>
+        {/* Aufklappbarer Inhalt */}
+        {emergencyExpanded && (
+          <div className="mt-3 space-y-4 animate-fade-in">
+            {/* Notfallkontakt 1 */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle size="sm" className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-red-500" />
+                  Notfallkontakt 1
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {emergencyMessage && (
+                  <div className={`mb-3 p-2 rounded-lg text-sm ${
+                    emergencyMessage.type === "success" 
+                      ? "bg-emerald-500/10 text-emerald-600" 
+                      : "bg-red-500/10 text-red-600"
+                  }`}>
+                    {emergencyMessage.text}
                   </div>
                 )}
-                {member.emergencyPhone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-muted-foreground" />
-                    <span>{member.emergencyPhone}</span>
+                
+                {editingEmergency ? (
+                  <form onSubmit={handleEmergencySubmit} className="space-y-4">
+                    {/* Kontakt 1 */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground">1. Notfallkontakt</p>
+                      <input
+                        type="text"
+                        name="emergencyContact"
+                        placeholder="Name (z.B. Mama)"
+                        defaultValue={member.emergencyContact || ""}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                      />
+                      <input
+                        type="tel"
+                        name="emergencyPhone"
+                        placeholder="Telefonnummer"
+                        defaultValue={member.emergencyPhone || ""}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                      />
+                    </div>
+                    
+                    {/* Kontakt 2 */}
+                    <div className="space-y-2 pt-2 border-t border-border">
+                      <p className="text-xs font-medium text-muted-foreground">2. Notfallkontakt</p>
+                      <input
+                        type="text"
+                        name="emergencyContact2"
+                        placeholder="Name (z.B. Papa)"
+                        defaultValue={member.emergencyContact2 || ""}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                      />
+                      <input
+                        type="tel"
+                        name="emergencyPhone2"
+                        placeholder="Telefonnummer"
+                        defaultValue={member.emergencyPhone2 || ""}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                      />
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="submit"
+                        disabled={savingEmergency}
+                        className="flex-1 py-2 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {savingEmergency ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Speichern
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingEmergency(false)}
+                        className="py-2 px-3 bg-muted text-muted-foreground text-sm font-medium rounded-lg hover:bg-muted/80"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Anzeige Kontakt 1 */}
+                    {member.emergencyContact && (
+                      <div className="p-2 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <User className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-sm font-medium">{member.emergencyContact}</span>
+                        </div>
+                        {member.emergencyPhone && (
+                          <a href={`tel:${member.emergencyPhone}`} className="flex items-center gap-2 text-primary">
+                            <Phone className="w-3 h-3" />
+                            <span className="text-sm">{member.emergencyPhone}</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Anzeige Kontakt 2 */}
+                    {member.emergencyContact2 && (
+                      <div className="p-2 bg-muted/30 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <User className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-sm font-medium">{member.emergencyContact2}</span>
+                        </div>
+                        {member.emergencyPhone2 && (
+                          <a href={`tel:${member.emergencyPhone2}`} className="flex items-center gap-2 text-primary">
+                            <Phone className="w-3 h-3" />
+                            <span className="text-sm">{member.emergencyPhone2}</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    
+                    {!member.emergencyContact && !member.emergencyContact2 && (
+                      <p className="text-sm text-muted-foreground">Keine Notfallkontakte hinterlegt</p>
+                    )}
+                    
+                    <button
+                      onClick={() => setEditingEmergency(true)}
+                      className="w-full py-2 px-3 border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-2"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      {member.emergencyContact ? "Bearbeiten" : "Hinzufügen"}
+                    </button>
                   </div>
                 )}
-                <button
-                  onClick={() => setEditingEmergency(true)}
-                  className="w-full mt-2 py-2 px-3 border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-2"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  {member.emergencyContact ? "Bearbeiten" : "Hinzufügen"}
-                </button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+
+            {/* Gesundheitsinformationen */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle size="sm" className="flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-pink-500" />
+                  Gesundheitsinformationen
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {healthMessage && (
+                  <div className={`mb-3 p-2 rounded-lg text-sm ${
+                    healthMessage.type === "success" 
+                      ? "bg-emerald-500/10 text-emerald-600" 
+                      : "bg-red-500/10 text-red-600"
+                  }`}>
+                    {healthMessage.text}
+                  </div>
+                )}
+                
+                {editingHealth ? (
+                  <form onSubmit={handleHealthSubmit} className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Allergien
+                      </label>
+                      <textarea
+                        name="allergies"
+                        placeholder="z.B. Nüsse, Pollen, Hausstaub..."
+                        defaultValue={member.allergies || ""}
+                        rows={2}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
+                        <Heart className="w-3 h-3" />
+                        Krankheiten / Besonderheiten
+                      </label>
+                      <textarea
+                        name="diseases"
+                        placeholder="z.B. Asthma, Diabetes, ADHS..."
+                        defaultValue={member.diseases || ""}
+                        rows={2}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
+                        <Pill className="w-3 h-3" />
+                        Medikamente
+                      </label>
+                      <textarea
+                        name="medications"
+                        placeholder="z.B. Notfallspray, Tabletten..."
+                        defaultValue={member.medications || ""}
+                        rows={2}
+                        className="w-full px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none"
+                      />
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="submit"
+                        disabled={savingHealth}
+                        className="flex-1 py-2 px-3 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {savingHealth ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Speichern
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingHealth(false)}
+                        className="py-2 px-3 bg-muted text-muted-foreground text-sm font-medium rounded-lg hover:bg-muted/80"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Allergien */}
+                    {member.allergies && (
+                      <div className="p-2 bg-amber-500/10 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                          <span className="text-xs font-medium text-amber-600">Allergien</span>
+                        </div>
+                        <p className="text-sm">{member.allergies}</p>
+                      </div>
+                    )}
+                    
+                    {/* Krankheiten */}
+                    {member.diseases && (
+                      <div className="p-2 bg-pink-500/10 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Heart className="w-3 h-3 text-pink-500" />
+                          <span className="text-xs font-medium text-pink-600">Krankheiten</span>
+                        </div>
+                        <p className="text-sm">{member.diseases}</p>
+                      </div>
+                    )}
+                    
+                    {/* Medikamente */}
+                    {member.medications && (
+                      <div className="p-2 bg-blue-500/10 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Pill className="w-3 h-3 text-blue-500" />
+                          <span className="text-xs font-medium text-blue-600">Medikamente</span>
+                        </div>
+                        <p className="text-sm">{member.medications}</p>
+                      </div>
+                    )}
+                    
+                    {!member.allergies && !member.diseases && !member.medications && (
+                      <p className="text-sm text-muted-foreground">Keine Gesundheitsinformationen hinterlegt</p>
+                    )}
+                    
+                    <button
+                      onClick={() => setEditingHealth(true)}
+                      className="w-full py-2 px-3 border border-dashed border-border rounded-lg text-sm text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-2"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      {hasHealthInfo ? "Bearbeiten" : "Hinzufügen"}
+                    </button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </section>
 
       {/* Team Mitglieder */}

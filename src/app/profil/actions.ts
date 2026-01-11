@@ -125,6 +125,8 @@ export async function updateEmergencyContact(formData: FormData) {
 
   const emergencyContact = formData.get("emergencyContact") as string;
   const emergencyPhone = formData.get("emergencyPhone") as string;
+  const emergencyContact2 = formData.get("emergencyContact2") as string;
+  const emergencyPhone2 = formData.get("emergencyPhone2") as string;
 
   try {
     await prisma.member.update({
@@ -132,6 +134,8 @@ export async function updateEmergencyContact(formData: FormData) {
       data: { 
         emergencyContact: emergencyContact || null,
         emergencyPhone: emergencyPhone || null,
+        emergencyContact2: emergencyContact2 || null,
+        emergencyPhone2: emergencyPhone2 || null,
       },
     });
 
@@ -139,6 +143,34 @@ export async function updateEmergencyContact(formData: FormData) {
     return { success: true };
   } catch (error) {
     console.error("Update emergency contact error:", error);
+    return { success: false, error: "Fehler beim Speichern" };
+  }
+}
+
+export async function updateHealthInfo(formData: FormData) {
+  const session = await getSession();
+  if (!session) {
+    return { success: false, error: "Nicht eingeloggt" };
+  }
+
+  const allergies = formData.get("allergies") as string;
+  const diseases = formData.get("diseases") as string;
+  const medications = formData.get("medications") as string;
+
+  try {
+    await prisma.member.update({
+      where: { id: session.id },
+      data: { 
+        allergies: allergies || null,
+        diseases: diseases || null,
+        medications: medications || null,
+      },
+    });
+
+    revalidatePath("/profil");
+    return { success: true };
+  } catch (error) {
+    console.error("Update health info error:", error);
     return { success: false, error: "Fehler beim Speichern" };
   }
 }
