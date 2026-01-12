@@ -1,146 +1,16 @@
-import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { HomeContent } from "./home-content";
+import {
+  getMemberForHome,
+  getUpcomingTrainingsMinimal,
+  getAttendanceStats,
+  getAnnouncementsMinimal,
+  getLatestAssessmentMinimal,
+} from "@/lib/queries";
 
 // Revalidate every 60 seconds
 export const revalidate = 60;
-
-// Kind-Daten basierend auf Session laden
-async function getChildData(memberId: number) {
-  const child = await prisma.member.findUnique({
-    where: {
-      id: memberId,
-    },
-    include: {
-      team: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-          description: true,
-        },
-      },
-      attendances: {
-        orderBy: { date: "desc" },
-        take: 10,
-        select: {
-          id: true,
-          status: true,
-          date: true,
-        },
-      },
-      notifications: {
-        where: { isRead: false },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        select: {
-          id: true,
-          message: true,
-          createdAt: true,
-          isRead: true,
-        },
-      },
-    },
-  });
-
-  return child;
-}
-
-// Assessments separat laden (andere Tabelle)
-async function getLatestAssessment(memberId: number) {
-  const assessment = await prisma.trainingAssessment.findFirst({
-    where: { memberId },
-    orderBy: { date: "desc" },
-  });
-  return assessment;
-}
-
-async function getUpcomingTrainings(teamId: number) {
-  const today = new Date().toISOString().split("T")[0];
-
-  const trainings = await prisma.trainingSession.findMany({
-    where: {
-      teamId,
-      isArchived: false,
-      date: {
-        gte: today,
-      },
-    },
-    orderBy: { date: "asc" },
-    take: 5,
-    include: {
-      team: true,
-    },
-  });
-
-  return trainings;
-}
-
-async function getAttendanceStats(memberId: number) {
-  const attendances = await prisma.attendance.findMany({
-    where: { memberId },
-    select: {
-      id: true,
-      status: true,
-    },
-  });
-
-  const total = attendances.length;
-  const present = attendances.filter((a) => a.status === "present").length;
-  const absent = attendances.filter((a) => a.status === "absent").length;
-  const excused = attendances.filter((a) => a.status === "excused").length;
-
-  return { total, present, absent, excused };
-}
-
-async function getAnnouncements(teamId?: number) {
-  const now = new Date();
-  
-  // Baue die WHERE-Clause basierend auf teamId
-  const whereClause: any = {
-    OR: [
-      { expiresAt: null },
-      { expiresAt: { gte: now } },
-    ],
-  };
-
-  // Füge Team-Filter hinzu basierend auf AnnouncementTeam-Relation
-  if (teamId) {
-    whereClause.AND = {
-      OR: [
-        { AnnouncementTeam: { none: {} } }, // Ankündigungen ohne Team-Zuordnung (für alle)
-        { AnnouncementTeam: { some: { teamId: teamId } } }, // Ankündigungen für dieses Team
-      ],
-    };
-  } else {
-    // Wenn kein Team, zeige nur allgemeine Ankündigungen (ohne Team-Zuordnung)
-    whereClause.AnnouncementTeam = { none: {} };
-  }
-  
-  const announcements = await prisma.announcement.findMany({
-    where: whereClause,
-    include: {
-      AnnouncementTeam: {
-        include: {
-          Team: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: [
-      { isPinned: 'desc' },
-      { createdAt: 'desc' },
-    ],
-    take: 5,
-  });
-
-  return announcements;
-}
 
 export default async function HomePage() {
   const session = await getSession();
@@ -150,7 +20,7 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const child = await getChildData(session.id);
+  const child = await getMemberForHome(session.id);
 
   if (!child) {
     return (
@@ -165,11 +35,12 @@ export default async function HomePage() {
     );
   }
 
+  // Alle Daten parallel laden - optimiert mit minimalen Selects
   const [upcomingTrainings, attendanceStats, announcements, latestAssessment] = await Promise.all([
-    getUpcomingTrainings(child.teamId!),
+    getUpcomingTrainingsMinimal(child.teamId!),
     getAttendanceStats(child.id),
-    getAnnouncements(child.teamId ?? undefined),
-    getLatestAssessment(child.id),
+    getAnnouncementsMinimal(child.teamId ?? undefined),
+    getLatestAssessmentMinimal(child.id),
   ]);
 
   return (

@@ -1,7 +1,12 @@
-import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ProfileContent } from "./profile-content";
+import {
+  getMemberFullProfile,
+  getTeamMembers,
+  getAttendanceStats,
+  getLatestAssessmentMinimal,
+} from "@/lib/queries";
 
 // Revalidate every 120 seconds
 export const revalidate = 120;
@@ -13,18 +18,7 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const member = await prisma.member.findUnique({
-    where: {
-      id: session.id,
-    },
-    include: {
-      team: true,
-      attendances: {
-        orderBy: { date: "desc" },
-        take: 50,
-      },
-    },
-  });
+  const member = await getMemberFullProfile(session.id);
 
   if (!member) {
     return (
@@ -36,43 +30,24 @@ export default async function ProfilePage() {
     );
   }
 
-  // Lade neueste Bewertung separat
-  const latestAssessment = await prisma.trainingAssessment.findFirst({
-    where: { memberId: member.id },
-    orderBy: { date: "desc" },
-  });
+  // Alle Daten parallel laden mit optimierten Queries
+  const [attendanceStats, latestAssessment, teamMembers] = await Promise.all([
+    getAttendanceStats(member.id),
+    getLatestAssessmentMinimal(member.id),
+    member.team?.id ? getTeamMembers(member.team.id) : Promise.resolve([]),
+  ]);
 
-  // Lade Team-Mitglieder (ohne das aktuelle Mitglied)
-  const teamMembers = member.teamId
-    ? await prisma.member.findMany({
-        where: {
-          teamId: member.teamId,
-          status: "active",
-          id: { not: member.id },
-        },
-        orderBy: { firstName: "asc" },
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          name: true,
-          role: true,
-          photoUrl: true,
-        },
-      })
-    : [];
-
-  // Berechne Statistiken
-  const totalTrainings = member.attendances.length;
-  const presentCount = member.attendances.filter((a) => a.status === "present").length;
+  // Berechne Attendance Rate
   const attendanceRate =
-    totalTrainings > 0 ? Math.round((presentCount / totalTrainings) * 100) : 0;
+    attendanceStats.total > 0 
+      ? Math.round((attendanceStats.present / attendanceStats.total) * 100) 
+      : 0;
 
   return (
     <ProfileContent
       member={member}
       attendanceRate={attendanceRate}
-      totalTrainings={totalTrainings}
+      totalTrainings={attendanceStats.total}
       latestAssessment={latestAssessment}
       teamMembers={teamMembers}
     />

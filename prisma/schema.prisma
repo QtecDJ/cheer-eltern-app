@@ -158,6 +158,9 @@ model Attendance {
   @@index([teamId])
   @@index([memberId, date])
   @@index([type, date])
+  @@index([memberId, status])
+  @@index([trainingId, memberId])
+  @@index([memberId, type, date(sort: Desc)])
 }
 
 model Activity {
@@ -259,6 +262,12 @@ model Announcement {
   rsvps            AnnouncementRSVP[]
   AnnouncementTeam AnnouncementTeam[]
   Poll             Poll[]
+
+  @@index([category])
+  @@index([expiresAt])
+  @@index([createdAt(sort: Desc)])
+  @@index([category, expiresAt, isPinned])
+  @@index([teamId, category])
 }
 
 model AnnouncementRSVP {
@@ -297,6 +306,9 @@ model Poll {
   Announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   PollOption     PollOption[]
   PollVote       PollVote[]
+
+  @@index([announcementId])
+  @@index([endsAt])
 }
 
 model PollOption {
@@ -306,6 +318,9 @@ model PollOption {
   order    Int        @default(0)
   Poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   PollVote PollVote[]
+
+  @@index([pollId])
+  @@index([pollId, order])
 }
 
 model PollVote {

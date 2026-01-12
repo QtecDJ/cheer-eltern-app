@@ -1,154 +1,41 @@
-import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { EventsContent } from "./events-content";
 import { PollData } from "@/components/ui/poll";
+import {
+  getEventsWithParticipants,
+  getCompetitionsWithParticipants,
+  getEventAnnouncementsWithPolls,
+} from "@/lib/queries";
 
 // Revalidate every 30 seconds for events
 export const revalidate = 30;
 
-async function getEvents() {
-  const events = await prisma.event.findMany({
-    where: {
-      status: { in: ["upcoming", "completed"] },
-    },
-    include: {
-      participants: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          photoUrl: true,
-        },
-      },
-    },
-    orderBy: { date: "asc" },
-    take: 20,
-  });
-
-  return events;
-}
-
-async function getCompetitions() {
-  const competitions = await prisma.competition.findMany({
-    where: {
-      status: { in: ["upcoming", "completed"] },
-    },
-    include: {
-      participants: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          photoUrl: true,
-        },
-      },
-    },
-    orderBy: { date: "asc" },
-    take: 20,
-  });
-
-  return competitions;
-}
-
-async function getEventAnnouncements(teamId?: number, memberId?: number) {
-  const now = new Date();
-  
-  // Baue die WHERE-Clause basierend auf teamId
-  const whereClause: any = {
-    category: "event",
-    OR: [
-      { expiresAt: null },
-      { expiresAt: { gte: now } },
-    ],
-  };
-
-  // Füge Team-Filter hinzu basierend auf AnnouncementTeam-Relation
-  if (teamId) {
-    whereClause.AND = {
-      OR: [
-        { AnnouncementTeam: { none: {} } }, // Ankündigungen ohne Team-Zuordnung (für alle)
-        { AnnouncementTeam: { some: { teamId: teamId } } }, // Ankündigungen für dieses Team
-      ],
-    };
-  } else {
-    // Wenn kein Team, zeige nur allgemeine Ankündigungen (ohne Team-Zuordnung)
-    whereClause.AnnouncementTeam = { none: {} };
-  }
-  
-  const announcements = await prisma.announcement.findMany({
-    where: whereClause,
-    include: {
-      AnnouncementTeam: {
-        include: {
-          Team: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-      },
-      Poll: {
-        include: {
-          PollOption: {
-            orderBy: { order: "asc" },
-            include: {
-              PollVote: {
-                select: {
-                  id: true,
-                  memberId: true,
-                  Member: {
-                    select: {
-                      id: true,
-                      firstName: true,
-                      lastName: true,
-                      photoUrl: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          PollVote: {
-            select: {
-              id: true,
-              memberId: true,
-            },
-          },
-        },
-      },
-      rsvps: {
-        select: {
-          id: true,
-          memberId: true,
-          status: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  });
-
-  // Transformiere Announcements mit Poll-Daten
+// Transform Announcement data with Poll processing
+function transformAnnouncements(announcements: any[], memberId: number) {
   return announcements.map((announcement) => {
-    const poll = announcement.Poll[0]; // Eine Poll pro Announcement
+    // Poll ist ein Array in der Prisma-Query, aber es gibt maximal 1 Poll pro Announcement
+    const polls = announcement.Poll;
+    const poll = polls && polls.length > 0 ? polls[0] : null;
     
     let pollData: PollData | null = null;
     
-    if (poll && memberId) {
-      // Berechne Gesamtstimmen (unique Mitglieder)
-      const uniqueVoters = new Set(poll.PollVote.map((v) => v.memberId));
+    if (poll && poll.PollOption) {
+      // Berechne Gesamtstimmen (unique Mitglieder) aus den Votes der Options
+      const allVoterIds = poll.PollOption.flatMap((opt: any) => 
+        opt.PollVote?.map((v: any) => v.memberId) || []
+      );
+      const uniqueVoters = new Set(allVoterIds);
       const totalVotes = uniqueVoters.size;
 
       // Prüfe ob Mitglied bereits abgestimmt hat
-      const hasVoted = poll.PollVote.some((v) => v.memberId === memberId);
+      const hasVoted = poll.PollVote?.some((v: any) => v.memberId === memberId) || false;
 
       // Transformiere Optionen
-      const options = poll.PollOption.map((option) => {
-        const voteCount = option.PollVote.length;
+      const options = poll.PollOption.map((option: any) => {
+        const voteCount = option._count?.PollVote || 0;
         const percentage = totalVotes > 0 ? (voteCount / totalVotes) * 100 : 0;
-        const isSelected = option.PollVote.some((v) => v.memberId === memberId);
+        const isSelected = option.PollVote?.some((v: any) => v.memberId === memberId) || false;
 
         return {
           id: option.id,
@@ -158,12 +45,12 @@ async function getEventAnnouncements(teamId?: number, memberId?: number) {
           isSelected,
           voters: poll.isAnonymous
             ? []
-            : option.PollVote.map((v) => ({
-                id: v.Member.id,
-                firstName: v.Member.firstName,
-                lastName: v.Member.lastName,
-                photoUrl: v.Member.photoUrl,
-              })),
+            : (option.PollVote?.map((v: any) => ({
+                id: v.Member?.id,
+                firstName: v.Member?.firstName,
+                lastName: v.Member?.lastName,
+                photoUrl: v.Member?.photoUrl,
+              })) || []),
         };
       });
 
@@ -180,9 +67,9 @@ async function getEventAnnouncements(teamId?: number, memberId?: number) {
     }
 
     // RSVP-Daten berechnen
-    const acceptedCount = announcement.rsvps.filter((r) => r.status === "accepted").length;
-    const declinedCount = announcement.rsvps.filter((r) => r.status === "declined").length;
-    const myRsvp = announcement.rsvps.find((r) => r.memberId === memberId);
+    const acceptedCount = announcement.rsvps.filter((r: any) => r.status === "accepted").length;
+    const declinedCount = announcement.rsvps.filter((r: any) => r.status === "declined").length;
+    const myRsvp = announcement.rsvps.find((r: any) => r.memberId === memberId);
 
     return {
       id: announcement.id,
@@ -211,11 +98,15 @@ export default async function EventsPage() {
     redirect("/login");
   }
 
-  const [events, competitions, eventAnnouncements] = await Promise.all([
-    getEvents(),
-    getCompetitions(),
-    getEventAnnouncements(session.teamId ?? undefined, session.id),
+  // Alle Daten parallel laden mit optimierten Queries
+  const [events, competitions, rawAnnouncements] = await Promise.all([
+    getEventsWithParticipants(),
+    getCompetitionsWithParticipants(),
+    getEventAnnouncementsWithPolls(session.teamId ?? undefined, session.id),
   ]);
+
+  // Transform announcements to match expected format
+  const eventAnnouncements = transformAnnouncements(rawAnnouncements, session.id);
 
   return (
     <EventsContent 

@@ -6,7 +6,6 @@ import { getSession } from "@/lib/auth";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { InstallPrompt } from "@/components/install-prompt";
 import { PullToRefresh } from "@/components/pull-to-refresh";
-import { prisma } from "@/lib/db";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -91,6 +90,17 @@ export const viewport: Viewport = {
   ],
 };
 
+/**
+ * Root Layout - Optimized for minimal DB calls
+ * 
+ * CRITICAL: Layout is rendered for EVERY page, so NO database queries here.
+ * All user data must come from cached session to prevent duplicate queries.
+ * 
+ * Neon Optimization:
+ * - Removed DB query that was executed on every page load
+ * - Use session.userRole instead (cached in cookie)
+ * - Reduces DB calls by ~50% (was: layout + page, now: only page)
+ */
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -98,15 +108,9 @@ export default async function RootLayout({
 }>) {
   const session = await getSession();
   
-  // Hole userRole aus DB für Navigation
-  let userRole: string | null = null;
-  if (session) {
-    const member = await prisma.member.findUnique({
-      where: { id: session.id },
-      select: { userRole: true },
-    });
-    userRole = member?.userRole || null;
-  }
+  // OPTIMIZATION: Use session data (cached) instead of DB query
+  // This prevents duplicate DB calls on every page navigation
+  const userRole = session?.userRole || null;
   
   // Nav-Items basierend auf Rolle erstellen (serverseitig)
   const isAdminOrTrainer = userRole === "admin" || userRole === "trainer" || userRole === "coach";

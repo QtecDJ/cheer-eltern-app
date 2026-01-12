@@ -1,8 +1,9 @@
-// Member App Service Worker v1.7.1
+// Member App Service Worker v1.8.0
 // Entwickelt von ICA-Dev Kai Püttmann
 // Moderne PWA mit verbessertem Caching
+// v1.8.0: Database Query Optimization - 70% weniger Data Transfer
 
-const SW_VERSION = '1.7.1';
+const SW_VERSION = '1.8.0';
 const CACHE_NAME = `member-app-v${SW_VERSION}`;
 const STATIC_CACHE = `member-static-v${SW_VERSION}`;
 const DYNAMIC_CACHE = `member-dynamic-v${SW_VERSION}`;

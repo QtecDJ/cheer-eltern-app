@@ -1,51 +1,14 @@
-import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { TrainingContent } from "./training-content";
+import {
+  getTrainingsList,
+  getAttendanceMap,
+  getMemberForHome,
+} from "@/lib/queries";
 
 // Revalidate every 120 seconds
 export const revalidate = 120;
-
-async function getTrainings(teamId: number) {
-  const trainings = await prisma.trainingSession.findMany({
-    where: {
-      teamId,
-      isArchived: false,
-    },
-    orderBy: { date: "asc" },
-    take: 20,
-    include: {
-      team: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-        },
-      },
-    },
-  });
-
-  return trainings;
-}
-
-async function getAttendanceByTraining(memberId: number) {
-  const attendances = await prisma.attendance.findMany({
-    where: {
-      memberId,
-      type: "training",
-    },
-    orderBy: { date: "desc" },
-    take: 50,
-    select: {
-      id: true,
-      trainingId: true,
-      status: true,
-      date: true,
-    },
-  });
-
-  return attendances;
-}
 
 export default async function TrainingPage() {
   const session = await getSession();
@@ -54,20 +17,7 @@ export default async function TrainingPage() {
     redirect("/login");
   }
 
-  const member = await prisma.member.findUnique({
-    where: {
-      id: session.id,
-    },
-    include: {
-      team: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-        },
-      },
-    },
-  });
+  const member = await getMemberForHome(session.id);
 
   if (!member || !member.teamId) {
     return (
@@ -79,21 +29,17 @@ export default async function TrainingPage() {
     );
   }
 
-  const [trainings, attendances] = await Promise.all([
-    getTrainings(member.teamId),
-    getAttendanceByTraining(member.id),
+  // Alle Daten parallel laden mit optimierten Queries
+  const [trainings, attendanceMap] = await Promise.all([
+    getTrainingsList(member.teamId),
+    getAttendanceMap(member.id),
   ]);
-
-  // Erstelle eine Map für schnellen Zugriff auf Anwesenheit
-  const attendanceMap = new Map(
-    attendances.map((a) => [a.trainingId, a.status])
-  );
 
   return (
     <TrainingContent
       member={member}
       trainings={trainings}
-      attendanceMap={Object.fromEntries(attendanceMap)}
+      attendanceMap={attendanceMap}
     />
   );
 }

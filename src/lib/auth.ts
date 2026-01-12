@@ -13,6 +13,7 @@ export interface SessionUser {
   teamId: number | null;
   teamName: string | null;
   userRole: string | null;
+  coachTeamId: number | null;
 }
 
 // Hilfsfunktion zum Prüfen ob User Admin oder Trainer ist
@@ -93,6 +94,7 @@ export async function login(firstName: string, lastName: string, password: strin
       teamId: member.teamId,
       teamName: member.team?.name || null,
       userRole: member.userRole || null,
+      coachTeamId: member.coachTeamId || null,
     };
 
     const cookieStore = await cookies();
