@@ -329,13 +329,6 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </div>
-
-                        {/* Kurze Preview wenn eingeklappt */}
-                        {!isExpanded && (
-                          <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
-                            {announcement.content}
-                          </p>
-                        )}
                       </button>
 
                       {/* Ausklappbarer Content */}
