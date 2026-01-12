@@ -3,12 +3,18 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, ClipboardCheck } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export function InfoContent() {
+  const router = useRouter();
+  
   return (
     <div className="px-4 pt-6 pb-24 max-w-lg mx-auto">
       {/* Header */}
       <header className="mb-6 animate-fade-in">
+        <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline">
+          ← Zurück
+        </button>
         <h1 className="text-2xl font-bold">Info</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Verwaltung und Übersicht

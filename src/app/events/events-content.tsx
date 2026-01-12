@@ -30,6 +30,7 @@ import {
   Users,
 } from "lucide-react";
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 
 interface Participant {
   id: number;
@@ -240,11 +241,15 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
   });
 
   const hasNoItems = allItems.length === 0 && eventAnnouncements.length === 0;
+  const router = useRouter();
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
       {/* Header */}
       <header className="mb-6 animate-fade-in">
+        <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline">
+          ← Zurück
+        </button>
         <h1 className="text-2xl font-bold">Events & Wettkämpfe</h1>
         <p className="text-muted-foreground mt-1">
           Alle wichtigen Termine im Überblick
@@ -286,68 +291,69 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500" />
                     )}
 
-                    {/* Klickbarer Header */}
-                    <button
-                      onClick={() => toggleAnnouncement(announcement.id)}
-                      className="w-full p-5 text-left hover:bg-muted/30 transition-colors"
-                    >
-                      {/* Header mit Badges */}
-                      <div className="flex flex-wrap items-start gap-2 mb-3">
-                        {announcement.priority === "high" && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-pink-500/10 text-pink-600 text-xs font-medium">
-                            <Star className="w-3.5 h-3.5 fill-current" />
-                            Wichtig
-                          </span>
-                        )}
-                        {announcement.isPinned && (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium">
-                            📌 Angepinnt
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Titel */}
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="text-xl font-bold text-foreground leading-tight flex-1">
-                          {announcement.title}
-                        </h3>
-                        <svg
-                          className={cn(
-                            "w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200",
-                            isExpanded && "rotate-180"
+                    <div className="p-5">
+                      {/* Klickbarer Header */}
+                      <button
+                        onClick={() => toggleAnnouncement(announcement.id)}
+                        className="w-full text-left hover:opacity-80 transition-opacity"
+                      >
+                        {/* Header mit Badges */}
+                        <div className="flex flex-wrap items-start gap-2 mb-3">
+                          {announcement.priority === "high" && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-pink-500/10 text-pink-600 text-xs font-medium">
+                              <Star className="w-3.5 h-3.5 fill-current" />
+                              Wichtig
+                            </span>
                           )}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-
-                      {/* Kurze Preview wenn eingeklappt */}
-                      {!isExpanded && (
-                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                          {announcement.content}
-                        </p>
-                      )}
-                    </button>
-
-                    {/* Ausklappbarer Content */}
-                    {isExpanded && (
-                      <div className="px-5 pb-5">
-                        {/* Vollständiger Inhalt */}
-                        <div className="prose prose-sm max-w-none mb-4">
-                          <p className="text-[15px] text-foreground/85 leading-[1.7] whitespace-pre-wrap m-0">
-                            {announcement.content}
-                          </p>
+                          {announcement.isPinned && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium">
+                              📌 Angepinnt
+                            </span>
+                          )}
                         </div>
 
-                        {/* Poll (Umfrage) */}
-                        {announcement.poll && (
-                          <Poll
-                            poll={announcement.poll}
-                            memberId={memberId}
-                            onVote={handleVote}
+                        {/* Titel */}
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className="text-xl font-bold text-foreground leading-tight flex-1">
+                            {announcement.title}
+                          </h3>
+                          <svg
+                            className={cn(
+                              "w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200",
+                              isExpanded && "rotate-180"
+                            )}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+
+                        {/* Kurze Preview wenn eingeklappt */}
+                        {!isExpanded && (
+                          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                            {announcement.content}
+                          </p>
+                        )}
+                      </button>
+
+                      {/* Ausklappbarer Content */}
+                      {isExpanded && (
+                        <div className="mt-4">
+                          {/* Vollständiger Inhalt */}
+                          <div className="prose prose-sm max-w-none mb-4">
+                            <p className="text-[15px] text-foreground/85 leading-[1.7] whitespace-pre-wrap m-0">
+                              {announcement.content}
+                            </p>
+                          </div>
+
+                          {/* Poll (Umfrage) */}
+                          {announcement.poll && (
+                            <Poll
+                              poll={announcement.poll}
+                              memberId={memberId}
+                              onVote={handleVote}
                             onRemoveVote={handleRemoveVote}
                           />
                         )}
@@ -438,17 +444,18 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                               year: "numeric",
                             })}
                           </span>
-                        {announcement.expiresAt && (
-                          <span>
-                            · Gültig bis {new Date(announcement.expiresAt).toLocaleDateString("de-DE", {
-                              day: "numeric",
-                              month: "long",
-                            })}
-                          </span>
-                        )}
+                          {announcement.expiresAt && (
+                            <span>
+                              · Gültig bis {new Date(announcement.expiresAt).toLocaleDateString("de-DE", {
+                                day: "numeric",
+                                month: "long",
+                              })}
+                            </span>
+                          )}
                         </div>
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
                   </article>
                   );
                 })}

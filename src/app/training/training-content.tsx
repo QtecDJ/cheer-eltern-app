@@ -20,6 +20,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { respondToTraining, ResponseStatus } from "./actions";
+import { useRouter } from "next/navigation";
 
 interface TrainingContentProps {
   member: {
@@ -254,11 +255,15 @@ export function TrainingContent({
   // Trennung in kommende und vergangene Trainings
   const upcomingTrainings = trainings.filter((t) => t.date >= today);
   const pastTrainings = trainings.filter((t) => t.date < today);
+  const router = useRouter();
 
   return (
     <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
       {/* Header */}
       <header className="mb-6 animate-fade-in">
+        <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline">
+          ← Zurück
+        </button>
         <h1 className="text-2xl font-bold">Training</h1>
         <p className="text-muted-foreground mt-1">
           Trainingsplan für {member.firstName}
