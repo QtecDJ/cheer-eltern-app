@@ -69,25 +69,30 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Scrollbar unsichtbar machen */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE und Edge */
 }
 
-/* Schöne Scrollbar */
+/* Scrollbar für alle Elemente unsichtbar */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE und Edge */
+}
+
+/* Webkit Browser (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  display: none;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--foreground);
+  display: none;
 }
 
 /* Sanfte Animationen */
