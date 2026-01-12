@@ -54,25 +54,41 @@ async function getCompetitions() {
 async function getEventAnnouncements(teamId?: number, memberId?: number) {
   const now = new Date();
   
-  const announcements = await prisma.announcement.findMany({
-    where: {
-      category: "event",
-      AND: [
-        {
-          OR: [
-            { teamId: null },
-            { teamId: teamId },
-          ],
-        },
-        {
-          OR: [
-            { expiresAt: null },
-            { expiresAt: { gte: now } },
-          ],
-        },
+  // Baue die WHERE-Clause basierend auf teamId
+  const whereClause: any = {
+    category: "event",
+    OR: [
+      { expiresAt: null },
+      { expiresAt: { gte: now } },
+    ],
+  };
+
+  // Füge Team-Filter hinzu basierend auf AnnouncementTeam-Relation
+  if (teamId) {
+    whereClause.AND = {
+      OR: [
+        { AnnouncementTeam: { none: {} } }, // Ankündigungen ohne Team-Zuordnung (für alle)
+        { AnnouncementTeam: { some: { teamId: teamId } } }, // Ankündigungen für dieses Team
       ],
-    },
+    };
+  } else {
+    // Wenn kein Team, zeige nur allgemeine Ankündigungen (ohne Team-Zuordnung)
+    whereClause.AnnouncementTeam = { none: {} };
+  }
+  
+  const announcements = await prisma.announcement.findMany({
+    where: whereClause,
     include: {
+      AnnouncementTeam: {
+        include: {
+          Team: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
       Poll: {
         include: {
           PollOption: {

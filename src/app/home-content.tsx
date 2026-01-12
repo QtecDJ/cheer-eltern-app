@@ -202,39 +202,44 @@ export function HomeContent({
               const IconComponent = style.icon;
 
               return (
-                <Card
+                <a
                   key={announcement.id}
-                  className={`animate-slide-up stagger-${index + 1} border-l-4 ${style.borderColor}`}
+                  href="/events"
+                  className={`block animate-slide-up stagger-${index + 1}`}
                 >
-                  <div className="flex gap-3">
-                    <div className={`p-2 rounded-lg ${style.bgColor} shrink-0`}>
-                      <IconComponent className={`w-4 h-4 ${style.iconColor}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-sm leading-tight">
-                          {announcement.isPinned && (
-                            <Pin className="w-3 h-3 inline mr-1 text-primary" />
-                          )}
-                          {announcement.title}
-                        </h3>
-                        {announcement.priority === "high" && (
-                          <Badge variant="danger" size="sm">Wichtig</Badge>
-                        )}
+                  <Card
+                    className={`hover:bg-muted/50 transition-colors cursor-pointer border-l-4 ${style.borderColor}`}
+                  >
+                    <div className="flex gap-3">
+                      <div className={`p-2 rounded-lg ${style.bgColor} shrink-0`}>
+                        <IconComponent className={`w-4 h-4 ${style.iconColor}`} />
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                        {announcement.content}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {new Date(announcement.createdAt).toLocaleDateString("de-DE", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-sm leading-tight">
+                            {announcement.isPinned && (
+                              <Pin className="w-3 h-3 inline mr-1 text-primary" />
+                            )}
+                            {announcement.title}
+                          </h3>
+                          {announcement.priority === "high" && (
+                            <Badge variant="danger" size="sm">Wichtig</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                          {announcement.content}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {new Date(announcement.createdAt).toLocaleDateString("de-DE", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </Card>
+                  </Card>
+                </a>
               );
             })}
           </div>
