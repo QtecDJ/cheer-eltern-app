@@ -1,10 +1,57 @@
-// Member App Service Worker v1.8.1
+// Member App Service Worker v1.8.2
 // Entwickelt von ICA-Dev Kai Püttmann
 // Moderne PWA mit verbessertem Caching + Aggressive Client-Side Caching
 // v1.8.0: Database Query Optimization - 70% weniger Data Transfer
 // v1.8.1: Client-Side Caching - zusätzliche 60-80% weniger API Requests
+// v1.8.2: iOS Safari PWA Optimization - iOS-spezifische Anpassungen
 
-const SW_VERSION = '1.8.1';
+const SW_VERSION = '1.8.2';
+
+// ============================================
+// iOS DETECTION & OPTIMIZATION
+// ============================================
+
+/**
+ * iOS-spezifische Service Worker Anpassungen
+ * 
+ * WICHTIGE iOS LIMITIERUNGEN:
+ * 1. Keine Background Sync API - SW wird nach ~3 Sekunden terminiert
+ * 2. Aggressives Cache Eviction - iOS löscht Caches bei niedrigem Speicher
+ * 3. Kleinere Cache-Limits - Konservativere Cache-Größen für iOS
+ * 4. Service Worker wird bei Pause sofort gestoppt
+ * 5. Visibility API ist zuverlässiger als pageshow/pagehide auf iOS
+ * 
+ * STRATEGIE:
+ * - Kürzere Cache TTLs auf iOS (50% der normalen Zeit)
+ * - Kleinere Cache-Limits
+ * - Keine long-running Tasks
+ * - Cache-first für kritische Endpoints
+ * - Aggressive Cleanup bei activation
+ */
+
+// Prüfe ob iOS
+function isIOS() {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+}
+
+// Prüfe ob iOS PWA Mode
+function isIOSPWA() {
+  if (typeof navigator === 'undefined') return false;
+  return isIOS() && ('standalone' in navigator) && navigator.standalone === true;
+}
+
+// iOS-optimierte Cache-Konfiguration
+const IS_IOS = isIOS();
+const IS_IOS_PWA = isIOSPWA();
+
+if (IS_IOS) {
+  console.log('[SW] Detected iOS - applying iOS optimizations');
+  if (IS_IOS_PWA) {
+    console.log('[SW] Running in iOS PWA mode');
+  }
+}
 const CACHE_NAME = `member-app-v${SW_VERSION}`;
 const STATIC_CACHE = `member-static-v${SW_VERSION}`;
 const DYNAMIC_CACHE = `member-dynamic-v${SW_VERSION}`;
@@ -27,12 +74,12 @@ const STATIC_ASSETS = [
   '/icons/icon-512.png',
 ];
 
-// Cache-Konfiguration
+// Cache-Konfiguration (mit iOS Anpassungen)
 const CACHE_CONFIG = {
-  maxDynamicSize: 25,
-  maxApiSize: 30, // Erhöht für mehr API responses
-  maxImageSize: 50,
-  apiCacheDuration: 5 * 60 * 1000, // 5 Minuten (erhöht für mehr savings)
+  maxDynamicSize: IS_IOS ? 15 : 25, // iOS: kleinerer Cache
+  maxApiSize: IS_IOS ? 20 : 30, // iOS: kleinerer Cache
+  maxImageSize: IS_IOS ? 30 : 50, // iOS: kleinerer Cache
+  apiCacheDuration: IS_IOS ? 2.5 * 60 * 1000 : 5 * 60 * 1000, // iOS: 2.5min, sonst 5min
   staticCacheDuration: 7 * 24 * 60 * 60 * 1000, // 7 Tage
   imageCacheDuration: 14 * 24 * 60 * 60 * 1000, // 14 Tage
 };
@@ -61,6 +108,24 @@ const API_CACHE_STRATEGIES = {
     '/api/rsvp',
   ],
 };
+
+// iOS-spezifische Cache Durations (reduziert)
+const IOS_CACHE_DURATIONS = {
+  VERY_LONG: 15 * 60 * 1000, // 15min statt 30min
+  LONG: 5 * 60 * 1000, // 5min statt 10min
+  MEDIUM: 2 * 60 * 1000, // 2min statt 5min
+  SHORT: 60 * 1000, // 1min statt 2min
+};
+
+const STANDARD_CACHE_DURATIONS = {
+  VERY_LONG: 30 * 60 * 1000, // 30 Min
+  LONG: 10 * 60 * 1000, // 10 Min
+  MEDIUM: 5 * 60 * 1000, // 5 Min
+  SHORT: 2 * 60 * 1000, // 2 Min
+};
+
+// Wähle passende Cache Durations
+const CACHE_DURATIONS = IS_IOS ? IOS_CACHE_DURATIONS : STANDARD_CACHE_DURATIONS;
 
 // ============================================
 // INSTALLATION
@@ -131,23 +196,44 @@ async function networkFirstWithTimeout(request, timeout = 5000) {
   // Bestimme Cache-Duration basierend auf Endpoint
   let cacheDuration = CACHE_CONFIG.apiCacheDuration;
   
+  // iOS: Kürzere Timeouts (SW wird schneller beendet)
+  if (IS_IOS) {
+    timeout = Math.min(timeout, 3000); // Max 3 Sekunden auf iOS
+  }
+  
   // Check für spezifische Endpoints
   for (const [strategy, endpoints] of Object.entries(API_CACHE_STRATEGIES)) {
     if (endpoints.some(endpoint => url.pathname.includes(endpoint))) {
-      switch (strategy) {
-        case 'VERY_LONG':
-          cacheDuration = 30 * 60 * 1000; // 30 Min
-          timeout = 3000; // Schnellerer Timeout
-          break;
-        case 'LONG':
-          cacheDuration = 10 * 60 * 1000; // 10 Min
-          timeout = 4000;
-          break;
-        case 'MEDIUM':
-          cacheDuration = 5 * 60 * 1000; // 5 Min
-          timeout = 5000;
-          break;
-        case 'SHORT':
+      cacheDuration = CACHE_DURATIONS[strategy];
+      
+      // iOS: Angepasste Timeouts pro Strategy
+      if (IS_IOS) {
+        switch (strategy) {
+          case 'VERY_LONG':
+            timeout = 2000; // 2s für stabile Daten
+            break;
+          case 'LONG':
+            timeout = 2500; // 2.5s
+            break;
+          case 'MEDIUM':
+            timeout = 3000; // 3s
+            break;
+          case 'SHORT':
+            timeout = 3000; // 3s für zeitkritische Daten
+            break;
+        }
+      } else {
+        switch (strategy) {
+          case 'VERY_LONG':
+            timeout = 3000;
+            break;
+          case 'LONG':
+            timeout = 4000;
+            break;
+          case 'MEDIUM':
+            timeout = 5000;
+            break;
+          case 'SHORT':
           cacheDuration = 2 * 60 * 1000; // 2 Min
           timeout = 6000;
           break;
