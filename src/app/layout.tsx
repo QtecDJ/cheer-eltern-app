@@ -140,7 +140,7 @@ export default async function RootLayout({
         <ServiceWorkerRegistration />
         <InstallPrompt />
         <PullToRefresh>
-          <main className={session ? "min-h-screen pb-24 safe-area-inset" : "min-h-screen safe-area-inset"}>
+          <main className={session ? "min-h-screen pb-20 safe-area-inset" : "min-h-screen safe-area-inset"}>
             {children}
           </main>
         </PullToRefresh>

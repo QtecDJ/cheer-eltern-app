@@ -332,7 +332,7 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
 
                         {/* Kurze Preview wenn eingeklappt */}
                         {!isExpanded && (
-                          <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                          <p className="text-sm text-muted-foreground mt-2 line-clamp-1">
                             {announcement.content}
                           </p>
                         )}

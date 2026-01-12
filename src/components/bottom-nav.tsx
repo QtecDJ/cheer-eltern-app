@@ -27,7 +27,7 @@ export function BottomNav({ items }: BottomNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-4 left-0 right-0 z-50 px-4 safe-bottom">
+    <nav className="fixed bottom-2 left-0 right-0 z-50 px-2 pb-safe">
       <div className="max-w-lg mx-auto">
         <div className="bg-card/80 backdrop-blur-2xl border border-border/30 rounded-3xl shadow-2xl shadow-black/20 p-2">
           <div className="flex items-center justify-around">
