@@ -1,5 +1,25 @@
 # Client-Side Caching Implementation Guide
 
+## ⚠️ WICHTIGER HINWEIS: ADDITIV, NICHT ERSETZEND!
+
+**Diese Features sind ein BONUS on top of v1.8.0 Optimizations!**
+
+### Was NICHT geändert wurde:
+- ✅ Next.js ISR / revalidate statements (ALLE INTAKT)
+- ✅ Prisma Query Optimizations (ALLE INTAKT)
+- ✅ Server Components Logic (UNVERÄNDERT)
+- ✅ Server Actions (UNVERÄNDERT)
+- ✅ Database Indexes (UNVERÄNDERT)
+
+### Was NEU hinzugefügt wurde:
+- ✨ Client-Side Cache Utilities (optional)
+- ✨ React Hooks für Client Components (optional)
+- ✨ Enhanced Service Worker (automatisch, keine Code-Änderung nötig)
+
+**Siehe [OPTIMIZATION_SAFETY.md](OPTIMIZATION_SAFETY.md) für Details!**
+
+---
+
 ## ✅ Was wurde implementiert
 
 Die folgenden Client-Side Caching Features sind jetzt verfügbar:

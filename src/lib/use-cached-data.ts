@@ -1,10 +1,29 @@
 /**
  * React Hook für Client-Side Caching
  * 
- * Einfache Nutzung von client-side caching in React Components
+ * ⚠️ WICHTIG: Dieser Hook ist OPTIONAL und nur für Client Components!
+ * 
+ * Server Components sollten weiterhin die bestehenden optimierten Queries nutzen:
+ * - import { getDataFromQueries } from "@/lib/queries";
+ * - const data = await getDataFromQueries();
+ * 
+ * Der Service Worker cached automatisch die Responses von Server Components,
+ * daher ist explizites Client-Side Caching dort nicht nötig.
+ * 
+ * WANN NUTZEN:
+ * - Nur in Client Components ("use client")
+ * - Wenn du explizite Kontrolle über Caching brauchst
+ * - Für dynamische Client-Side Data Fetching
+ * 
+ * WANN NICHT NUTZEN:
+ * - In Server Components (nutze stattdessen @/lib/queries)
+ * - Für sensitive Daten (health data, passwords, etc.)
+ * - Wenn revalidate in page.tsx ausreicht
  * 
  * BEISPIEL:
  * ```tsx
+ * "use client";
+ * 
  * const { data, loading, error } = useCachedData(
  *   'events_list',
  *   () => fetch('/api/events').then(r => r.json()),

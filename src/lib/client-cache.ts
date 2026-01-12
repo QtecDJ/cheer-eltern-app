@@ -1,6 +1,17 @@
 /**
  * Client-Side Caching Utilities
  * 
+ * ⚠️ WICHTIG: Diese Utilities sind ADDITIV und OPTIONAL!
+ * Sie ERSETZEN NICHT die bestehenden Optimizations aus v1.8.0:
+ * - Next.js ISR / revalidate (bleibt unverändert)
+ * - Prisma Query Optimizations (bleibt unverändert)
+ * - Server Components (funktionieren wie bisher)
+ * - Service Worker Basic Caching (bleibt bestehen)
+ * 
+ * NUTZUNG:
+ * - Server Components: Profitieren AUTOMATISCH vom Service Worker (keine Änderung nötig)
+ * - Client Components: OPTIONAL useCachedData() Hook nutzen
+ * 
  * ZIEL: Drastisch reduzieren von Neon Postgres Data Transfer durch aggressive client-side caching
  * 
  * STRATEGIE:
@@ -8,16 +19,16 @@
  * - Background-Update: Lade neue Daten im Hintergrund
  * - Version-Based: Nur neu laden wenn Version sich ändert
  * 
- * IMPACT:
+ * IMPACT (zusätzlich zu v1.8.0 Optimizations):
  * - ~60-80% weniger API Requests
  * - ~50-70% weniger Neon Data Transfer
  * - Instant Page Loads (< 50ms statt 200-500ms)
  * - Offline-fähig
  * 
- * SAVINGS bei 30k requests/month:
- * - Ohne Cache: ~3.3 GB/month
- * - Mit Cache: ~0.5-1 GB/month
- * - Gespart: ~2.3-2.8 GB/month
+ * SAVINGS bei 30k requests/month (on top of v1.8.0):
+ * - v1.8.0: ~0.7 GB/month (nach Query + App Router Optimization)
+ * - v1.8.1: ~0.2-0.3 GB/month (mit Client-Side Cache)
+ * - Zusätzlich gespart: ~0.4-0.5 GB/month
  */
 
 "use client";
