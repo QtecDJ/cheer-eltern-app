@@ -16,7 +16,7 @@ export default async function MitgliederInfoPage() {
   // Prüfe ob User berechtigt ist (Admin, Trainer, Coach)
   const member = await prisma.member.findUnique({
     where: { id: session.id },
-    select: { userRole: true, teamId: true },
+    select: { userRole: true, teamId: true, coachTeamId: true },
   });
 
   if (!member || !isAdminOrTrainer(member.userRole)) {
@@ -24,7 +24,7 @@ export default async function MitgliederInfoPage() {
   }
 
   const isAdmin = member.userRole === "admin";
-  const trainerTeamId = member.teamId;
+  const trainerTeamId = member.coachTeamId;
 
   // Hole Mitglieder mit Notfall/Gesundheitsinfos
   // Admins sehen alle, Trainer nur ihr Team

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -50,6 +50,7 @@ interface AnwesenheitContentProps {
   training: Training;
   members: Member[];
   existingAttendances: ExistingAttendance[];
+  initialExcusedCount: number;
   isAdmin: boolean;
 }
 
@@ -59,9 +60,15 @@ export function AnwesenheitContent({
   training, 
   members, 
   existingAttendances,
+  initialExcusedCount,
   isAdmin 
 }: AnwesenheitContentProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Initialisiere Anwesenheit mit bestehenden Daten
   const initialAttendance: Record<number, AttendanceStatus> = {};
@@ -113,10 +120,12 @@ export function AnwesenheitContent({
   // Statistiken berechnen
   const presentCount = Object.values(attendance).filter(s => s === "present").length;
   const absentCount = Object.values(attendance).filter(s => s === "absent").length;
-  const notMarkedCount = filteredMembers.length - presentCount - absentCount;
   
-  // Zähle bereits abgesagte
-  const declinedCount = (existingAttendances || []).filter(a => a.status === "excused").length;
+  // Verwende den vom Server berechneten excusedCount für Hydration-Konsistenz
+  const excusedCount = initialExcusedCount;
+  
+  // Nicht markiert = alle außer anwesend, abwesend und entschuldigt
+  const notMarkedCount = filteredMembers.length - presentCount - absentCount - excusedCount;
 
   return (
     <div className="px-4 pt-6 pb-24 max-w-lg mx-auto">
@@ -132,7 +141,7 @@ export function AnwesenheitContent({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold text-lg">{training.title}</h2>
-                {training.team && (
+                {mounted && training.team && (
                   <span 
                     className="inline-flex items-center font-medium rounded-full px-2.5 py-1 text-xs text-white"
                     style={{ 
@@ -186,8 +195,8 @@ export function AnwesenheitContent({
           <CardContent className="py-3">
             <div className="text-center">
               <AlertCircle className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-              <p className="text-xl font-bold">{declinedCount}</p>
-              <p className="text-[10px] text-muted-foreground">Abgesagt</p>
+              <p className="text-xl font-bold">{excusedCount}</p>
+              <p className="text-[10px] text-muted-foreground">Entschuldigt</p>
             </div>
           </CardContent>
         </Card>
@@ -284,7 +293,7 @@ function AttendanceCard({
               <div className="flex items-center gap-1 mt-1">
                 <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/20">
                   <AlertCircle className="w-2.5 h-2.5 mr-1" />
-                  Abgesagt
+                  Entschuldigt
                 </Badge>
                 {declineReason && (
                   <span className="text-xs text-muted-foreground truncate">

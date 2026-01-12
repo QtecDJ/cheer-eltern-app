@@ -225,6 +225,25 @@ function ResponseButtons({
   );
 }
 
+// Client-only Komponente für relatives Datum
+function RelativeDateBadge({ date }: { date: string }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <Badge variant="info" size="sm">...</Badge>;
+  }
+
+  return (
+    <Badge variant="info" size="sm">
+      {getRelativeDate(date)}
+    </Badge>
+  );
+}
+
 export function TrainingContent({
   member,
   trainings,
@@ -296,9 +315,7 @@ export function TrainingContent({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-semibold truncate">{training.title}</h3>
-                      <Badge variant="info" size="sm">
-                        {getRelativeDate(training.date)}
-                      </Badge>
+                      <RelativeDateBadge date={training.date} />
                     </div>
 
                     {/* Training Typ Badge */}
