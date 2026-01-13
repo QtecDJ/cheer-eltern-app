@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useVersionedContent } from "@/lib/use-versioned-content";
 
 interface Participant {
   id: number;
@@ -543,9 +544,10 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
 
                           {/* Beschreibung */}
                           {item.itemType === "event" && item.description && (
-                            <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
-                              {item.description}
-                            </p>
+                            <EventDescription 
+                              eventId={item.id} 
+                              description={item.description}
+                            />
                           )}
 
                           {/* Kategorie Badge */}
@@ -667,5 +669,21 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
         </>
       )}
     </div>
+  );
+}
+
+// Cached Event Description Component
+function EventDescription({ eventId, description }: { eventId: number; description: string }) {
+  const { content } = useVersionedContent({
+    key: `event-desc-${eventId}`,
+    version: description.slice(0, 20), // Ersten 20 Zeichen als Version-Hint
+    fetcher: async () => description,
+    ttl: 1000 * 60 * 60 * 24, // 24h Cache
+  });
+
+  return (
+    <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
+      {content || description}
+    </p>
   );
 }

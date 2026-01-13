@@ -3,6 +3,7 @@
 import { login, logout } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { clearContentCache } from "@/lib/content-cache";
 
 const CURRENT_VERSION = "1.7.0";
 const VERSION_COOKIE = "app_version";
@@ -46,6 +47,10 @@ export async function loginAction(formData: FormData) {
 export async function logoutAction() {
   try {
     await logout();
+    // Content-Cache löschen (läuft auf Client-Side nach Redirect)
+    clearContentCache().catch(err => 
+      console.error("[ContentCache] Logout cleanup error:", err)
+    );
   } catch (error) {
     console.error("Logout error:", error);
   }

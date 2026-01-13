@@ -20,6 +20,7 @@ import {
   Info,
   PartyPopper,
 } from "lucide-react";
+import { useVersionedContent } from "@/lib/use-versioned-content";
 
 interface HomeContentProps {
   child: {
@@ -227,7 +228,10 @@ export function HomeContent({
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                          {announcement.content}
+                          <AnnouncementContent 
+                            announcementId={announcement.id}
+                            content={announcement.content}
+                          />
                         </p>
                         <p className="text-xs text-muted-foreground mt-2">
                           {new Date(announcement.createdAt).toLocaleDateString("de-DE", {
@@ -318,4 +322,16 @@ export function HomeContent({
       </section>
     </div>
   );
+}
+
+// Cached Announcement Content Component  
+function AnnouncementContent({ announcementId, content }: { announcementId: number; content: string }) {
+  const { content: cachedContent } = useVersionedContent({
+    key: `announcement-${announcementId}`,
+    version: content.slice(0, 20), // Ersten 20 Zeichen als Version-Hint
+    fetcher: async () => content,
+    ttl: 1000 * 60 * 60 * 12, // 12h Cache (Announcements ändern sich öfter)
+  });
+
+  return <>{cachedContent || content}</>;
 }

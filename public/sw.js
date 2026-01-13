@@ -399,8 +399,15 @@ self.addEventListener('fetch', (event) => {
   
   // Routing basierend auf Request-Typ
   
-  // 1. API-Calls: Network-First mit Timeout
+  // 1. API-Calls: Prüfe ob Content-Endpoint (NEUE LOGIK - ADDITIV)
   if (url.pathname.startsWith('/api/')) {
+    // Content-Endpoints: Stale-While-Revalidate (version-basiert)
+    if (isContentEndpoint(url)) {
+      event.respondWith(staleWhileRevalidateContent(request));
+      return;
+    }
+    
+    // Alle anderen API-Calls: Network-First mit Timeout (BESTEHENDE LOGIK)
     event.respondWith(networkFirstWithTimeout(request));
     return;
   }
@@ -460,6 +467,37 @@ self.addEventListener('message', (event) => {
           cache.addAll(payload.urls);
         });
       }
+      break;
+      
+    // NEUE CONTENT CACHE MANAGEMENT CASES (ADDITIV)
+    case 'CLEAR_CONTENT_CACHE':
+      event.waitUntil(
+        caches.delete(CONTENT_CACHE).then(() => {
+          console.log(`[SW ${SW_VERSION}] Content cache cleared`);
+          event.ports[0]?.postMessage({ success: true });
+        }).catch(error => {
+          console.error(`[SW ${SW_VERSION}] Failed to clear content cache:`, error);
+          event.ports[0]?.postMessage({ success: false, error: error.message });
+        })
+      );
+      break;
+      
+    case 'GET_CONTENT_CACHE_SIZE':
+      event.waitUntil(
+        caches.open(CONTENT_CACHE).then(cache => {
+          return cache.keys().then(keys => {
+            event.ports[0]?.postMessage({ 
+              success: true, 
+              size: keys.length 
+            });
+          });
+        }).catch(error => {
+          event.ports[0]?.postMessage({ 
+            success: false, 
+            error: error.message 
+          });
+        })
+      );
       break;
   }
 });
@@ -561,4 +599,91 @@ self.addEventListener('periodicsync', (event) => {
   }
 });
 
-console.log(`[SW ${SW_VERSION}] Service Worker loaded`);
+// ============================================
+// CONTENT CACHE SUPPORT (v1.8.2+)
+// Version-Based Content Caching (ADDITIV)
+// ============================================
+
+/**
+ * WICHTIG: Dieses Feature ist ADDITIV!
+ * Es erweitert die bestehende SW-Logik um version-basiertes Content Caching.
+ * Alle bisherigen Caching-Strategien bleiben unverändert.
+ * 
+ * ZIEL: Reduziere Data Transfer für Text-Content (Descriptions, Announcements, etc.)
+ * durch intelligentes Version-basiertes Caching
+ * 
+ * iOS OPTIMIZATION:
+ * - Nutzt Cache API (keine long-running tasks)
+ * - Stale-while-revalidate für Content-Endpoints
+ * - Respektiert iOS Cache Limits
+ */
+
+const CONTENT_CACHE = `member-content-v${SW_VERSION}`;
+
+// Content-spezifische Endpoints (können versioniert gecacht werden)
+const CONTENT_ENDPOINTS = [
+  '/api/events/.*?/description',
+  '/api/announcements/.*?/content',
+  '/api/info/.*?',
+];
+
+// Prüfe ob Request ein Content-Endpoint ist
+function isContentEndpoint(url) {
+  return CONTENT_ENDPOINTS.some(pattern => {
+    const regex = new RegExp(pattern);
+    return regex.test(url.pathname);
+  });
+}
+
+// Stale-While-Revalidate für Content
+async function staleWhileRevalidateContent(request) {
+  const cache = await caches.open(CONTENT_CACHE);
+  const cachedResponse = await cache.match(request);
+  
+  // iOS: Max 2 Sekunden für Background Revalidation (SW wird sonst beendet)
+  const fetchTimeout = IS_IOS ? 2000 : 5000;
+  
+  const fetchPromise = (async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), fetchTimeout);
+      
+      const response = await fetch(request, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        // Update cache in background (non-blocking)
+        const responseClone = response.clone();
+        const responseWithMeta = new Response(responseClone.body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: new Headers(response.headers),
+        });
+        
+        responseWithMeta.headers.set('sw-cached-at', Date.now().toString());
+        
+        // Cache asyncron updaten (iOS-safe)
+        cache.put(request, responseWithMeta).then(() => {
+          console.log(`[SW ${SW_VERSION}] Content revalidated: ${request.url}`);
+        }).catch(err => {
+          console.warn(`[SW ${SW_VERSION}] Content cache update failed:`, err);
+        });
+      }
+      
+      return response;
+    } catch (error) {
+      // Bei Fehler: nutze Cache falls vorhanden
+      if (cachedResponse) {
+        console.log(`[SW ${SW_VERSION}] Content revalidation failed, using cache`);
+        return cachedResponse;
+      }
+      throw error;
+    }
+  })();
+  
+  // Wenn Cache vorhanden: sofort returnen (stale)
+  // Sonst: warte auf Network
+  return cachedResponse || fetchPromise;
+}
+
+console.log(`[SW ${SW_VERSION}] Service Worker loaded with Content Cache support`);

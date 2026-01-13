@@ -6,6 +6,8 @@ import { getSession } from "@/lib/auth";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { InstallPrompt } from "@/components/install-prompt";
 import { PullToRefresh } from "@/components/pull-to-refresh";
+import { ContentCacheInit } from "@/components/content-cache-init";
+import { OfflineIndicator } from "@/components/offline-indicator";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -143,6 +145,8 @@ export default async function RootLayout({
       >
         <ServiceWorkerRegistration />
         <InstallPrompt />
+        <ContentCacheInit />
+        <OfflineIndicator />
         <PullToRefresh>
           <main className={session ? "min-h-screen pb-20 safe-area-inset" : "min-h-screen safe-area-inset"}>
             {children}

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { respondToTraining, ResponseStatus } from "./actions";
 import { useRouter } from "next/navigation";
+import { useVersionedContent } from "@/lib/use-versioned-content";
 
 interface TrainingContentProps {
   member: {
@@ -359,7 +360,10 @@ export function TrainingContent({
                       <div className="mt-3 pt-3 border-t border-border">
                         <div className="flex items-start gap-1.5 text-sm">
                           <FileText className="w-3.5 h-3.5 shrink-0 mt-0.5 text-muted-foreground" />
-                          <p className="text-muted-foreground">{training.description}</p>
+                          <TrainingDescription 
+                            trainingId={training.id}
+                            description={training.description}
+                          />
                         </div>
                       </div>
                     )}
@@ -429,5 +433,21 @@ export function TrainingContent({
         )}
       </section>
     </div>
+  );
+}
+
+// Cached Training Description Component
+function TrainingDescription({ trainingId, description }: { trainingId: number; description: string }) {
+  const { content } = useVersionedContent({
+    key: `training-desc-${trainingId}`,
+    version: description.slice(0, 20), // Ersten 20 Zeichen als Version-Hint
+    fetcher: async () => description,
+    ttl: 1000 * 60 * 60 * 24, // 24h Cache
+  });
+
+  return (
+    <p className="text-muted-foreground">
+      {content || description}
+    </p>
   );
 }

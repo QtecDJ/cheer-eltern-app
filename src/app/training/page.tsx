@@ -29,9 +29,13 @@ export default async function TrainingPage() {
     );
   }
 
+  // Trainer/Coach: Zeige Trainings für coachTeamId, sonst für teamId als Athlet
+  // Nutzt bestehende optimierte Query ohne neue DB Calls
+  const relevantTeamId = session.coachTeamId || member.teamId;
+
   // Alle Daten parallel laden mit optimierten Queries
   const [trainings, attendanceMap] = await Promise.all([
-    getTrainingsList(member.teamId),
+    getTrainingsList(relevantTeamId),
     getAttendanceMap(member.id),
   ]);
 
