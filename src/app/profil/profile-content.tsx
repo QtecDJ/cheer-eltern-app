@@ -264,6 +264,37 @@ export function ProfileContent({
             Abmelden
           </button>
         </form>
+
+        {/* Support-Bereich */}
+        <div className="mt-8 pt-6 border-t border-border">
+          <div className="space-y-4 text-sm text-muted-foreground">
+            <p>
+              Die ICA Members App wird allen Mitgliedern
+              kostenlos zur Verfügung gestellt.
+            </p>
+            <p>
+              Wenn dir die App im Alltag hilft und du die Weiterentwicklung
+              freiwillig unterstützen möchtest, freue ich mich sehr darüber.
+            </p>
+            <p>
+              Ein großes Dankeschön an alle, die dieses Projekt möglich machen.
+              Im Cheerleading sagt man: Ein starkes Team braucht starken Support –
+              danke, dass ihr Teil davon seid!
+            </p>
+            <p className="text-xs italic">
+              — Coach Kai
+            </p>
+          </div>
+          <a
+            href="https://buymeacoffee.com/ica_dev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 flex items-center justify-center gap-2 w-full py-3 px-4 bg-muted/50 text-muted-foreground font-medium rounded-xl hover:bg-muted transition-colors"
+          >
+            ☕ Entwicklung unterstützen
+          </a>
+        </div>
+
         <p className="text-xs text-muted-foreground">
           Member App · Version 1.8.3
         </p>
