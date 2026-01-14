@@ -26,7 +26,7 @@ const documents: Document[] = [
   {
     id: "2",
     title: "Schmink Video",
-    description: "Anleitung zum Schminken für Wettkämpfe",
+    description: "Anleitung zum Schminken für Auftritte und Events",
     filename: "https://web.icacheer.space/documents/vid1.mp4",
     category: "Cheer",
     isExternal: true
@@ -50,13 +50,40 @@ export function DokumenteContent() {
 
   const handleDownload = (doc: Document) => {
     const url = getDownloadUrl(doc.filename, doc.isExternal);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = doc.title + '.pdf';
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    
+    // Für Videos: Download-Attribut funktioniert nicht bei externen URLs
+    // Daher öffnen wir sie einfach in neuem Tab
+    const fileExtension = doc.filename.split('.').pop()?.toLowerCase();
+    const isVideo = fileExtension === 'mp4' || fileExtension === 'mov' || fileExtension === 'avi';
+    
+    if (isVideo) {
+      // Bei Videos muss der Browser selbst den Download-Dialog anzeigen
+      fetch(url)
+        .then(response => response.blob())
+        .then(blob => {
+          const blobUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = doc.title + '.' + fileExtension;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(blobUrl);
+        })
+        .catch(() => {
+          // Fallback: Öffne in neuem Tab
+          window.open(url, '_blank');
+        });
+    } else {
+      // Für PDFs funktioniert das download-Attribut
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = doc.title + '.pdf';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   // Gruppiere Dokumente nach Kategorie
