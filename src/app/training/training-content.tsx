@@ -259,14 +259,14 @@ export function TrainingContent({
   const router = useRouter();
 
   return (
-    <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
+    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header */}
-      <header className="mb-6 animate-fade-in">
-        <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline">
+      <header className="mb-6 md:mb-8 animate-fade-in">
+        <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline md:hidden">
           ← Zurück
         </button>
-        <h1 className="text-2xl font-bold">Training</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Training</h1>
+        <p className="text-sm md:text-base text-muted-foreground mt-1">
           Trainingsplan für {member.firstName}
           {member.team && (
             <span className="ml-1">
@@ -278,8 +278,8 @@ export function TrainingContent({
 
       {/* Anstehende Trainings */}
       <section className="mb-8">
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-primary" />
+        <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5 md:w-6 md:h-6 text-primary" />
           Anstehende Trainings
         </h2>
 
@@ -290,7 +290,7 @@ export function TrainingContent({
             description="Aktuell sind keine Trainings geplant."
           />
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {upcomingTrainings.map((training, index) => (
               <Card
                 key={training.id}

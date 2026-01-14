@@ -138,7 +138,7 @@ export function EinstellungenContent({ member }: EinstellungenContentProps) {
   const hasHealthInfo = member.allergies || member.diseases || member.medications;
 
   return (
-    <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
+    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-24 md:pb-8 max-w-lg md:max-w-3xl mx-auto">
       <header className="mb-6 animate-fade-in">
         <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline">
           ← Zurück

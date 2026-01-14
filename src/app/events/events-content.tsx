@@ -245,14 +245,14 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
   const router = useRouter();
 
   return (
-    <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
+    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header */}
-      <header className="mb-6 animate-fade-in">
-        <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline">
+      <header className="mb-6 md:mb-8 animate-fade-in">
+        <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline md:hidden">
           ← Zurück
         </button>
-        <h1 className="text-2xl font-bold">Events & Wettkämpfe</h1>
-        <p className="text-muted-foreground mt-1">
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Events & Wettkämpfe</h1>
+        <p className="text-sm md:text-base text-muted-foreground mt-1">
           Alle wichtigen Termine im Überblick
         </p>
       </header>

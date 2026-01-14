@@ -87,13 +87,13 @@ export function HomeContent({
   );
 
   return (
-    <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
+    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header mit Begrüßung */}
-      <header className="mb-6 animate-fade-in">
+      <header className="mb-6 md:mb-8 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Willkommen zurück 👋</p>
-            <h1 className="text-2xl font-bold mt-0.5">
+            <p className="text-sm md:text-base text-muted-foreground">Willkommen zurück 👋</p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mt-0.5">
               {child.firstName}&apos;s Übersicht
             </h1>
           </div>
@@ -134,7 +134,7 @@ export function HomeContent({
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
         <div className="animate-slide-up stagger-1">
           <StatCard
             icon={CheckCircle2}
@@ -251,10 +251,10 @@ export function HomeContent({
       )}
 
       {/* Nächstes Training */}
-      <section className="mb-6 animate-slide-up stagger-3">
+      <section className="mb-6 md:mb-8 animate-slide-up stagger-3">
         <CardHeader className="px-0">
           <CardTitle size="lg" className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-primary" />
+            <Calendar className="w-5 h-5 md:w-6 md:h-6 text-primary" />
             Nächste Trainings
           </CardTitle>
         </CardHeader>
@@ -265,7 +265,7 @@ export function HomeContent({
             <p className="text-muted-foreground">Keine anstehenden Trainings</p>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {upcomingTrainings.map((training, index) => (
               <a
                 key={training.id}

@@ -8,6 +8,7 @@ import { InstallPrompt } from "@/components/install-prompt";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { ContentCacheInit } from "@/components/content-cache-init";
 import { OfflineIndicator } from "@/components/offline-indicator";
+import { cn } from "@/lib/utils";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -122,6 +123,7 @@ export default async function RootLayout({
     { href: "/events", icon: "CalendarDays", label: "Events" },
   ];
   if (isAdminOrTrainer) {
+    navItems.push({ href: "/dokumente", icon: "FileText", label: "Dokumente" });
     navItems.push({ href: "/info", icon: "ClipboardList", label: "Info" });
   }
   navItems.push({ href: "/profil", icon: "User", label: "Profil" });
@@ -147,12 +149,17 @@ export default async function RootLayout({
         <InstallPrompt />
         <ContentCacheInit />
         <OfflineIndicator />
+        {session && <BottomNav items={navItems} />}
         <PullToRefresh>
-          <main className={session ? "min-h-screen pb-20 safe-area-inset" : "min-h-screen safe-area-inset"}>
-            {children}
+          <main className={cn(
+            "min-h-screen safe-area-inset",
+            session ? "pb-20 md:pb-0 md:pl-20 lg:pl-64" : ""
+          )}>
+            <div className="w-full md:max-w-4xl lg:max-w-5xl xl:max-w-7xl md:mx-auto md:px-6 lg:px-8">
+              {children}
+            </div>
           </main>
         </PullToRefresh>
-        {session && <BottomNav items={navItems} />}
       </body>
     </html>
   );

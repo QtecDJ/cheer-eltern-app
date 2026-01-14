@@ -128,7 +128,7 @@ export function AnwesenheitContent({
   const notMarkedCount = filteredMembers.length - presentCount - absentCount - excusedCount;
 
   return (
-    <div className="px-4 pt-6 pb-24 max-w-lg mx-auto">
+    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-24 md:pb-8 max-w-lg md:max-w-4xl mx-auto">
       {/* Header */}
       <header className="mb-6 animate-fade-in">
         <div className="flex items-center justify-between mb-2">

@@ -91,13 +91,13 @@ export function InfoContent({ members, teams, isAdmin, currentUserTeamId }: Info
     member.emergencyContact || member.emergencyContact2;
 
   return (
-    <div className="px-4 pt-6 pb-4 max-w-lg mx-auto">
+    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header */}
-      <header className="mb-6 animate-fade-in">
+      <header className="mb-6 md:mb-8 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">Mitglieder Info</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Mitglieder Info</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-1">
               Notfall- & Gesundheitsdaten
             </p>
           </div>
