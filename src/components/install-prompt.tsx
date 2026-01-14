@@ -33,6 +33,7 @@ function isIOS(): boolean {
 export function InstallPrompt() {
   // Initialer Zustand direkt berechnen (kein setState in useEffect)
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showPrompt, setShowPrompt] = useState(false); // NEU: Kontrolliert Prompt-Anzeige
   const [showIOSPrompt, setShowIOSPrompt] = useState(() => {
     if (typeof window === "undefined") return false;
     const wasDismissed = sessionStorage.getItem("pwa-install-dismissed");
@@ -50,16 +51,25 @@ export function InstallPrompt() {
       return;
     }
 
-    // iOS: Keine Event-Listener nötig
-    if (isIOS()) {
-      return;
+    // iOS: Verzögerung für iOS-Prompt
+    if (isIOS() && showIOSPrompt) {
+      const timer = setTimeout(() => {
+        // iOS Prompt bleibt sichtbar nach Delay
+      }, 30000);
+      return () => clearTimeout(timer);
     }
 
     // Android/Chrome: beforeinstallprompt Event abfangen
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      console.log("[PWA] Install prompt verfügbar");
+      console.log("[PWA] Install prompt verfügbar - wird in 30s angezeigt");
+      
+      // NEU: Zeige Prompt erst nach 30 Sekunden
+      setTimeout(() => {
+        setShowPrompt(true);
+        console.log("[PWA] Install prompt wird jetzt angezeigt");
+      }, 30000);
     };
 
     // App wurde installiert
@@ -76,7 +86,7 @@ export function InstallPrompt() {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, [isInstalled]);
+  }, [isInstalled, showIOSPrompt]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -105,8 +115,8 @@ export function InstallPrompt() {
     return null;
   }
 
-  // Android Install Banner
-  if (deferredPrompt) {
+  // Android Install Banner - nur anzeigen wenn showPrompt true
+  if (deferredPrompt && showPrompt) {
     return (
       <div className="fixed bottom-0 left-0 right-0 p-4 z-50 animate-slide-up">
         <div className="bg-card border border-border rounded-2xl p-4 shadow-xl max-w-sm mx-auto">

@@ -76,21 +76,21 @@
       "short_name": "Training",
       "description": "Trainingsübersicht und Anmeldung",
       "url": "/training",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Events",
       "short_name": "Events",
       "description": "Veranstaltungen und Termine",
       "url": "/events",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     },
     {
       "name": "Profil",
       "short_name": "Profil",
       "description": "Dein Profil und Einstellungen",
       "url": "/profil",
-      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96" }]
+      "icons": [{ "src": "/icons/icon-96.png", "sizes": "96x96", "type": "image/png" }]
     }
   ],
   "screenshots": [

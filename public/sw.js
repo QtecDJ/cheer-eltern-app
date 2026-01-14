@@ -1,11 +1,12 @@
-// Member App Service Worker v1.8.2
+// Member App Service Worker v1.8.3
 // Entwickelt von ICA-Dev Kai Püttmann
 // Moderne PWA mit verbessertem Caching + Aggressive Client-Side Caching
 // v1.8.0: Database Query Optimization - 70% weniger Data Transfer
 // v1.8.1: Client-Side Caching - zusätzliche 60-80% weniger API Requests
 // v1.8.2: iOS Safari PWA Optimization - iOS-spezifische Anpassungen
+// v1.8.3: Install-Optimierung - 242 KB weniger beim Initial Install
 
-const SW_VERSION = '1.8.2';
+const SW_VERSION = '1.8.3';
 
 // ============================================
 // iOS DETECTION & OPTIMIZATION
@@ -59,19 +60,14 @@ const API_CACHE = `member-api-v${SW_VERSION}`;
 const IMAGE_CACHE = `member-images-v${SW_VERSION}`;
 
 // Statische Assets die beim Install gecached werden
+// Icons werden nur die wichtigsten 2 gecached, Rest lädt Browser bei Bedarf aus manifest.json
 const STATIC_ASSETS = [
   '/',
   '/offline',
   '/manifest.json',
   '/logo.webp',
-  '/icons/icon-72.png',
-  '/icons/icon-96.png',
-  '/icons/icon-128.png',
-  '/icons/icon-144.png',
-  '/icons/icon-152.png',
-  '/icons/icon-192.png',
-  '/icons/icon-384.png',
-  '/icons/icon-512.png',
+  '/icons/icon-192.png',  // Wichtig für Install & App-Icon
+  '/icons/icon-512.png',  // Wichtig für Splash Screen
 ];
 
 // Cache-Konfiguration (mit iOS Anpassungen)

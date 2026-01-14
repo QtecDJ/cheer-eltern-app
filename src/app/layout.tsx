@@ -58,9 +58,25 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "Member App",
-    title: "Member App",
-    description: "Die App für Vereinsmitglieder",
+    siteName: "ICA Members App",
+    title: "ICA Members App",
+    description: "Vereinsmanagement by ICA-Dev – Kai Püttmann",
+    url: "https://icacheer.space/",
+    images: [
+      {
+        url: "https://icacheer.space/logo.webp",
+        width: 800,
+        height: 800,
+        alt: "ICA Members App Logo",
+      },
+    ],
+    locale: "de_DE",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ICA Members App",
+    description: "Vereinsmanagement by ICA-Dev – Kai Püttmann",
+    images: ["https://icacheer.space/logo.webp"],
   },
   icons: {
     icon: [
@@ -134,7 +150,14 @@ export default async function RootLayout({
         {/* PWA iOS Spezifisch */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <meta name="apple-mobile-web-app-title" content="Member" />
+        <link rel="apple-touch-icon" href="/icons/icon-152.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
+        
+        {/* Theme Color für verschiedene Modi */}
+        <meta name="theme-color" content="#ec4899" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
         
         {/* Android Chrome */}
         <meta name="mobile-web-app-capable" content="yes" />
