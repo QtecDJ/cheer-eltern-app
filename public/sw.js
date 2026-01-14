@@ -63,7 +63,7 @@ const STATIC_ASSETS = [
   '/',
   '/offline',
   '/manifest.json',
-  '/logo.png',
+  '/logo.webp',
   '/icons/icon-72.png',
   '/icons/icon-96.png',
   '/icons/icon-128.png',

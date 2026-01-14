@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ICON_SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
-const SOURCE_LOGO = './public/logo.png';
+const SOURCE_LOGO = './public/logo.webp';
 const OUTPUT_DIR = './public/icons';
 
 async function generateIcons() {
@@ -15,7 +15,7 @@ async function generateIcons() {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
-  console.log('🎨 Generiere PWA Icons aus logo.png...\n');
+  console.log('🎨 Generiere PWA Icons aus logo.webp...\n');
 
   for (const size of ICON_SIZES) {
     const outputPath = path.join(OUTPUT_DIR, `icon-${size}.png`);

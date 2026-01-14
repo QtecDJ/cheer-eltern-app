@@ -46,7 +46,7 @@ export function LoginForm() {
         <div className="flex flex-col items-center space-y-4">
           <div className="relative w-24 h-24">
             <Image
-              src="/logo.png"
+              src="/logo.webp"
               alt="Logo"
               fill
               className="object-contain"
