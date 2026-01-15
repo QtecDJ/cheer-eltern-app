@@ -25,6 +25,14 @@ const documents: Document[] = [
   },
   {
     id: "2",
+    title: "Uniform und Auftritts Anweisung",
+    description: "Anleitung zur Uniform und Verhalten bei Auftritten",
+    filename: "https://web.icacheer.space/documents/icauniform.pdf",
+    category: "Cheer",
+    isExternal: true
+  },
+  {
+    id: "3",
     title: "Schmink Video",
     description: "Anleitung zum Schminken für Auftritte und Events",
     filename: "https://web.icacheer.space/documents/vid1.mp4",

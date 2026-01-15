@@ -29,8 +29,8 @@ import {
   X,
   Users,
 } from "lucide-react";
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useVersionedContent } from "@/lib/use-versioned-content";
 
 interface Participant {
@@ -94,6 +94,25 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
   const [isPending, startTransition] = useTransition();
   const [loadingItem, setLoadingItem] = useState<string | null>(null);
   const [expandedAnnouncements, setExpandedAnnouncements] = useState<Set<number>>(new Set());
+  const searchParams = useSearchParams();
+
+  // Auto-expand announcement from URL parameter
+  useEffect(() => {
+    const announcementId = searchParams.get('announcement');
+    if (announcementId) {
+      const id = parseInt(announcementId);
+      if (!isNaN(id)) {
+        setExpandedAnnouncements(new Set([id]));
+        // Scroll to announcement after a short delay
+        setTimeout(() => {
+          const element = document.getElementById(`announcement-${id}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    }
+  }, [searchParams]);
 
   // Toggle Announcement Expand/Collapse
   const toggleAnnouncement = (id: number) => {
@@ -281,6 +300,7 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
 
                   return (
                   <article
+                    id={`announcement-${announcement.id}`}
                     key={`announcement-${announcement.id}`}
                     className={cn(
                       "relative bg-card rounded-2xl border border-border overflow-hidden transition-all",

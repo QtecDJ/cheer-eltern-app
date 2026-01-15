@@ -205,7 +205,7 @@ export function HomeContent({
               return (
                 <a
                   key={announcement.id}
-                  href="/events"
+                  href={`/events?announcement=${announcement.id}`}
                   className={`block animate-slide-up stagger-${index + 1}`}
                 >
                   <Card

@@ -3,7 +3,14 @@
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Calendar, CalendarDays, User, ClipboardList, File, FileText } from "lucide-react";
+import { 
+  Home, 
+  Calendar, 
+  CalendarDays, 
+  User, 
+  ClipboardList, 
+  FileText 
+} from "lucide-react";
 
 const iconMap = {
   Home,
@@ -11,7 +18,7 @@ const iconMap = {
   CalendarDays,
   User,
   ClipboardList,
-  File,
+  File: FileText, // Use FileText as File
   FileText,
 } as const;
 
