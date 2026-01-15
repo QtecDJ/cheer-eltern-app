@@ -11,7 +11,7 @@ cloudinary.config({
 
 export async function POST(request: NextRequest) {
   try {
-    // Session prüfen
+    // Early return: Session prüfen
     const session = await getSession();
     if (!session) {
       return NextResponse.json(
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
 
+    // Early return: Keine Datei
     if (!file) {
       return NextResponse.json(
         { error: "Keine Datei hochgeladen" },
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Dateityp prüfen
+    // Early return: Dateityp prüfen
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Dateigröße prüfen (max 5MB)
+    // Early return: Dateigröße prüfen (max 5MB)
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(

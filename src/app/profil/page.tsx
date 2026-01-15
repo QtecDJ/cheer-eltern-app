@@ -8,8 +8,9 @@ import {
   getLatestAssessmentMinimal,
 } from "@/lib/queries";
 
-// Revalidate every 120 seconds
-export const revalidate = 120;
+// Revalidate every 300 seconds (5 Min) - Profile ändern sich sehr selten
+// Service Worker cached zusätzlich 5-10 Min (LONG strategy)
+export const revalidate = 300;
 
 export default async function ProfilePage() {
   const session = await getSession();

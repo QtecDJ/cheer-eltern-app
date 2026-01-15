@@ -8,8 +8,9 @@ import {
   getEventAnnouncementsWithPolls,
 } from "@/lib/queries";
 
-// Revalidate every 30 seconds for events
-export const revalidate = 30;
+// Revalidate every 60 seconds - Balance zwischen Aktualität und Function Invocations
+// Service Worker cached zusätzlich 2-5 Min (MEDIUM strategy)
+export const revalidate = 60;
 
 // Transform Announcement data with Poll processing
 function transformAnnouncements(announcements: any[], memberId: number) {

@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
+// Cache für 5 Minuten - Debug-Daten ändern sich selten
+export const revalidate = 300;
+
 export async function GET() {
   try {
     // Alle Coaches und Admins

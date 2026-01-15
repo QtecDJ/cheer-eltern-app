@@ -9,8 +9,9 @@ import {
   getLatestAssessmentMinimal,
 } from "@/lib/queries";
 
-// Revalidate every 60 seconds
-export const revalidate = 60;
+// Revalidate every 90 seconds - optimiert für weniger Function Invocations
+// Service Worker cached zusätzlich 2-5 Min (iOS: 2.5 Min)
+export const revalidate = 90;
 
 export default async function HomePage() {
   const session = await getSession();

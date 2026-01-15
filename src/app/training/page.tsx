@@ -7,8 +7,9 @@ import {
   getMemberForHome,
 } from "@/lib/queries";
 
-// Revalidate every 120 seconds
-export const revalidate = 120;
+// Revalidate every 180 seconds (3 Min) - Trainings sind relativ stabil
+// Service Worker cached zusätzlich 2-5 Min
+export const revalidate = 180;
 
 export default async function TrainingPage() {
   const session = await getSession();
