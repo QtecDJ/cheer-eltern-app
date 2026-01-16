@@ -1,5 +1,22 @@
 "use client";
 
+/**
+ * ⚠️ DEPRECATED - Wird durch In-App Notification System ersetzt
+ * 
+ * Dieses Web Push System wurde durch ein zuverlässigeres In-App-System ersetzt.
+ * Siehe: IN-APP-NOTIFICATIONS.md
+ * 
+ * Grund für Deprecation:
+ * - iOS Web Push ist extrem unzuverlässig
+ * - Komplexe Berechtigungsanfragen
+ * - In-App System funktioniert überall ohne Permissions
+ * 
+ * Migration:
+ * - Nutze <NotificationCenter /> Komponente stattdessen
+ * - Hook: useNotifications()
+ * - API: /api/notifications
+ */
+
 import { useState, useEffect } from 'react';
 import { Bell, BellOff, Check, X, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +42,8 @@ interface EnablePushNotificationsProps {
 
 /**
  * Push-Benachrichtigungs Component
+ * 
+ * ⚠️ DEPRECATED - Wird nicht mehr verwendet
  * 
  * iOS-OPTIMIERT:
  * - Nutzt bestehende iOS-Detection
