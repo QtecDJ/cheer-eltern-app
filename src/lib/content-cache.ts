@@ -106,7 +106,23 @@ function isIOSDevice(): boolean {
 
 function isIOSPWA(): boolean {
   if (typeof navigator === 'undefined') return false;
-  return isIOSDevice() && ('standalone' in navigator) && (navigator as any).standalone === true;
+  if (!isIOSDevice()) return false;
+  
+  // Check 1: navigator.standalone (klassische Methode)
+  if ('standalone' in navigator && (navigator as any).standalone === true) {
+    return true;
+  }
+  
+  // Check 2: display-mode media query (moderne Methode)
+  if (typeof window !== 'undefined') {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    if (isStandalone) {
+      return true;
+    }
+  }
+  
+  // Wenn beide Checks fehlschlagen, ist es wahrscheinlich Safari Browser
+  return false;
 }
 
 const IS_IOS = isIOSDevice();

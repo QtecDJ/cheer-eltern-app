@@ -76,24 +76,34 @@ export function EnablePushNotifications({
   };
 
   const handleEnable = async () => {
-    // iOS Safari Check: Push nur in PWA-Modus (Apple Requirement)
-    if (isIOS && !isIOSPWA) {
-      console.log('[EnablePushNotifications] iOS Safari detected - not in PWA mode');
-      alert(
-        '📱 iOS: App zum Home-Bildschirm hinzufügen\n\n' +
-        'Push-Benachrichtigungen funktionieren auf iOS/iPadOS nur in installierten Web Apps (PWA).\n\n' +
-        'So installierst du die App:\n' +
-        '1. Tippe auf das Teilen-Symbol (⬆️)\n' +
-        '2. Scrolle und wähle "Zum Home-Bildschirm"\n' +
-        '3. Tippe "Hinzufügen"\n' +
-        '4. Öffne die App vom Home-Bildschirm\n' +
-        '5. Aktiviere dann die Benachrichtigungen\n\n' +
-        'Quelle: Apple iOS 16.4+ Anforderung für Web Push'
-      );
-      return;
-    }
-
     setLoading(true);
+    
+    // iOS Detection mit ausführlichem Logging
+    console.log('[EnablePushNotifications] Device Detection:', {
+      isIOS,
+      isIOSPWA,
+      userAgent: navigator.userAgent,
+      standalone: 'standalone' in navigator ? (navigator as any).standalone : 'not available',
+      displayMode: window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser'
+    });
+
+    // iOS Safari Warning (aber nicht blockieren - nur warnen)
+    if (isIOS && !isIOSPWA) {
+      console.warn('[EnablePushNotifications] iOS Safari detected - PWA empfohlen aber nicht erzwungen');
+      const shouldContinue = confirm(
+        '⚠️ iOS Warnung\n\n' +
+        'Push-Benachrichtigungen funktionieren auf iOS am besten als installierte App.\n\n' +
+        'Empfehlung:\n' +
+        '1. Teilen (⬆️) → "Zum Home-Bildschirm"\n' +
+        '2. App vom Home-Bildschirm öffnen\n' +
+        '3. Dann Benachrichtigungen aktivieren\n\n' +
+        'Trotzdem jetzt versuchen?'
+      );
+      if (!shouldContinue) {
+        setLoading(false);
+        return;
+      }
+    }
     
     try {
       console.log('[EnablePushNotifications] Starting push subscription (iOS-optimized)...', {
