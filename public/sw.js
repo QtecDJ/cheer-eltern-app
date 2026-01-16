@@ -796,10 +796,11 @@ self.addEventListener('pushsubscriptionchange', function(event) {
         })
       });
     })
-    .catch(err => {
+    .catch(function(err) {
       console.error(`[SW ${SW_VERSION}] Push resubscribe failed:`, err);
     })
   );
 });
 
 console.log(`[SW ${SW_VERSION}] Service Worker loaded with Content Cache + Push Notifications support`);
+}
