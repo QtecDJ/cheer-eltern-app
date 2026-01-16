@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 /**
@@ -9,7 +9,7 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const session = await getSession();
-    if (!session?.user?.id) {
+    if (!session?.id) {
       return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
     }
 
@@ -18,9 +18,9 @@ export async function POST(request: Request) {
 
     if (markAll) {
       // Alle Benachrichtigungen des Users als gelesen markieren
-      await db.notification.updateMany({
+      await prisma.notification.updateMany({
         where: {
-          memberId: session.user.id,
+          memberId: session.id,
           isRead: false
         },
         data: {
@@ -39,10 +39,10 @@ export async function POST(request: Request) {
     }
 
     // Spezifische Benachrichtigungen als gelesen markieren
-    await db.notification.updateMany({
+    await prisma.notification.updateMany({
       where: {
         id: { in: notificationIds },
-        memberId: session.user.id // Sicherheit: Nur eigene Benachrichtigungen
+        memberId: session.id // Sicherheit: Nur eigene Benachrichtigungen
       },
       data: {
         isRead: true

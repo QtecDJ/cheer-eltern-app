@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { prisma } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 /**
@@ -9,13 +9,13 @@ import { NextResponse } from "next/server";
 export async function GET() {
   try {
     const session = await getSession();
-    if (!session?.user?.id) {
+    if (!session?.id) {
       return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
     }
 
-    const notifications = await db.notification.findMany({
+    const notifications = await prisma.notification.findMany({
       where: {
-        memberId: session.user.id
+        memberId: session.id
       },
       orderBy: {
         createdAt: 'desc'
@@ -23,9 +23,9 @@ export async function GET() {
       take: 50 // Letzte 50 Benachrichtigungen
     });
 
-    const unreadCount = await db.notification.count({
+    const unreadCount = await prisma.notification.count({
       where: {
-        memberId: session.user.id,
+        memberId: session.id,
         isRead: false
       }
     });
@@ -50,7 +50,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getSession();
-    if (!session?.user?.id) {
+    if (!session?.id) {
       return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
     }
 
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     // Erstelle Benachrichtigungen für alle Member
     const notifications = await Promise.all(
       memberIds.map((memberId: number) =>
-        db.notification.create({
+        prisma.notification.create({
           data: {
             memberId,
             type: type || 'info',
