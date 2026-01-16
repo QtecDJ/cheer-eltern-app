@@ -4,6 +4,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
+import { EnablePushNotifications } from "@/components/enable-push-notifications";
 import { calculateAge, calculateAttendanceRate, getRelativeDate } from "@/lib/utils";
 import {
   Bell,
@@ -98,15 +99,12 @@ export function HomeContent({
             </h1>
           </div>
 
-          {/* Notification Bell */}
-          <button className="relative p-2 rounded-full hover:bg-secondary transition-colors">
-            <Bell className="w-6 h-6" />
-            {unreadNotifications > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse-soft">
-                {unreadNotifications}
-              </span>
-            )}
-          </button>
+          {/* Push Notification Bell - iOS-Optimiert */}
+          <EnablePushNotifications 
+            userId={child.id} 
+            compact={true}
+            className="animate-fade-in"
+          />
         </div>
       </header>
 

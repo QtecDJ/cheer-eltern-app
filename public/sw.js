@@ -682,4 +682,124 @@ async function staleWhileRevalidateContent(request) {
   return cachedResponse || fetchPromise;
 }
 
-console.log(`[SW ${SW_VERSION}] Service Worker loaded with Content Cache support`);
+// ============================================
+// PUSH NOTIFICATIONS
+// ============================================
+
+/**
+ * Push Event Handler
+ * iOS-SAFE: Wird nur aufgerufen wenn App im Vordergrund oder Notification Permission granted
+ */
+self.addEventListener('push', function(event) {
+  console.log(`[SW ${SW_VERSION}] Push received:`, event);
+  
+  if (!event.data) {
+    console.log(`[SW ${SW_VERSION}] Push event has no data`);
+    return;
+  }
+
+  try {
+    const data = event.data.json();
+    console.log(`[SW ${SW_VERSION}] Push data:`, data);
+
+    const title = data.title || 'ICA Allstars';
+    const options = {
+      body: data.body || data.message || '',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-72.png',
+      tag: data.tag || 'notification',
+      requireInteraction: false,
+      vibrate: [200, 100, 200], // iOS ignoriert dies, Android nutzt es
+      data: {
+        url: data.url || '/',
+        timestamp: Date.now(),
+        ...data
+      }
+    };
+
+    // Füge Action Buttons hinzu wenn vorhanden (iOS unterstützt max 2)
+    if (data.actions && Array.isArray(data.actions)) {
+      options.actions = IS_IOS 
+        ? data.actions.slice(0, 2) // iOS: max 2 Actions
+        : data.actions;
+    }
+
+    event.waitUntil(
+      self.registration.showNotification(title, options)
+    );
+  } catch (error) {
+    console.error(`[SW ${SW_VERSION}] Error parsing push data:`, error);
+  }
+});
+
+/**
+ * Notification Click Handler
+ * iOS-SAFE: Funktioniert in iOS PWA Mode
+ */
+self.addEventListener('notificationclick', function(event) {
+  console.log(`[SW ${SW_VERSION}] Notification click:`, event);
+  
+  event.notification.close();
+
+  if (event.action) {
+    console.log(`[SW ${SW_VERSION}] Action clicked:`, event.action);
+  }
+
+  const urlToOpen = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(function(clientList) {
+        // Versuche existierenden Tab zu fokussieren
+        for (let client of clientList) {
+          if (client.url.includes(urlToOpen) && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // Öffne neuen Tab wenn kein passender existiert
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+      .catch(err => {
+        console.error(`[SW ${SW_VERSION}] Error handling notification click:`, err);
+      })
+  );
+});
+
+/**
+ * Push Subscription Change Handler
+ * iOS-SAFE: Re-subscribe bei Subscription-Verlust
+ */
+self.addEventListener('pushsubscriptionchange', function(event) {
+  console.log(`[SW ${SW_VERSION}] Push subscription changed`);
+  
+  // iOS-SAFE: Keine long-running async tasks
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: 'BO7nt__RKbqZlG9z6GlXQ6pz3fbN3Uc77RKPUOksuG6mRFzOR4j8ijcVchwec1PDP2b2odULfoIE-SW6rqxQiyo'
+    })
+    .then(function(subscription) {
+      console.log(`[SW ${SW_VERSION}] New subscription created:`, subscription.endpoint);
+      
+      // Sende neue Subscription an Backend
+      return fetch('/api/push/resubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endpoint: subscription.endpoint,
+          keys: {
+            p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')))),
+            auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth'))))
+          }
+        })
+      });
+    })
+    .catch(err => {
+      console.error(`[SW ${SW_VERSION}] Push resubscribe failed:`, err);
+    })
+  );
+});
+
+console.log(`[SW ${SW_VERSION}] Service Worker loaded with Content Cache + Push Notifications support`);

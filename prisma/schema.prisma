@@ -61,6 +61,7 @@ model Member {
   competitions      Competition[]      @relation("CompetitionParticipants")
   events            Event[]            @relation("EventParticipations")
   trainings         TrainingSession[]  @relation("TrainingParticipants")
+  pushSubscriptions PushSubscription[]
 
   @@index([email])
   @@index([status])
@@ -347,4 +348,20 @@ model AnnouncementTeam {
   @@unique([announcementId, teamId])
   @@index([announcementId], map: "idx_announcement_team_announcement")
   @@index([teamId], map: "idx_announcement_team_team")
+}
+
+model PushSubscription {
+  id         String    @id @default(uuid())
+  memberId   Int
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([endpoint])
+  @@map("push_subscriptions")
 }
