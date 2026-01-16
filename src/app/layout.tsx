@@ -151,9 +151,11 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Member" />
-        <link rel="apple-touch-icon" href="/icons/icon-152.png" />
+        {/* Apple Touch Icons - iOS sucht auch nach /apple-touch-icon.png */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
         
         {/* Theme Color für verschiedene Modi */}
         <meta name="theme-color" content="#ec4899" media="(prefers-color-scheme: light)" />
