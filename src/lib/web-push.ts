@@ -166,22 +166,34 @@ export async function checkPushPermission(): Promise<NotificationPermission> {
  * iOS-SAFE: User-initiated request (muss durch Button-Click getriggert werden)
  */
 export async function requestPushPermission(): Promise<NotificationPermission> {
+  console.log('[webPush] requestPushPermission called');
+  
   if (!('Notification' in window)) {
-    console.warn('[webPush] Notifications not supported');
+    console.warn('[webPush] Notifications not supported - Notification API missing');
     return 'denied';
   }
 
+  console.log('[webPush] Current permission:', Notification.permission);
+
   if (Notification.permission === 'granted') {
+    console.log('[webPush] Permission already granted');
     return 'granted';
   }
 
   if (Notification.permission === 'denied') {
+    console.log('[webPush] Permission already denied');
     return 'denied';
   }
 
-  const permission = await Notification.requestPermission();
-  console.log('[webPush] Permission result:', permission);
-  return permission;
+  console.log('[webPush] Requesting permission from user...');
+  try {
+    const permission = await Notification.requestPermission();
+    console.log('[webPush] Permission result:', permission);
+    return permission;
+  } catch (error) {
+    console.error('[webPush] Error requesting permission:', error);
+    return 'denied';
+  }
 }
 
 /**

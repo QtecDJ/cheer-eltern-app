@@ -78,58 +78,82 @@ export function EnablePushNotifications({
   const handleEnable = async () => {
     // iOS Safari Check: Push nur in PWA-Modus
     if (isIOS && !isIOSPWA) {
+      console.log('[EnablePushNotifications] iOS Safari detected - not in PWA mode');
       alert('📱 iOS: App zum Home-Bildschirm hinzufügen\n\nPush-Benachrichtigungen funktionieren auf iOS nur als installierte App.\n\nSo gehts:\n1. Tippe auf das Teilen-Symbol (⬆️)\n2. Wähle "Zum Home-Bildschirm"\n3. Tippe auf "Hinzufügen"\n4. Öffne die App vom Home-Bildschirm\n5. Aktiviere dann die Benachrichtigungen');
       return;
     }
 
     setLoading(true);
+    
+    // iOS spezifisches Feedback
+    if (isIOS && isIOSPWA) {
+      console.log('[EnablePushNotifications] iOS PWA detected - proceeding with caution');
+    }
+    
     try {
       console.log('[EnablePushNotifications] Starting push subscription...', {
         isIOS,
         isIOSPWA,
         hasNotificationAPI: 'Notification' in window,
-        hasPushManager: 'PushManager' in window
+        hasPushManager: 'PushManager' in window,
+        hasServiceWorker: 'serviceWorker' in navigator,
+        userAgent: navigator.userAgent.substring(0, 100)
       });
       
       // Prüfe ob Push Manager verfügbar ist
       if (!('PushManager' in window)) {
+        console.error('[EnablePushNotifications] PushManager not available');
         throw new Error('Push-Benachrichtigungen werden von diesem Browser nicht unterstützt');
       }
       
-      // Timeout für den gesamten Prozess - länger für iOS
-      const timeout = isIOS ? 30000 : 15000;
+      // Prüfe Service Worker Support
+      if (!('serviceWorker' in navigator)) {
+        console.error('[EnablePushNotifications] Service Worker not supported');
+        throw new Error('Service Worker wird nicht unterstützt');
+      }
+      
+      // Timeout für den gesamten Prozess - viel länger für iOS
+      const timeout = isIOS ? 45000 : 15000; // iOS: 45 Sekunden
+      console.log('[EnablePushNotifications] Using timeout:', timeout, 'ms');
+      
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: Vorgang dauerte zu lange')), timeout)
+        setTimeout(() => {
+          console.error('[EnablePushNotifications] Timeout reached after', timeout, 'ms');
+          reject(new Error('Timeout: Vorgang dauerte zu lange'));
+        }, timeout)
       );
 
       const enablePromise = (async () => {
         // 1. Service Worker registrieren (falls noch nicht aktiv)
-        console.log('[EnablePushNotifications] Checking Service Worker...');
+        console.log('[EnablePushNotifications] Step 1: Checking Service Worker...');
         const registration = await registerServiceWorker();
         if (!registration) {
+          console.error('[EnablePushNotifications] Service Worker registration failed');
           throw new Error('Service Worker nicht verfügbar');
         }
-        console.log('[EnablePushNotifications] Service Worker ready');
+        console.log('[EnablePushNotifications] ✓ Service Worker ready');
 
         // 2. Permission anfragen (MUSS durch User-Click getriggert werden - iOS Requirement)
-        console.log('[EnablePushNotifications] Requesting permission...');
+        console.log('[EnablePushNotifications] Step 2: Requesting permission...');
         const newPermission = await requestPushPermission();
         console.log('[EnablePushNotifications] Permission response:', newPermission);
         setPermission(newPermission);
 
         if (newPermission !== 'granted') {
+          console.warn('[EnablePushNotifications] Permission not granted:', newPermission);
           throw new Error('Benachrichtigungen wurden abgelehnt');
         }
-        console.log('[EnablePushNotifications] Permission granted');
+        console.log('[EnablePushNotifications] ✓ Permission granted');
 
         // 3. Push abonnieren
-        console.log('[EnablePushNotifications] Subscribing to push...');
+        console.log('[EnablePushNotifications] Step 3: Subscribing to push...');
         const subscription = await subscribeToPush(userId);
         if (!subscription) {
+          console.error('[EnablePushNotifications] Subscribe returned null');
           throw new Error('Push-Subscription fehlgeschlagen');
         }
         
-        console.log('[EnablePushNotifications] Successfully subscribed');
+        console.log('[EnablePushNotifications] ✓ Successfully subscribed');
         setIsSubscribed(true);
         
         // Optional: Show success feedback
