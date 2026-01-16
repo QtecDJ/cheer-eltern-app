@@ -76,13 +76,30 @@ export function EnablePushNotifications({
   };
 
   const handleEnable = async () => {
+    // iOS Safari Check: Push nur in PWA-Modus
+    if (isIOS && !isIOSPWA) {
+      alert('📱 iOS: App zum Home-Bildschirm hinzufügen\n\nPush-Benachrichtigungen funktionieren auf iOS nur als installierte App.\n\nSo gehts:\n1. Tippe auf das Teilen-Symbol (⬆️)\n2. Wähle "Zum Home-Bildschirm"\n3. Tippe auf "Hinzufügen"\n4. Öffne die App vom Home-Bildschirm\n5. Aktiviere dann die Benachrichtigungen');
+      return;
+    }
+
     setLoading(true);
     try {
-      console.log('[EnablePushNotifications] Starting push subscription...');
+      console.log('[EnablePushNotifications] Starting push subscription...', {
+        isIOS,
+        isIOSPWA,
+        hasNotificationAPI: 'Notification' in window,
+        hasPushManager: 'PushManager' in window
+      });
       
-      // Timeout für den gesamten Prozess
+      // Prüfe ob Push Manager verfügbar ist
+      if (!('PushManager' in window)) {
+        throw new Error('Push-Benachrichtigungen werden von diesem Browser nicht unterstützt');
+      }
+      
+      // Timeout für den gesamten Prozess - länger für iOS
+      const timeout = isIOS ? 30000 : 15000;
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout: Vorgang dauerte zu lange')), 15000)
+        setTimeout(() => reject(new Error('Timeout: Vorgang dauerte zu lange')), timeout)
       );
 
       const enablePromise = (async () => {
@@ -97,6 +114,7 @@ export function EnablePushNotifications({
         // 2. Permission anfragen (MUSS durch User-Click getriggert werden - iOS Requirement)
         console.log('[EnablePushNotifications] Requesting permission...');
         const newPermission = await requestPushPermission();
+        console.log('[EnablePushNotifications] Permission response:', newPermission);
         setPermission(newPermission);
 
         if (newPermission !== 'granted') {
@@ -130,7 +148,10 @@ export function EnablePushNotifications({
       if (errorMessage.includes('Service Worker nicht verfügbar')) {
         alert('❌ Service Worker nicht verfügbar\n\nMögliche Gründe:\n• Du bist im InPrivate/Inkognito-Modus\n• Windows Benachrichtigungen sind deaktiviert\n• Browser-Einstellungen blockieren Service Worker\n\nLösung:\n• Öffne die Seite in einem normalen Browser-Fenster\n• Aktiviere Windows Benachrichtigungen\n• Teste auf dem Production-Server mit HTTPS');
       } else if (errorMessage.includes('Timeout')) {
-        alert('⏱️ Zeitüberschreitung\n\nDie Anfrage dauerte zu lange.\n\nBitte versuche es erneut oder überprüfe deine Internetverbindung.');
+        alert('⏱️ Zeitüberschreitung\n\nDie Anfrage dauerte zu lange.\n\n' + 
+          (isIOS 
+            ? 'iOS-Tipp: Stelle sicher, dass du eine stabile Internetverbindung hast und die App als PWA installiert ist.'
+            : 'Bitte versuche es erneut oder überprüfe deine Internetverbindung.'));
       } else if (errorMessage.includes('abgelehnt')) {
         alert('❌ Benachrichtigungen abgelehnt\n\nDu hast Benachrichtigungen abgelehnt.\n\nSo aktivierst du sie:\n1. Klicke auf das Schloss-Symbol 🔒 in der Adressleiste\n2. Erlaube "Benachrichtigungen"\n3. Lade die Seite neu');
       } else {
@@ -163,6 +184,13 @@ export function EnablePushNotifications({
         alert('❌ Push-Benachrichtigungen wurden blockiert.\n\nSo aktivierst du sie:\n\n1. Klicke auf das Schloss-Symbol 🔒 in der Adressleiste\n2. Erlaube "Benachrichtigungen"\n3. Lade die Seite neu');
         return;
       }
+      
+      // iOS Safari Check
+      if (isIOS && !isIOSPWA) {
+        alert('📱 iOS: App zum Home-Bildschirm hinzufügen\n\nPush-Benachrichtigungen funktionieren auf iOS nur als installierte App.\n\nSo gehts:\n1. Tippe auf das Teilen-Symbol (⬆️)\n2. Wähle "Zum Home-Bildschirm"\n3. Tippe auf "Hinzufügen"\n4. Öffne die App vom Home-Bildschirm\n5. Aktiviere dann die Benachrichtigungen');
+        return;
+      }
+      
       if (isSubscribed) {
         handleDisable();
       } else {
