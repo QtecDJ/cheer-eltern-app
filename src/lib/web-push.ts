@@ -41,27 +41,25 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   }
 
   try {
-    // Prüfe ob bereits registriert
-    const existing = await navigator.serviceWorker.getRegistration('/');
-    if (existing) {
-      console.log('[webPush] Service Worker already registered');
-      return existing;
-    }
-
-    // Registriere neuen SW
-    const registration = await navigator.serviceWorker.register('/sw.js', {
-      scope: '/'
-    });
-    
-    console.log('[webPush] Service Worker registered:', registration);
-    
-    // Warte bis Service Worker aktiv ist
-    await navigator.serviceWorker.ready;
-    
+    // Warte auf bestehende Registrierung (von service-worker.tsx)
+    const registration = await navigator.serviceWorker.ready;
+    console.log('[webPush] Using existing Service Worker registration');
     return registration;
   } catch (error) {
-    console.error('[webPush] Service Worker registration failed:', error);
-    return null;
+    console.error('[webPush] Service Worker not ready:', error);
+    
+    // Fallback: Versuche neu zu registrieren
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/'
+      });
+      console.log('[webPush] Service Worker registered:', registration);
+      await navigator.serviceWorker.ready;
+      return registration;
+    } catch (registerError) {
+      console.error('[webPush] Service Worker registration failed:', registerError);
+      return null;
+    }
   }
 }
 
