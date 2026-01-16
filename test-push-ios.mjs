@@ -9,6 +9,10 @@
  * 4. Sendet Test-Push an alle aktiven Subscriptions
  */
 
+// Load environment variables FIRST
+import { config } from 'dotenv';
+config();
+
 import webpush from 'web-push';
 import { PrismaClient } from '@prisma/client';
 
