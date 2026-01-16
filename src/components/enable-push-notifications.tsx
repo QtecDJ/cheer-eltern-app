@@ -76,45 +76,53 @@ export function EnablePushNotifications({
   };
 
   const handleEnable = async () => {
-    // iOS Safari Check: Push nur in PWA-Modus
+    // iOS Safari Check: Push nur in PWA-Modus (Apple Requirement)
     if (isIOS && !isIOSPWA) {
       console.log('[EnablePushNotifications] iOS Safari detected - not in PWA mode');
-      alert('📱 iOS: App zum Home-Bildschirm hinzufügen\n\nPush-Benachrichtigungen funktionieren auf iOS nur als installierte App.\n\nSo gehts:\n1. Tippe auf das Teilen-Symbol (⬆️)\n2. Wähle "Zum Home-Bildschirm"\n3. Tippe auf "Hinzufügen"\n4. Öffne die App vom Home-Bildschirm\n5. Aktiviere dann die Benachrichtigungen');
+      alert(
+        '📱 iOS: App zum Home-Bildschirm hinzufügen\n\n' +
+        'Push-Benachrichtigungen funktionieren auf iOS/iPadOS nur in installierten Web Apps (PWA).\n\n' +
+        'So installierst du die App:\n' +
+        '1. Tippe auf das Teilen-Symbol (⬆️)\n' +
+        '2. Scrolle und wähle "Zum Home-Bildschirm"\n' +
+        '3. Tippe "Hinzufügen"\n' +
+        '4. Öffne die App vom Home-Bildschirm\n' +
+        '5. Aktiviere dann die Benachrichtigungen\n\n' +
+        'Quelle: Apple iOS 16.4+ Anforderung für Web Push'
+      );
       return;
     }
 
     setLoading(true);
     
-    // iOS spezifisches Feedback
-    if (isIOS && isIOSPWA) {
-      console.log('[EnablePushNotifications] iOS PWA detected - proceeding with caution');
-    }
-    
     try {
-      console.log('[EnablePushNotifications] Starting push subscription...', {
+      console.log('[EnablePushNotifications] Starting push subscription (iOS-optimized)...', {
         isIOS,
         isIOSPWA,
         hasNotificationAPI: 'Notification' in window,
         hasPushManager: 'PushManager' in window,
-        hasServiceWorker: 'serviceWorker' in navigator,
-        userAgent: navigator.userAgent.substring(0, 100)
+        hasServiceWorker: 'serviceWorker' in navigator
       });
       
-      // Prüfe ob Push Manager verfügbar ist
+      // Apple Requirement Check: Push Manager verfügbar?
       if (!('PushManager' in window)) {
         console.error('[EnablePushNotifications] PushManager not available');
-        throw new Error('Push-Benachrichtigungen werden von diesem Browser nicht unterstützt');
+        throw new Error(
+          isIOS 
+            ? 'Push-Benachrichtigungen erfordern iOS 16.4 oder neuer'
+            : 'Push-Benachrichtigungen werden von diesem Browser nicht unterstützt'
+        );
       }
       
-      // Prüfe Service Worker Support
+      // Apple Requirement Check: Service Worker Support
       if (!('serviceWorker' in navigator)) {
         console.error('[EnablePushNotifications] Service Worker not supported');
         throw new Error('Service Worker wird nicht unterstützt');
       }
       
-      // Timeout für den gesamten Prozess - viel länger für iOS
-      const timeout = isIOS ? 45000 : 15000; // iOS: 45 Sekunden
-      console.log('[EnablePushNotifications] Using timeout:', timeout, 'ms');
+      // iOS-angepasster Timeout (Apple: SW wird nach ~3s beendet)
+      const timeout = isIOS ? 30000 : 15000; // iOS: 30s für langsame Geräte
+      console.log('[EnablePushNotifications] Using timeout:', timeout, 'ms (iOS optimized)');
       
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => {
@@ -124,17 +132,31 @@ export function EnablePushNotifications({
       );
 
       const enablePromise = (async () => {
-        // 1. Service Worker registrieren (falls noch nicht aktiv)
-        console.log('[EnablePushNotifications] Step 1: Checking Service Worker...');
+        // Step 1: Service Worker (Apple Requirement: Muss vor Push aktiv sein)
+        console.log('[EnablePushNotifications] Step 1/3: Checking Service Worker...');
         const registration = await registerServiceWorker();
         if (!registration) {
           console.error('[EnablePushNotifications] Service Worker registration failed');
-          throw new Error('Service Worker nicht verfügbar');
+          throw new Error('Service Worker konnte nicht registriert werden');
+        }
+        
+        // Warte bis SW wirklich aktiv ist (iOS braucht das)
+        if (!registration.active && registration.installing) {
+          console.log('[EnablePushNotifications] Waiting for SW to activate...');
+          await new Promise((resolve) => {
+            if (registration.installing) {
+              registration.installing.addEventListener('statechange', (e) => {
+                if ((e.target as ServiceWorker)?.state === 'activated') {
+                  resolve(true);
+                }
+              });
+            }
+          });
         }
         console.log('[EnablePushNotifications] ✓ Service Worker ready');
 
-        // 2. Permission anfragen (MUSS durch User-Click getriggert werden - iOS Requirement)
-        console.log('[EnablePushNotifications] Step 2: Requesting permission...');
+        // Step 2: Permission (Apple Requirement: Muss durch User-Gesture getriggert sein)
+        console.log('[EnablePushNotifications] Step 2/3: Requesting Notification permission...');
         const newPermission = await requestPushPermission();
         console.log('[EnablePushNotifications] Permission response:', newPermission);
         setPermission(newPermission);
@@ -145,41 +167,72 @@ export function EnablePushNotifications({
         }
         console.log('[EnablePushNotifications] ✓ Permission granted');
 
-        // 3. Push abonnieren
-        console.log('[EnablePushNotifications] Step 3: Subscribing to push...');
+        // Step 3: Push Subscribe (Apple Requirement: userVisibleOnly:true)
+        console.log('[EnablePushNotifications] Step 3/3: Creating push subscription...');
         const subscription = await subscribeToPush(userId);
         if (!subscription) {
           console.error('[EnablePushNotifications] Subscribe returned null');
           throw new Error('Push-Subscription fehlgeschlagen');
         }
         
-        console.log('[EnablePushNotifications] ✓ Successfully subscribed');
+        console.log('[EnablePushNotifications] ✓ Push subscription successful');
+        console.log('[EnablePushNotifications] Endpoint:', subscription.endpoint.substring(0, 50) + '...');
         setIsSubscribed(true);
         
-        // Optional: Show success feedback
+        // Haptic Feedback (iOS ignoriert vibrate)
         if ('vibrate' in navigator && !isIOS) {
           navigator.vibrate(200);
+        }
+        
+        // iOS Success Feedback
+        if (isIOS) {
+          console.log('[EnablePushNotifications] iOS: Push notifications enabled successfully');
         }
       })();
 
       await Promise.race([enablePromise, timeoutPromise]);
       
     } catch (error) {
-      console.error('[EnablePushNotifications] Error enabling:', error);
+      console.error('[EnablePushNotifications] Error enabling push:', error);
       
       const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
       
-      if (errorMessage.includes('Service Worker nicht verfügbar')) {
-        alert('❌ Service Worker nicht verfügbar\n\nMögliche Gründe:\n• Du bist im InPrivate/Inkognito-Modus\n• Windows Benachrichtigungen sind deaktiviert\n• Browser-Einstellungen blockieren Service Worker\n\nLösung:\n• Öffne die Seite in einem normalen Browser-Fenster\n• Aktiviere Windows Benachrichtigungen\n• Teste auf dem Production-Server mit HTTPS');
-      } else if (errorMessage.includes('Timeout')) {
-        alert('⏱️ Zeitüberschreitung\n\nDie Anfrage dauerte zu lange.\n\n' + 
+      // iOS-spezifische Fehlermeldungen
+      if (errorMessage.includes('Service Worker')) {
+        alert(
+          '❌ Service Worker Problem\n\n' +
           (isIOS 
-            ? 'iOS-Tipp: Stelle sicher, dass du eine stabile Internetverbindung hast und die App als PWA installiert ist.'
-            : 'Bitte versuche es erneut oder überprüfe deine Internetverbindung.'));
+            ? 'Mögliche Gründe:\n• Du bist im Safari Private-Modus\n• Die App ist nicht als PWA installiert\n• iOS Version ist zu alt (min. 16.4)\n\nLösung: Installiere die App zum Home-Bildschirm'
+            : 'Mögliche Gründe:\n• Du bist im InPrivate/Inkognito-Modus\n• Browser-Einstellungen blockieren Service Worker\n\nLösung: Öffne die Seite in einem normalen Browser-Fenster')
+        );
+      } else if (errorMessage.includes('Timeout')) {
+        alert(
+          '⏱️ Zeitüberschreitung\n\n' +
+          'Die Anfrage dauerte zu lange.\n\n' + 
+          (isIOS 
+            ? 'iOS-Tipps:\n• Stelle sicher, dass du eine stabile WLAN-Verbindung hast\n• Versuche es erneut (iOS kann langsam sein)\n• Prüfe ob *.push.apple.com erreichbar ist'
+            : 'Bitte versuche es erneut oder überprüfe deine Internetverbindung.')
+        );
       } else if (errorMessage.includes('abgelehnt')) {
-        alert('❌ Benachrichtigungen abgelehnt\n\nDu hast Benachrichtigungen abgelehnt.\n\nSo aktivierst du sie:\n1. Klicke auf das Schloss-Symbol 🔒 in der Adressleiste\n2. Erlaube "Benachrichtigungen"\n3. Lade die Seite neu');
+        alert(
+          '❌ Benachrichtigungen abgelehnt\n\n' +
+          'Du hast Benachrichtigungen abgelehnt.\n\n' +
+          (isIOS
+            ? 'So aktivierst du sie (iOS):\n1. Öffne iOS "Einstellungen"\n2. Scrolle zur App\n3. Aktiviere "Mitteilungen"\n4. Versuche es erneut'
+            : 'So aktivierst du sie:\n1. Klicke auf das Schloss-Symbol 🔒\n2. Erlaube "Benachrichtigungen"\n3. Lade die Seite neu')
+        );
+      } else if (errorMessage.includes('iOS 16.4')) {
+        alert(
+          '❌ iOS Version zu alt\n\n' +
+          'Push-Benachrichtigungen erfordern iOS 16.4 oder neuer.\n\n' +
+          'Bitte aktualisiere dein Gerät:\n' +
+          'Einstellungen → Allgemein → Softwareupdate'
+        );
       } else {
-        alert(`❌ Fehler\n\n${errorMessage}\n\nBitte versuche es später erneut.`);
+        alert(
+          `❌ Fehler beim Aktivieren\n\n${errorMessage}\n\n` +
+          'Bitte versuche es später erneut oder kontaktiere den Support.'
+        );
       }
     } finally {
       setLoading(false);
