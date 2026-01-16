@@ -70,38 +70,52 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 export async function subscribeToPush(userId: number): Promise<PushSubscription | null> {
   if (!VAPID_PUBLIC_KEY) {
     console.error('[webPush] VAPID Public Key not configured');
-    return null;
+    throw new Error('VAPID Public Key fehlt - Umgebungsvariable nicht gesetzt');
   }
 
   try {
+    console.log('[webPush] Getting service worker registration...');
     const registration = await navigator.serviceWorker.ready;
+    console.log('[webPush] Service worker ready');
     
     // Prüfe ob bereits abonniert
+    console.log('[webPush] Checking existing subscription...');
     let subscription = await registration.pushManager.getSubscription();
     
     if (subscription) {
       console.log('[webPush] Already subscribed to push notifications');
       // Subscription an Backend senden (falls noch nicht vorhanden)
+      console.log('[webPush] Saving existing subscription to backend...');
       await savePushSubscription(userId, subscription);
       return subscription;
     }
 
     // Neue Subscription erstellen
+    console.log('[webPush] Creating new push subscription...');
+    console.log('[webPush] VAPID key length:', VAPID_PUBLIC_KEY.length);
+    
     const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+    console.log('[webPush] Application server key converted');
+    
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: applicationServerKey as BufferSource
     });
 
-    console.log('[webPush] New push subscription created:', subscription.endpoint);
+    console.log('[webPush] New push subscription created:', subscription.endpoint.substring(0, 50) + '...');
     
     // An Backend senden
+    console.log('[webPush] Saving subscription to backend...');
     await savePushSubscription(userId, subscription);
+    console.log('[webPush] Subscription saved successfully');
     
     return subscription;
   } catch (error) {
     console.error('[webPush] Failed to subscribe to push:', error);
-    return null;
+    if (error instanceof Error) {
+      throw new Error(`Push-Subscription fehlgeschlagen: ${error.message}`);
+    }
+    throw new Error('Push-Subscription fehlgeschlagen');
   }
 }
 

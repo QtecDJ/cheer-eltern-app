@@ -47,6 +47,15 @@ export function EnablePushNotifications({
 
   useEffect(() => {
     checkStatus();
+    
+    // Debug: Log VAPID Key Status
+    if (typeof window !== 'undefined') {
+      const hasVapidKey = !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      console.log('[EnablePushNotifications] VAPID Key configured:', hasVapidKey);
+      if (!hasVapidKey) {
+        console.error('[EnablePushNotifications] ⚠️ VAPID Public Key fehlt! Bitte Server neu starten nach .env Änderungen');
+      }
+    }
   }, []);
 
   const checkStatus = async () => {
@@ -69,36 +78,64 @@ export function EnablePushNotifications({
   const handleEnable = async () => {
     setLoading(true);
     try {
-      // 1. Service Worker registrieren (falls noch nicht aktiv)
-      const registration = await registerServiceWorker();
-      if (!registration) {
-        alert('❌ Service Worker nicht verfügbar\n\nMögliche Gründe:\n• Du bist im InPrivate/Inkognito-Modus\n• Windows Benachrichtigungen sind deaktiviert\n• Browser-Einstellungen blockieren Service Worker\n\nLösung:\n• Öffne die Seite in einem normalen Browser-Fenster\n• Aktiviere Windows Benachrichtigungen\n• Teste auf dem Production-Server mit HTTPS');
-        setLoading(false);
-        return;
-      }
+      console.log('[EnablePushNotifications] Starting push subscription...');
+      
+      // Timeout für den gesamten Prozess
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout: Vorgang dauerte zu lange')), 15000)
+      );
 
-      // 2. Permission anfragen (MUSS durch User-Click getriggert werden - iOS Requirement)
-      const newPermission = await requestPushPermission();
-      setPermission(newPermission);
+      const enablePromise = (async () => {
+        // 1. Service Worker registrieren (falls noch nicht aktiv)
+        console.log('[EnablePushNotifications] Checking Service Worker...');
+        const registration = await registerServiceWorker();
+        if (!registration) {
+          throw new Error('Service Worker nicht verfügbar');
+        }
+        console.log('[EnablePushNotifications] Service Worker ready');
 
-      if (newPermission !== 'granted') {
-        console.warn('[EnablePushNotifications] Permission denied');
-        return;
-      }
+        // 2. Permission anfragen (MUSS durch User-Click getriggert werden - iOS Requirement)
+        console.log('[EnablePushNotifications] Requesting permission...');
+        const newPermission = await requestPushPermission();
+        setPermission(newPermission);
 
-      // 3. Push abonnieren
-      const subscription = await subscribeToPush(userId);
-      if (subscription) {
-        setIsSubscribed(true);
+        if (newPermission !== 'granted') {
+          throw new Error('Benachrichtigungen wurden abgelehnt');
+        }
+        console.log('[EnablePushNotifications] Permission granted');
+
+        // 3. Push abonnieren
+        console.log('[EnablePushNotifications] Subscribing to push...');
+        const subscription = await subscribeToPush(userId);
+        if (!subscription) {
+          throw new Error('Push-Subscription fehlgeschlagen');
+        }
+        
         console.log('[EnablePushNotifications] Successfully subscribed');
+        setIsSubscribed(true);
         
         // Optional: Show success feedback
         if ('vibrate' in navigator && !isIOS) {
           navigator.vibrate(200);
         }
-      }
+      })();
+
+      await Promise.race([enablePromise, timeoutPromise]);
+      
     } catch (error) {
       console.error('[EnablePushNotifications] Error enabling:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unbekannter Fehler';
+      
+      if (errorMessage.includes('Service Worker nicht verfügbar')) {
+        alert('❌ Service Worker nicht verfügbar\n\nMögliche Gründe:\n• Du bist im InPrivate/Inkognito-Modus\n• Windows Benachrichtigungen sind deaktiviert\n• Browser-Einstellungen blockieren Service Worker\n\nLösung:\n• Öffne die Seite in einem normalen Browser-Fenster\n• Aktiviere Windows Benachrichtigungen\n• Teste auf dem Production-Server mit HTTPS');
+      } else if (errorMessage.includes('Timeout')) {
+        alert('⏱️ Zeitüberschreitung\n\nDie Anfrage dauerte zu lange.\n\nBitte versuche es erneut oder überprüfe deine Internetverbindung.');
+      } else if (errorMessage.includes('abgelehnt')) {
+        alert('❌ Benachrichtigungen abgelehnt\n\nDu hast Benachrichtigungen abgelehnt.\n\nSo aktivierst du sie:\n1. Klicke auf das Schloss-Symbol 🔒 in der Adressleiste\n2. Erlaube "Benachrichtigungen"\n3. Lade die Seite neu');
+      } else {
+        alert(`❌ Fehler\n\n${errorMessage}\n\nBitte versuche es später erneut.`);
+      }
     } finally {
       setLoading(false);
     }

@@ -65,6 +65,7 @@ export function AnwesenheitContent({
 }: AnwesenheitContentProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [saving, setSaving] = useState<number | null>(null);
   
   useEffect(() => {
     setMounted(true);
@@ -110,11 +111,43 @@ export function AnwesenheitContent({
   });
 
   // Toggle Anwesenheit
-  const toggleAttendance = (memberId: number, status: AttendanceStatus) => {
+  const toggleAttendance = async (memberId: number, status: AttendanceStatus) => {
+    // Optimistisches Update
+    const previousAttendance = attendance;
+    const newStatus = attendance[memberId] === status ? null : status;
+    
     setAttendance(prev => ({
       ...prev,
-      [memberId]: prev[memberId] === status ? null : status
+      [memberId]: newStatus
     }));
+
+    // Zeige Speicher-Status
+    setSaving(memberId);
+
+    try {
+      const response = await fetch("/api/attendance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          trainingId: training.id,
+          memberId,
+          status: newStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Fehler beim Speichern");
+      }
+    } catch (error) {
+      console.error("Fehler beim Speichern der Anwesenheit:", error);
+      // Rollback bei Fehler
+      setAttendance(previousAttendance);
+      alert("Fehler beim Speichern. Bitte versuche es erneut.");
+    } finally {
+      setSaving(null);
+    }
   };
 
   // Statistiken berechnen
@@ -247,6 +280,7 @@ export function AnwesenheitContent({
               onToggle={(status) => toggleAttendance(member.id, status)}
               hasDeclined={hasDeclined}
               declineReason={info?.reason || null}
+              isSaving={saving === member.id}
             />
           );
         })}
@@ -271,19 +305,21 @@ function AttendanceCard({
   onToggle,
   hasDeclined,
   declineReason,
+  isSaving,
 }: { 
   member: Member; 
   status: AttendanceStatus;
   onToggle: (status: AttendanceStatus) => void;
   hasDeclined: boolean;
   declineReason: string | null;
+  isSaving?: boolean;
 }) {
   return (
     <Card className={`transition-all ${
       status === "present" ? "bg-green-500/10 border-green-500/30" :
       status === "absent" ? "bg-red-500/10 border-red-500/30" : 
       hasDeclined ? "bg-amber-500/10 border-amber-500/30" : ""
-    }`}>
+    } ${isSaving ? "opacity-50" : ""}`}>
       <CardContent className="py-3">
         <div className="flex items-center gap-3">
           <Avatar name={member.name} src={member.photoUrl} size="md" />
@@ -308,22 +344,24 @@ function AttendanceCard({
           <div className="flex gap-2 shrink-0">
             <button
               onClick={() => onToggle("present")}
+              disabled={isSaving}
               className={`p-2 rounded-lg transition-colors ${
                 status === "present"
                   ? "bg-green-500 text-white"
                   : "bg-muted text-muted-foreground hover:bg-green-500/20"
-              }`}
+              } ${isSaving ? "cursor-not-allowed" : ""}`}
               title="Anwesend"
             >
               <Check className="w-5 h-5" />
             </button>
             <button
               onClick={() => onToggle("absent")}
+              disabled={isSaving}
               className={`p-2 rounded-lg transition-colors ${
                 status === "absent"
                   ? "bg-red-500 text-white"
                   : "bg-muted text-muted-foreground hover:bg-red-500/20"
-              }`}
+              } ${isSaving ? "cursor-not-allowed" : ""}`}
               title="Abwesend"
             >
               <X className="w-5 h-5" />
