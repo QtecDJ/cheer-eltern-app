@@ -72,7 +72,9 @@ export function EnablePushNotifications({
       // 1. Service Worker registrieren (falls noch nicht aktiv)
       const registration = await registerServiceWorker();
       if (!registration) {
-        throw new Error('Service Worker nicht unterstützt');
+        alert('❌ Service Worker nicht verfügbar\n\nMögliche Gründe:\n• Du bist im InPrivate/Inkognito-Modus\n• Windows Benachrichtigungen sind deaktiviert\n• Browser-Einstellungen blockieren Service Worker\n\nLösung:\n• Öffne die Seite in einem normalen Browser-Fenster\n• Aktiviere Windows Benachrichtigungen\n• Teste auf dem Production-Server mit HTTPS');
+        setLoading(false);
+        return;
       }
 
       // 2. Permission anfragen (MUSS durch User-Click getriggert werden - iOS Requirement)
