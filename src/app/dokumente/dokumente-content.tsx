@@ -16,9 +16,17 @@ interface Document {
 // Beispiel-Dokumente - später aus DB oder API laden
 const documents: Document[] = [
   {
+    id: "4",
+    title: "Information zur CMT",
+    description: "Information zur CMT",
+    filename: "https://web.icacheer.space/documents/cmtinfo.pdf",
+    category: "Cheer",
+    isExternal: true
+  },
+  {
     id: "1",
-    title: "ICA Regelwerk",
-    description: "Offizielles Regelwerk von ICA Cheer",
+    title: "Offizielles Regelwerk der ICA",
+    description: "Offizielles Regelwerk der ICA",
     filename: "https://web.icacheer.space/documents/icaregelwerk.pdf",
     category: "Cheer",
     isExternal: true
@@ -36,14 +44,6 @@ const documents: Document[] = [
     title: "Anleitung zur Uniform und Auftritten",
     description: "Anleitung zur Uniform und Verhalten bei Auftritten",
     filename: "https://web.icacheer.space/documents/icauniform.pdf",
-    category: "Cheer",
-    isExternal: true
-  },
-  {
-    id: "4",
-    title: "CMT Info",
-    description: "Informationen zum CMT",
-    filename: "https://web.icacheer.space/documents/cmtinfo.pdf",
     category: "Cheer",
     isExternal: true
   },
