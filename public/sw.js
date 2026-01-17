@@ -513,91 +513,8 @@ self.addEventListener('sync', (event) => {
 });
 
 // ============================================
-// PUSH NOTIFICATIONS (iOS-OPTIMIERT)
+// SERVICE WORKER LIFECYCLE
 // ============================================
-/**
- * iOS PWA Push Requirements (Apple-Dokumentation):
- * 1. Notifications müssen SOFORT angezeigt werden (keine unsichtbaren Pushes)
- * 2. Service Worker wird nach ~3 Sekunden beendet
- * 3. Push nur in PWAs, die zum Home Screen hinzugefügt wurden
- * 4. Max 2 Action Buttons auf iOS
- * 5. Keine long-running tasks
- * 
- * Safari revokes push permission wenn Notifications nicht sofort angezeigt werden!
- */
-self.addEventListener('push', (event) => {
-  console.log(`[SW ${SW_VERSION}] Push received (iOS Mode: ${IS_IOS_PWA})`);
-  
-  // iOS REQUIREMENT: Notification muss SOFORT erstellt werden
-  if (!event.data) {
-    console.warn(`[SW ${SW_VERSION}] Push event has no data - showing default notification`);
-    // Auch ohne Daten muss Notification angezeigt werden (iOS Requirement)
-    event.waitUntil(
-      self.registration.showNotification('Member App', {
-        body: 'Neue Benachrichtigung',
-        icon: '/icons/icon-192.png',
-        badge: '/icons/icon-96.png',
-        tag: 'default',
-        data: { url: '/' }
-      })
-    );
-    return;
-  }
-
-  try {
-    const data = event.data.json();
-    console.log(`[SW ${SW_VERSION}] Push data:`, data);
-
-    const title = data.title || 'Member App';
-    const options = {
-      body: data.body || data.message || 'Neue Benachrichtigung',
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-96.png',
-      vibrate: IS_IOS ? [] : [200, 100, 200], // iOS ignoriert vibrate
-      tag: data.tag || 'notification',
-      renotify: true,
-      requireInteraction: false, // iOS zeigt immer kurz, dann verschwindet
-      data: {
-        url: data.url || '/',
-        timestamp: Date.now(),
-        ...data
-      }
-    };
-
-    // iOS unterstützt max 2 Action Buttons
-    if (data.actions && Array.isArray(data.actions)) {
-      options.actions = IS_IOS 
-        ? data.actions.slice(0, 2) 
-        : data.actions;
-    } else {
-      // Default Actions (iOS-safe)
-      options.actions = IS_IOS 
-        ? [{ action: 'open', title: 'Öffnen' }]
-        : [
-            { action: 'open', title: 'Öffnen' },
-            { action: 'close', title: 'Schließen' }
-          ];
-    }
-
-    // iOS REQUIREMENT: showNotification muss SOFORT aufgerufen werden
-    event.waitUntil(
-      self.registration.showNotification(title, options)
-        .then(() => {
-          console.log(`[SW ${SW_VERSION}] Notification shown successfully`);
-        })
-        .catch(err => {
-          console.error(`[SW ${SW_VERSION}] Failed to show notification:`, err);
-          // Fallback: Zeige Basis-Notification
-          return self.registration.showNotification('Member App', {
-            body: 'Neue Benachrichtigung',
-            icon: '/icons/icon-192.png'
-          });
-        })
-    );
-  } catch (error) {
-    console.error(`[SW ${SW_VERSION}] Error parsing push data:`, error);
-    // iOS REQUIREMENT: Auch bei Fehler Notification zeigen
-    event.waitUntil(
       self.registration.showNotification('Member App', {
         body: 'Neue Benachrichtigung',
         icon: '/icons/icon-192.png'
@@ -752,53 +669,6 @@ async function staleWhileRevalidateContent(request) {
   return cachedResponse || fetchPromise;
 }
 
-// ============================================
-// PUSH NOTIFICATIONS
-// ============================================
-
-// ============================================
-// PUSH SUBSCRIPTION CHANGE (iOS-SAFE)
-// ============================================
-/**
- * Re-subscribe wenn Push Subscription verloren geht
- * iOS-SAFE: Keine long-running tasks, kurzer Timeout
- */
-self.addEventListener('pushsubscriptionchange', (event) => {
-  console.log(`[SW ${SW_VERSION}] Push subscription changed - re-subscribing`);
-  
-  event.waitUntil(
-    self.registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: 'BO7nt__RKbqZlG9z6GlXQ6pz3fbN3Uc77RKPUOksuG6mRFzOR4j8ijcVchwec1PDP2b2odULfoIE-SW6rqxQiyo'
-    })
-    .then((subscription) => {
-      console.log(`[SW ${SW_VERSION}] New subscription created`);
-      
-      // Sende neue Subscription an Backend (mit kurzem Timeout für iOS)
-      return Promise.race([
-        fetch('/api/push/resubscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            endpoint: subscription.endpoint,
-            keys: {
-              p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')))),
-              auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth'))))
-            }
-          })
-        }),
-        // iOS: Timeout nach 2.5 Sekunden
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Resubscribe timeout')), IS_IOS ? 2500 : 5000)
-        )
-      ]);
-    })
-    .catch((err) => {
-      console.error(`[SW ${SW_VERSION}] Push resubscribe failed:`, err);
-    })
-  );
-});
-
-console.log(`[SW ${SW_VERSION}] Service Worker loaded with Content Cache + iOS-optimized Push Notifications`);
+console.log(`[SW ${SW_VERSION}] Service Worker loaded with Content Cache`);
 
 }

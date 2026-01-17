@@ -50,7 +50,6 @@ export default async function HomePage() {
       upcomingTrainings={upcomingTrainings}
       attendanceStats={attendanceStats}
       latestAssessment={latestAssessment}
-      unreadNotifications={child.notifications.length}
       announcements={announcements}
     />
   );

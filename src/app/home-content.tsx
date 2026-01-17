@@ -21,7 +21,6 @@ import {
   PartyPopper,
 } from "lucide-react";
 import { useVersionedContent } from "@/lib/use-versioned-content";
-import { NotificationCenter } from "@/components/notification-center";
 
 interface HomeContentProps {
   child: {
@@ -61,7 +60,6 @@ interface HomeContentProps {
     performanceLevel: string;
     date: Date;
   } | null;
-  unreadNotifications: number;
   announcements: Array<{
     id: number;
     title: string;
@@ -78,7 +76,6 @@ export function HomeContent({
   upcomingTrainings,
   attendanceStats,
   latestAssessment,
-  unreadNotifications,
   announcements,
 }: HomeContentProps) {
   const age = calculateAge(child.birthDate);
@@ -91,14 +88,11 @@ export function HomeContent({
     <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header mit Begrüßung */}
       <header className="mb-6 md:mb-8 animate-fade-in">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm md:text-base text-muted-foreground">Willkommen zurück 👋</p>
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mt-0.5">
-              {child.firstName}&apos;s Übersicht
-            </h1>
-          </div>
-          <NotificationCenter />
+        <div>
+          <p className="text-sm md:text-base text-muted-foreground">Willkommen zurück 👋</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mt-0.5">
+            {child.firstName}&apos;s Übersicht
+          </h1>
         </div>
       </header>
 

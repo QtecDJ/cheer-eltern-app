@@ -4,10 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EnablePushNotifications } from "@/components/enable-push-notifications";
 import {
   AlertTriangle,
-  Bell,
   ChevronDown,
   ChevronUp,
   Edit2,
@@ -146,33 +144,11 @@ export function EinstellungenContent({ member }: EinstellungenContentProps) {
           ← Zurück
         </button>
         <h1 className="text-2xl font-bold">Einstellungen</h1>
-        <p className="text-muted-foreground mt-1">Konto, Benachrichtigungen & Gesundheit</p>
+        <p className="text-muted-foreground mt-1">Konto & Gesundheit</p>
       </header>
 
-      {/* Push-Benachrichtigungen - PROMINENT an erster Stelle */}
-      <section className="mb-6 animate-slide-up stagger-1">
-        <CardHeader className="px-0">
-          <CardTitle size="lg" className="flex items-center gap-2">
-            <Bell className="w-5 h-5 text-primary" />
-            Push-Benachrichtigungen
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Erhalte Benachrichtigungen über neue Trainings, Events und Ankündigungen
-          </p>
-        </CardHeader>
-
-        <Card>
-          <CardContent className="pt-6">
-            <EnablePushNotifications 
-              userId={member.id} 
-              compact={false}
-            />
-          </CardContent>
-        </Card>
-      </section>
-
       {/* E-Mail & Passwort - Konto-Einstellungen */}
-      <section className="mb-6 animate-slide-up stagger-2">
+      <section className="mb-6 animate-slide-up stagger-1">
         <CardHeader className="px-0">
           <CardTitle size="lg" className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />

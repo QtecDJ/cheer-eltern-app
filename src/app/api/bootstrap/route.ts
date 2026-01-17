@@ -66,7 +66,6 @@ export async function GET(request: NextRequest) {
       attendanceStats,
       announcements,
       latestAssessment,
-      unreadNotifications: child.notifications.length,
       cachedAt: new Date().toISOString(),
     }, {
       headers: {
