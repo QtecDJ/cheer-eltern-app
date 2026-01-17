@@ -17,6 +17,14 @@ interface Document {
 const documents: Document[] = [
   {
     id: "1",
+    title: "ICA Regelwerk",
+    description: "Offizielles Regelwerk von ICA Cheer",
+    filename: "https://web.icacheer.space/documents/icaregelwerk.pdf",
+    category: "Cheer",
+    isExternal: true
+  },
+  {
+    id: "2",
     title: "Packliste",
     description: "Packliste für Wettkämpfe und Events",
     filename: "https://web.icacheer.space/documents/Packliste.pdf",
@@ -24,15 +32,23 @@ const documents: Document[] = [
     isExternal: true
   },
   {
-    id: "2",
-    title: "Uniform und Auftritts Anweisung",
+    id: "3",
+    title: "Anleitung zur Uniform und Auftritten",
     description: "Anleitung zur Uniform und Verhalten bei Auftritten",
     filename: "https://web.icacheer.space/documents/icauniform.pdf",
     category: "Cheer",
     isExternal: true
   },
   {
-    id: "3",
+    id: "4",
+    title: "CMT Info",
+    description: "Informationen zum CMT",
+    filename: "https://web.icacheer.space/documents/cmtinfo.pdf",
+    category: "Cheer",
+    isExternal: true
+  },
+  {
+    id: "5",
     title: "Schmink Video",
     description: "Anleitung zum Schminken für Auftritte und Events",
     filename: "https://web.icacheer.space/documents/vid1.mp4",

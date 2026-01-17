@@ -18,10 +18,57 @@ import {
   FileText,
   Dumbbell,
   MessageSquare,
+  CalendarPlus,
 } from "lucide-react";
 import { respondToTraining, ResponseStatus } from "./actions";
 import { useRouter } from "next/navigation";
 import { useVersionedContent } from "@/lib/use-versioned-content";
+
+// Funktion zum Hinzufügen zum Kalender (iOS und Android)
+function addToCalendar(title: string, date: string, time: string, location: string) {
+  // Erstelle ICS-Datei für Kalender
+  const [hours, minutes] = time.split(':');
+  const startDate = new Date(date);
+  startDate.setHours(parseInt(hours), parseInt(minutes), 0);
+  
+  const endDate = new Date(startDate);
+  endDate.setHours(endDate.getHours() + 2); // 2 Stunden Training
+  
+  const formatICSDate = (d: Date) => {
+    return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  };
+  
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//ICA Cheer//Training//DE',
+    'BEGIN:VEVENT',
+    `DTSTART:${formatICSDate(startDate)}`,
+    `DTEND:${formatICSDate(endDate)}`,
+    `SUMMARY:${title}`,
+    `LOCATION:${location}`,
+    `DESCRIPTION:Training - ${title}`,
+    'STATUS:CONFIRMED',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT30M',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Training beginnt in 30 Minuten',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+  
+  // Erstelle Blob und Download
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `training-${date}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
 
 interface TrainingContentProps {
   member: {
@@ -321,7 +368,16 @@ export function TrainingContent({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="font-semibold truncate">{training.title}</h3>
-                      <RelativeDateBadge date={training.date} />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => addToCalendar(training.title, training.date, training.time, training.location)}
+                          className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                          title="Zum Kalender hinzufügen"
+                        >
+                          <CalendarPlus className="w-4 h-4" />
+                        </button>
+                        <RelativeDateBadge date={training.date} />
+                      </div>
                     </div>
 
                     {/* Training Typ Badge */}

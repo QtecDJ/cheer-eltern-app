@@ -178,7 +178,7 @@ export default async function RootLayout({
         <PullToRefresh>
           <main className={cn(
             "min-h-screen safe-area-inset",
-            session ? "pb-20 md:pb-0 md:pl-20 lg:pl-64" : ""
+            session ? "pb-20" : ""
           )}>
             <div className="w-full md:max-w-4xl lg:max-w-5xl xl:max-w-7xl md:mx-auto md:px-6 lg:px-8">
               {children}

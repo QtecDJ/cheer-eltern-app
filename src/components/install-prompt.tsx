@@ -118,7 +118,7 @@ export function InstallPrompt() {
   // Android Install Banner - nur anzeigen wenn showPrompt true
   if (deferredPrompt && showPrompt) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 p-4 z-50 animate-slide-up">
+      <div className="fixed top-4 left-0 right-0 p-4 z-50 animate-slide-down">
         <div className="bg-card border border-border rounded-2xl p-4 shadow-xl max-w-sm mx-auto">
           <div className="flex items-start gap-3">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -161,7 +161,7 @@ export function InstallPrompt() {
   // iOS Install Anleitung
   if (showIOSPrompt) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 p-4 z-50 animate-slide-up">
+      <div className="fixed top-4 left-0 right-0 p-4 z-50 animate-slide-down">
         <div className="bg-card border border-border rounded-2xl p-4 shadow-xl max-w-sm mx-auto">
           <div className="flex items-start gap-3">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">

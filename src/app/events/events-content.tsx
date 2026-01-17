@@ -28,10 +28,112 @@ import {
   Check,
   X,
   Users,
+  CalendarPlus,
 } from "lucide-react";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useVersionedContent } from "@/lib/use-versioned-content";
+
+// Funktion zum Hinzufügen zum Kalender (iOS und Android)
+function addToCalendar(title: string, date: string, time: string, location: string) {
+  // Erstelle ICS-Datei für Kalender
+  const [hours, minutes] = time.replace(' Uhr', '').split(':');
+  const startDate = new Date(date);
+  startDate.setHours(parseInt(hours), parseInt(minutes), 0);
+  
+  const endDate = new Date(startDate);
+  endDate.setHours(endDate.getHours() + 2); // 2 Stunden Event
+  
+  const formatICSDate = (d: Date) => {
+    return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  };
+  
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//ICA Cheer//Event//DE',
+    'BEGIN:VEVENT',
+    `DTSTART:${formatICSDate(startDate)}`,
+    `DTEND:${formatICSDate(endDate)}`,
+    `SUMMARY:${title}`,
+    `LOCATION:${location}`,
+    `DESCRIPTION:Event - ${title}`,
+    'STATUS:CONFIRMED',
+    'BEGIN:VALARM',
+    'TRIGGER:-PT30M',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Event beginnt in 30 Minuten',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+  
+  // Erstelle Blob und Download
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `event-${date}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+// Funktion zum Hinzufügen zum Kalender für Ankündigungen (ganztägig)
+function addToCalendarAllDay(title: string, description: string) {
+  // Erstelle ICS-Datei für Kalender (ganztägiges Event)
+  const today = new Date();
+  const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+  
+  const icsContent = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//ICA Cheer//Announcement//DE',
+    'BEGIN:VEVENT',
+    `DTSTART;VALUE=DATE:${dateStr}`,
+    `SUMMARY:${title}`,
+    `DESCRIPTION:${description.replace(/\n/g, '\\n')}`,
+    'STATUS:TENTATIVE',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+  
+  // Erstelle Blob und Download
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `ankuendigung-${dateStr}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+}
+
+// Funktion um URLs im Text klickbar zu machen
+function linkifyText(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline hover:text-primary/80"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
 
 interface Participant {
   id: number;
@@ -338,17 +440,29 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                           <h3 className="text-xl font-bold text-foreground leading-tight flex-1">
                             {announcement.title}
                           </h3>
-                          <svg
-                            className={cn(
-                              "w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200",
-                              isExpanded && "rotate-180"
-                            )}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCalendarAllDay(announcement.title, announcement.content);
+                              }}
+                              className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary transition-colors shrink-0"
+                              title="Zum Kalender hinzufügen"
+                            >
+                              <CalendarPlus className="w-4 h-4" />
+                            </button>
+                            <svg
+                              className={cn(
+                                "w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200",
+                                isExpanded && "rotate-180"
+                              )}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
                         </div>
                       </button>
 
@@ -358,7 +472,7 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                           {/* Vollständiger Inhalt */}
                           <div className="prose prose-sm max-w-none mb-4">
                             <p className="text-[15px] text-foreground/85 leading-[1.7] whitespace-pre-wrap m-0">
-                              {announcement.content}
+                              {linkifyText(announcement.content)}
                             </p>
                           </div>
 
@@ -539,13 +653,22 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                                 {item.title}
                               </h3>
                             </div>
-                            <Badge
-                              variant={item.itemType === "competition" ? "warning" : "default"}
-                              size="sm"
-                              className="shrink-0"
-                            >
-                              {getRelativeDate(item.date)}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => addToCalendar(item.title, item.date, item.time || '00:00', item.location)}
+                                className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary transition-colors shrink-0"
+                                title="Zum Kalender hinzufügen"
+                              >
+                                <CalendarPlus className="w-4 h-4" />
+                              </button>
+                              <Badge
+                                variant={item.itemType === "competition" ? "warning" : "default"}
+                                size="sm"
+                                className="shrink-0"
+                              >
+                                {getRelativeDate(item.date)}
+                              </Badge>
+                            </div>
                           </div>
 
                           {/* Details */}
