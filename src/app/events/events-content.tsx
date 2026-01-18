@@ -416,9 +416,12 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
 
                     <div className="p-5">
                       {/* Klickbarer Header */}
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => toggleAnnouncement(announcement.id)}
-                        className="w-full text-left hover:opacity-80 transition-opacity"
+                        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") toggleAnnouncement(announcement.id); }}
+                        className="w-full text-left hover:opacity-80 transition-opacity cursor-pointer outline-none"
                       >
                         {/* Header mit Badges */}
                         <div className="flex flex-wrap items-start gap-2 mb-3">
@@ -464,7 +467,7 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                             </svg>
                           </div>
                         </div>
-                      </button>
+                      </div>
 
                       {/* Ausklappbarer Content */}
                       {isExpanded && (
