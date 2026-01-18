@@ -450,6 +450,7 @@ export async function getEventAnnouncementsWithPolls(teamId?: number, memberId?:
   
   const whereClause: any = {
     category: { in: ["event", "info"] },
+    type: "announcement",
     OR: [
       { expiresAt: null },
       { expiresAt: { gte: now } },
