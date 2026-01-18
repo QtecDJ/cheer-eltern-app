@@ -285,18 +285,29 @@ export function ProfileContent({
               — Coach Kai
             </p>
           </div>
-          <a
-            href="https://buymeacoffee.com/ica_dev"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 flex items-center justify-center gap-2 w-full py-3 px-4 bg-muted/50 text-muted-foreground font-medium rounded-xl hover:bg-muted transition-colors"
-          >
-            ☕ Entwicklung unterstützen
-          </a>
+          <div className="mt-4 flex flex-col sm:flex-row gap-3 w-full">
+            <a
+              href="https://buymeacoffee.com/ica_dev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-muted/50 text-muted-foreground font-medium rounded-xl hover:bg-muted transition-colors"
+            >
+              ☕ Entwicklung unterstützen
+            </a>
+            <a
+              href="https://www.paypal.com/paypalme/icaDev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-muted/50 text-muted-foreground font-medium rounded-xl hover:bg-muted transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M17.5 2a4.5 4.5 0 0 1 4.47 5.09l-.02.13-1.5 9A4.5 4.5 0 0 1 16 20.5H7.62a1.12 1.12 0 0 1-1.1-1.33l.02-.09 1.13-6.77H6.25a.75.75 0 0 1-.74-.87l.02-.09 1.5-9A4.5 4.5 0 0 1 11.5 2zm0 1.5H11.5a3 3 0 0 0-2.96 2.55l-1.46 8.7h2.21a.75.75 0 0 1 .74.87l-1.2 7.2H16a3 3 0 0 0 2.96-2.55l1.46-8.7h-2.21a.75.75 0 0 1-.74-.87l1.2-7.2Z"/></svg>
+              PayPal
+            </a>
+          </div>
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Member App · Version 1.8.3
+          Member App · Version 1.9.0
         </p>
         <p className="text-[10px] text-muted-foreground/50">
           Entwickelt von ICA-Dev Kai Püttmann
