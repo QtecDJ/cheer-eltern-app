@@ -449,10 +449,18 @@ export async function getEventAnnouncementsWithPolls(teamId?: number, memberId?:
   const now = new Date();
   
   const whereClause: any = {
-    category: { in: ["event", "info"] },
     OR: [
-      { expiresAt: null },
-      { expiresAt: { gte: now } },
+      { category: { equals: "event", mode: "insensitive" } },
+      { category: { equals: "info", mode: "insensitive" } },
+      { category: { equals: "news", mode: "insensitive" } },
+    ],
+    AND: [
+      {
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gte: now } },
+        ],
+      },
     ],
   };
 

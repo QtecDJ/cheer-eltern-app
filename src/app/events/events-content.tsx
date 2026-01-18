@@ -444,16 +444,18 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                             {announcement.title}
                           </h3>
                           <div className="flex items-center gap-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addToCalendarAllDay(announcement.title, announcement.content);
-                              }}
-                              className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary transition-colors shrink-0"
-                              title="Zum Kalender hinzufügen"
-                            >
-                              <CalendarPlus className="w-4 h-4" />
-                            </button>
+                            {announcement.category?.toLowerCase() !== "news" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  addToCalendarAllDay(announcement.title, announcement.content);
+                                }}
+                                className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary transition-colors shrink-0"
+                                title="Zum Kalender hinzufügen"
+                              >
+                                <CalendarPlus className="w-4 h-4" />
+                              </button>
+                            )}
                             <svg
                               className={cn(
                                 "w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200",
