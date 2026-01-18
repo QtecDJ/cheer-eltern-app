@@ -211,13 +211,11 @@ export async function getAttendanceMap(memberId: number, limit = 50) {
  * Minimal, keine Teilnehmer-Details
  */
 export async function getTrainingsList(teamId: number, limit = 20) {
-  const today = new Date().toISOString().split("T")[0];
-
   return await prisma.trainingSession.findMany({
     where: {
       teamId,
       isArchived: false,
-      date: { gte: today },
+      type: "training",
     },
     orderBy: { date: "asc" },
     take: limit,
@@ -255,6 +253,7 @@ export async function getUpcomingTrainingsMinimal(teamId: number) {
       teamId,
       isArchived: false,
       date: { gte: today },
+      type: "training",
     },
     orderBy: { date: "asc" },
     take: 3, // Nur nächste 3
@@ -381,13 +380,22 @@ export async function getCompetitionsWithParticipants(limit = 20) {
  * Ankündigungen für Home-Seite
  * Minimal, ohne Poll-Details
  */
-export async function getAnnouncementsMinimal(teamId?: number, limit = 5) {
+export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
   const now = new Date();
-  
+
   const whereClause: any = {
     OR: [
-      { expiresAt: null },
-      { expiresAt: { gte: now } },
+      // News (case-insensitive)
+      { category: { equals: "news", mode: "insensitive" } },
+      { category: { equals: "info", mode: "insensitive" } },
+    ],
+    AND: [
+      {
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gte: now } },
+        ],
+      },
     ],
   };
 
@@ -401,14 +409,14 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 5) {
   } else {
     whereClause.AnnouncementTeam = { none: {} };
   }
-  
+
   return await prisma.announcement.findMany({
     where: whereClause,
     orderBy: [
       { isPinned: "desc" },
       { createdAt: "desc" },
     ],
-    take: limit,
+    take: 20,
     select: {
       id: true,
       title: true,
