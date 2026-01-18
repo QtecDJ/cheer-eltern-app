@@ -138,6 +138,7 @@ export default async function RootLayout({
     { href: "/training", icon: "Calendar", label: "Training" },
     { href: "/events", icon: "CalendarDays", label: "Events" },
     { href: "/dokumente", icon: "File", label: "Dokumente" },
+    { href: "/berichte", icon: "BookOpen", label: "Berichte" },
   ];
   if (isAdminOrTrainer) {
     navItems.push({ href: "/info", icon: "ClipboardList", label: "Info" });

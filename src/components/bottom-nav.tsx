@@ -9,7 +9,8 @@ import {
   CalendarDays, 
   User, 
   ClipboardList, 
-  FileText 
+  FileText, 
+  BookOpen 
 } from "lucide-react";
 
 const iconMap = {
@@ -20,6 +21,7 @@ const iconMap = {
   ClipboardList,
   File: FileText,
   FileText,
+  BookOpen,
 } as const;
 
 export interface NavItem {
