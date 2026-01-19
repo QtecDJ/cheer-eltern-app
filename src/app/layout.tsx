@@ -112,53 +112,50 @@ export const viewport: Viewport = {
  * - Use session.userRole instead (cached in cookie)
  * - Reduces DB calls by ~50% (was: layout + page, now: only page)
  */
+
+import { cookies } from "next/headers";
+
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const session = await getSession();
-  const userRole = session?.userRole || null;
-  const isAdminOrTrainer = userRole === "admin" || userRole === "trainer" || userRole === "coach";
-  const navItems: NavItem[] = [
-    { href: "/", icon: "Home", label: "Home" },
-    { href: "/training", icon: "Calendar", label: "Training" },
-    { href: "/events", icon: "CalendarDays", label: "Events" },
-    { href: "/dokumente", icon: "File", label: "Dokumente" },
-    { href: "/berichte", icon: "BookOpen", label: "Berichte" },
-  ];
-  if (isAdminOrTrainer) {
-    navItems.push({ href: "/info", icon: "ClipboardList", label: "Info" });
+  // Erkenne Login-Seite über URL (im Server-Kontext)
+  const isLoginPage = typeof children === "object" && children?.type?.name === "LoginPage";
+
+  let session = null;
+  let userRole = null;
+  let isAdminOrTrainer = false;
+  let navItems: NavItem[] = [];
+
+  if (!isLoginPage) {
+    session = await getSession();
+    userRole = session?.userRole || null;
+    isAdminOrTrainer = userRole === "admin" || userRole === "trainer" || userRole === "coach";
+    navItems = [
+      { href: "/", icon: "Home", label: "Home" },
+      { href: "/training", icon: "Calendar", label: "Training" },
+      { href: "/events", icon: "CalendarDays", label: "Events" },
+      { href: "/dokumente", icon: "File", label: "Dokumente" },
+      { href: "/berichte", icon: "BookOpen", label: "Berichte" },
+    ];
+    if (isAdminOrTrainer) {
+      navItems.push({ href: "/info", icon: "ClipboardList", label: "Info" });
+    }
+    navItems.push({ href: "/profil", icon: "User", label: "Profil" });
   }
-  navItems.push({ href: "/profil", icon: "User", label: "Profil" });
+
   return (
     <html lang="de">
       <head>
-        {/* PWA iOS Spezifisch */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Member" />
-        {/* Apple Touch Icons - iOS sucht auch nach /apple-touch-icon.png */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
-        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
-        {/* Theme Color für verschiedene Modi */}
-        <meta name="theme-color" content="#ec4899" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
-        {/* Android Chrome */}
-        <meta name="mobile-web-app-capable" content="yes" />
-        {/* Verhindert Zoom beim Input Focus (iOS) */}
-        <meta name="format-detection" content="telephone=no" />
+        {/* ...existing code... */}
       </head>
-      <body
-        className={"font-sans antialiased bg-slate-900 text-white"}
-      >
-        <ServiceWorkerRegistration />
-        <InstallPrompt />
-        <ContentCacheInit />
-        <OfflineIndicator />
-        {session && <BottomNav items={navItems} />}
+      <body className={"font-sans antialiased bg-slate-900 text-white"}>
+        {!isLoginPage && session && <ServiceWorkerRegistration />}
+        {!isLoginPage && session && <InstallPrompt />}
+        {!isLoginPage && session && <ContentCacheInit />}
+        {!isLoginPage && session && <OfflineIndicator />}
+        {!isLoginPage && session && <BottomNav items={navItems} />}
         <PullToRefresh>
           <main className={cn(
             "min-h-screen safe-area-inset",
-            session ? "pb-20" : ""
+            !isLoginPage && session ? "pb-20" : ""
           )}>
             <div className="w-full md:max-w-4xl lg:max-w-5xl xl:max-w-7xl md:mx-auto md:px-6 lg:px-8">
               {children}
