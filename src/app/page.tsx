@@ -7,22 +7,22 @@ import {
   getAttendanceStats,
   getAnnouncementsMinimal,
   getLatestAssessmentMinimal,
+  getMemberListItem,
 } from "@/lib/queries";
+import { cookies } from "next/headers";
 
 // Revalidate every 90 seconds - optimiert für weniger Function Invocations
 // Service Worker cached zusätzlich 2-5 Min (iOS: 2.5 Min)
 export const revalidate = 90;
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams?: { [key: string]: string | string[] } }) {
   const session = await getSession();
-  
-  // Nicht eingeloggt -> zur Login-Seite
   if (!session) {
     redirect("/login");
   }
 
+  // Query-Parameter auslesen (Next.js 13/14 App Router)
   const child = await getMemberForHome(session.id);
-
   if (!child) {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -51,6 +51,7 @@ export default async function HomePage() {
       attendanceStats={attendanceStats}
       latestAssessment={latestAssessment}
       announcements={announcements}
+  
     />
   );
 }

@@ -775,32 +775,5 @@ export async function getCoachTeamName(coachTeamId: number) {
 }
 
 /**
- * Geschwisterkinder anhand Nachname (außer aktuelles Kind)
+ 
  */
-export async function getSiblingsByLastName(currentId: number, lastName: string) {
-  return await prisma.member.findMany({
-    where: {
-      status: "active",
-      lastName: lastName,
-      NOT: { id: currentId },
-    },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      name: true,
-      photoUrl: true,
-      birthDate: true,
-      team: {
-        select: {
-          id: true,
-          name: true,
-          color: true,
-        },
-      },
-    },
-    orderBy: [
-      { firstName: "asc" },
-    ],
-  });
-}
