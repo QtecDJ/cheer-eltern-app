@@ -6,7 +6,7 @@
 // v1.8.2: iOS Safari PWA Optimization - iOS-spezifische Anpassungen
 // v1.8.3: Install-Optimierung - 242 KB weniger beim Initial Install
 
-const SW_VERSION = '1.8.3';
+const SW_VERSION = '1.8.4';
 
 // ============================================
 // iOS DETECTION & OPTIMIZATION
@@ -34,13 +34,15 @@ const SW_VERSION = '1.8.3';
 function isIOS() {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent;
-  return /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+  // window ist im Service Worker nicht verfügbar, daher nur UserAgent-Check
+  return /iPad|iPhone|iPod/.test(ua);
 }
 
 // Prüfe ob iOS PWA Mode
 function isIOSPWA() {
   if (typeof navigator === 'undefined') return false;
-  return isIOS() && ('standalone' in navigator) && navigator.standalone === true;
+  // 'standalone' gibt es im Service Worker nicht, daher nur iOS-Check
+  return isIOS();
 }
 
 // iOS-optimierte Cache-Konfiguration
@@ -66,43 +68,25 @@ const STATIC_ASSETS = [
   '/offline',
   '/manifest.json',
   '/logo.webp',
-  '/icons/icon-192.png',  // Wichtig für Install & App-Icon
-  '/icons/icon-512.png',  // Wichtig für Splash Screen
+  '/icons/icon-192.png',
 ];
 
 // Cache-Konfiguration (mit iOS Anpassungen)
 const CACHE_CONFIG = {
-  maxDynamicSize: IS_IOS ? 15 : 25, // iOS: kleinerer Cache
-  maxApiSize: IS_IOS ? 20 : 30, // iOS: kleinerer Cache
-  maxImageSize: IS_IOS ? 30 : 50, // iOS: kleinerer Cache
-  apiCacheDuration: IS_IOS ? 2.5 * 60 * 1000 : 5 * 60 * 1000, // iOS: 2.5min, sonst 5min
-  staticCacheDuration: 7 * 24 * 60 * 60 * 1000, // 7 Tage
-  imageCacheDuration: 14 * 24 * 60 * 60 * 1000, // 14 Tage
+  maxDynamicSize: IS_IOS ? 10 : 20,
+  maxApiSize: IS_IOS ? 10 : 20,
+  maxImageSize: IS_IOS ? 15 : 30,
+  apiCacheDuration: IS_IOS ? 2 * 60 * 1000 : 4 * 60 * 1000,
+  staticCacheDuration: 3 * 24 * 60 * 60 * 1000,
+  imageCacheDuration: 7 * 24 * 60 * 60 * 1000,
 };
 
 // API endpoints mit spezifischen Cache-Strategien
 const API_CACHE_STRATEGIES = {
-  // Lange Cache-Zeit für sehr stabile Daten
-  VERY_LONG: [
-    '/api/teams',
-    '/api/settings',
-  ],
-  // Mittlere Cache-Zeit für normale Daten
-  LONG: [
-    '/api/members',
-    '/api/profile',
-  ],
-  // Kurze Cache-Zeit für häufig ändernde Daten
-  MEDIUM: [
-    '/api/events',
-    '/api/trainings',
-    '/api/announcements',
-  ],
-  // Sehr kurze Cache-Zeit
-  SHORT: [
-    '/api/attendance',
-    '/api/rsvp',
-  ],
+  VERY_LONG: ['/api/teams'],
+  LONG: ['/api/members'],
+  MEDIUM: ['/api/events'],
+  SHORT: ['/api/rsvp'],
 };
 
 // iOS-spezifische Cache Durations (reduziert)
