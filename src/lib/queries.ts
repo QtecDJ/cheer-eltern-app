@@ -382,36 +382,33 @@ export async function getCompetitionsWithParticipants(limit = 20) {
  */
 export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
   const now = new Date();
-
-  const whereClause: any = {
-    OR: [
-      // News (case-insensitive)
-      { category: { equals: "news", mode: "insensitive" } },
-      { category: { equals: "info", mode: "insensitive" } },
-    ],
-    AND: [
-      {
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gte: now } },
-        ],
-      },
-    ],
-  };
-
+  // Kombiniere alle Bedingungen in einer AND-Liste, damit keine überschrieben wird
+  const andConditions: any[] = [
+    {
+      OR: [
+        { category: { equals: "news", mode: "insensitive" } },
+        { category: { equals: "info", mode: "insensitive" } },
+      ],
+    },
+    {
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: now } },
+      ],
+    },
+  ];
   if (teamId) {
-    whereClause.AND = {
+    andConditions.push({
       OR: [
         { AnnouncementTeam: { none: {} } },
         { AnnouncementTeam: { some: { teamId } } },
       ],
-    };
+    });
   } else {
-    whereClause.AnnouncementTeam = { none: {} };
+    andConditions.push({ AnnouncementTeam: { none: {} } });
   }
-
   return await prisma.announcement.findMany({
-    where: whereClause,
+    where: { AND: andConditions },
     orderBy: [
       { isPinned: "desc" },
       { createdAt: "desc" },
@@ -447,36 +444,34 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
  */
 export async function getEventAnnouncementsWithPolls(teamId?: number, memberId?: number, limit = 15) {
   const now = new Date();
-  
-  const whereClause: any = {
-    OR: [
-      { category: { equals: "event", mode: "insensitive" } },
-      { category: { equals: "info", mode: "insensitive" } },
-      { category: { equals: "news", mode: "insensitive" } },
-    ],
-    AND: [
-      {
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gte: now } },
-        ],
-      },
-    ],
-  };
-
+  // Kombiniere alle Bedingungen in einer AND-Liste, damit keine überschrieben wird
+  const andConditions: any[] = [
+    {
+      OR: [
+        { category: { equals: "event", mode: "insensitive" } },
+        { category: { equals: "info", mode: "insensitive" } },
+        { category: { equals: "news", mode: "insensitive" } },
+      ],
+    },
+    {
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: now } },
+      ],
+    },
+  ];
   if (teamId) {
-    whereClause.AND = {
+    andConditions.push({
       OR: [
         { AnnouncementTeam: { none: {} } },
         { AnnouncementTeam: { some: { teamId } } },
       ],
-    };
+    });
   } else {
-    whereClause.AnnouncementTeam = { none: {} };
+    andConditions.push({ AnnouncementTeam: { none: {} } });
   }
-  
   return await prisma.announcement.findMany({
-    where: whereClause,
+    where: { AND: andConditions },
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {

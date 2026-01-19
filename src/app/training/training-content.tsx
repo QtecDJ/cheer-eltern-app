@@ -453,7 +453,7 @@ export function TrainingContent({
           />
         ) : (
           <div className="space-y-2">
-            {pastTrainings.map((training) => {
+            {pastTrainings.slice(-3).reverse().map((training) => {
               const attendance = getAttendanceInfo(attendanceMap[training.id]);
               const AttendanceIcon = attendance?.icon;
 
@@ -496,14 +496,27 @@ export function TrainingContent({
 function TrainingDescription({ trainingId, description }: { trainingId: number; description: string }) {
   const { content } = useVersionedContent({
     key: `training-desc-${trainingId}`,
-    version: description.slice(0, 20), // Ersten 20 Zeichen als Version-Hint
+    version: description.slice(0, 20),
     fetcher: async () => description,
-    ttl: 1000 * 60 * 60 * 24, // 24h Cache
+    ttl: 1000 * 60 * 60 * 24,
   });
-
+  const [expanded, setExpanded] = useState(false);
+  const text = content || description;
+  const maxLength = 180;
+  const isLong = text.length > maxLength;
   return (
-    <p className="text-muted-foreground">
-      {content || description}
-    </p>
+    <div className="text-muted-foreground">
+      <span>
+        {isLong && !expanded ? text.slice(0, maxLength) + "..." : text}
+      </span>
+      {isLong && (
+        <button
+          className="ml-2 text-primary underline text-xs"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Weniger anzeigen" : "Mehr anzeigen"}
+        </button>
+      )}
+    </div>
   );
 }
