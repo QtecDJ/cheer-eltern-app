@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { BottomNav, type NavItem } from "@/components/bottom-nav";
 import { getSession } from "@/lib/auth";
@@ -9,13 +8,6 @@ import { PullToRefresh } from "@/components/pull-to-refresh";
 import { ContentCacheInit } from "@/components/content-cache-init";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { cn } from "@/lib/utils";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-  preload: true,
-});
 
 export const metadata: Metadata = {
   title: "Member App",
@@ -120,18 +112,9 @@ export const viewport: Viewport = {
  * - Use session.userRole instead (cached in cookie)
  * - Reduces DB calls by ~50% (was: layout + page, now: only page)
  */
-export default async function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getSession();
-  
-  // OPTIMIZATION: Use session data (cached) instead of DB query
-  // This prevents duplicate DB calls on every page navigation
   const userRole = session?.userRole || null;
-  
-  // Nav-Items basierend auf Rolle erstellen (serverseitig)
   const isAdminOrTrainer = userRole === "admin" || userRole === "trainer" || userRole === "coach";
   const navItems: NavItem[] = [
     { href: "/", icon: "Home", label: "Home" },
@@ -144,7 +127,6 @@ export default async function RootLayout({
     navItems.push({ href: "/info", icon: "ClipboardList", label: "Info" });
   }
   navItems.push({ href: "/profil", icon: "User", label: "Profil" });
-  
   return (
     <html lang="de">
       <head>
@@ -157,19 +139,16 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192.png" />
         <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
-        
         {/* Theme Color für verschiedene Modi */}
         <meta name="theme-color" content="#ec4899" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
-        
         {/* Android Chrome */}
         <meta name="mobile-web-app-capable" content="yes" />
-        
         {/* Verhindert Zoom beim Input Focus (iOS) */}
         <meta name="format-detection" content="telephone=no" />
       </head>
       <body
-        className={`${inter.variable} font-sans antialiased bg-slate-900 text-white`}
+        className={"font-sans antialiased bg-slate-900 text-white"}
       >
         <ServiceWorkerRegistration />
         <InstallPrompt />

@@ -513,14 +513,19 @@ self.addEventListener('sync', (event) => {
 });
 
 // ============================================
-// SERVICE WORKER LIFECYCLE
+// PUSH BENACHRICHTIGUNG HANDLER
 // ============================================
-      self.registration.showNotification('Member App', {
-        body: 'Neue Benachrichtigung',
-        icon: '/icons/icon-192.png'
-      })
-    );
-  }
+self.addEventListener('push', (event) => {
+  const data = event.data?.json() || {};
+  const title = data.title || 'Member App';
+  const options = {
+    body: data.body || 'Neue Benachrichtigung',
+    icon: '/icons/icon-192.png',
+    data: data.data || {}
+  };
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
 });
 
 // ============================================
@@ -670,5 +675,3 @@ async function staleWhileRevalidateContent(request) {
 }
 
 console.log(`[SW ${SW_VERSION}] Service Worker loaded with Content Cache`);
-
-}

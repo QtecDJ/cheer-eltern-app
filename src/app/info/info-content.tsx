@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, ClipboardCheck } from "lucide-react";
+import { Users, ClipboardCheck, Video } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 

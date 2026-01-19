@@ -21,6 +21,7 @@ import {
   PartyPopper,
 } from "lucide-react";
 import { useVersionedContent } from "@/lib/use-versioned-content";
+import React, { useEffect, useState } from "react";
 
 interface HomeContentProps {
   child: {
@@ -84,6 +85,25 @@ export function HomeContent({
     attendanceStats.total
   );
 
+  // Geschwister-Logik
+  const [siblings, setSiblings] = useState<any[]>([]);
+  const [loadingSiblings, setLoadingSiblings] = useState(false);
+  useEffect(() => {
+    async function fetchSiblings() {
+      setLoadingSiblings(true);
+      try {
+        const res = await fetch(`/api/siblings?id=${child.id}&lastName=${encodeURIComponent(child.name.split(' ').slice(-1)[0])}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSiblings(data);
+        }
+      } finally {
+        setLoadingSiblings(false);
+      }
+    }
+    fetchSiblings();
+  }, [child.id, child.name]);
+
   return (
     <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header mit Begrüßung */}
@@ -95,6 +115,26 @@ export function HomeContent({
           </h1>
         </div>
       </header>
+
+      {/* Geschwister-Profilwechsel */}
+      {siblings.length > 0 && (
+        <Card className="mb-4 animate-slide-up bg-blue-50 border-blue-200">
+          <div className="flex items-center gap-3 p-3">
+            <span className="font-medium text-blue-900">Geschwister wechseln:</span>
+            {siblings.map((sibling) => (
+              <button
+                key={sibling.id}
+                className="flex items-center gap-2 px-2 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-900 text-sm font-semibold border border-blue-300"
+                onClick={() => window.location.href = `?child=${sibling.id}`}
+                title={`Zu ${sibling.firstName} wechseln`}
+              >
+                <Avatar name={sibling.name} src={sibling.photoUrl} size="sm" />
+                {sibling.firstName}
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Kind Profil Card */}
       <Card variant="gradient" className="mb-6 animate-slide-up">

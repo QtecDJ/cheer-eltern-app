@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 import { prisma } from "./db";
 import bcrypt from "bcryptjs";
 
 const SESSION_COOKIE = "member_session";
+const PUBLIC_SESSION_COOKIE = "member_session_public";
 
 export interface SessionUser {
   id: number;
@@ -34,6 +36,16 @@ async function verifyPassword(inputPassword: string, storedHash: string): Promis
 // Passwort hashen mit bcrypt
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
+}
+
+// Hilfsfunktion: Erzeuge Public Session Cookie Value
+function buildPublicSessionCookie(session: SessionUser) {
+  return JSON.stringify({
+    userId: session.id,
+    teamId: session.teamId,
+    teamName: session.teamName,
+    primaryRole: session.userRole,
+  });
 }
 
 export async function login(firstName: string, lastName: string, password: string): Promise<{ success: boolean; error?: string }> {
@@ -105,7 +117,14 @@ export async function login(firstName: string, lastName: string, password: strin
       maxAge: 60 * 60 * 24 * 30, // 30 Tage
       path: "/",
     });
-
+    // Setze das Public Session Cookie (NICHT httpOnly)
+    cookieStore.set(PUBLIC_SESSION_COOKIE, buildPublicSessionCookie(sessionData), {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 30,
+      path: "/",
+    });
     return { success: true };
   } catch (error) {
     console.error("Login error:", error);
@@ -116,6 +135,7 @@ export async function login(firstName: string, lastName: string, password: strin
 export async function logout(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE);
+  cookieStore.delete(PUBLIC_SESSION_COOKIE);
 }
 
 export async function getSession(): Promise<SessionUser | null> {
