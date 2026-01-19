@@ -116,30 +116,20 @@ export const viewport: Viewport = {
 import { cookies } from "next/headers";
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  // Erkenne Login-Seite über URL (im Server-Kontext)
-  const isLoginPage = typeof children === "object" && children?.type?.name === "LoginPage";
-
-  let session = null;
-  let userRole = null;
-  let isAdminOrTrainer = false;
-  let navItems: NavItem[] = [];
-
-  if (!isLoginPage) {
-    session = await getSession();
-    userRole = session?.userRole || null;
-    isAdminOrTrainer = userRole === "admin" || userRole === "trainer" || userRole === "coach";
-    navItems = [
-      { href: "/", icon: "Home", label: "Home" },
-      { href: "/training", icon: "Calendar", label: "Training" },
-      { href: "/events", icon: "CalendarDays", label: "Events" },
-      { href: "/dokumente", icon: "File", label: "Dokumente" },
-      { href: "/berichte", icon: "BookOpen", label: "Berichte" },
-    ];
-    if (isAdminOrTrainer) {
-      navItems.push({ href: "/info", icon: "ClipboardList", label: "Info" });
-    }
-    navItems.push({ href: "/profil", icon: "User", label: "Profil" });
+  const session = await getSession();
+  const userRole = session?.userRole || null;
+  const isAdminOrTrainer = userRole === "admin" || userRole === "trainer" || userRole === "coach";
+  const navItems: NavItem[] = [
+    { href: "/", icon: "Home", label: "Home" },
+    { href: "/training", icon: "Calendar", label: "Training" },
+    { href: "/events", icon: "CalendarDays", label: "Events" },
+    { href: "/dokumente", icon: "File", label: "Dokumente" },
+    { href: "/berichte", icon: "BookOpen", label: "Berichte" },
+  ];
+  if (isAdminOrTrainer) {
+    navItems.push({ href: "/info", icon: "ClipboardList", label: "Info" });
   }
+  navItems.push({ href: "/profil", icon: "User", label: "Profil" });
 
   return (
     <html lang="de">
@@ -147,15 +137,15 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         {/* ...existing code... */}
       </head>
       <body className={"font-sans antialiased bg-slate-900 text-white"}>
-        {!isLoginPage && session && <ServiceWorkerRegistration />}
-        {!isLoginPage && session && <InstallPrompt />}
-        {!isLoginPage && session && <ContentCacheInit />}
-        {!isLoginPage && session && <OfflineIndicator />}
-        {!isLoginPage && session && <BottomNav items={navItems} />}
+        {session && <ServiceWorkerRegistration />}
+        {session && <InstallPrompt />}
+        {session && <ContentCacheInit />}
+        {session && <OfflineIndicator />}
+        {session && <BottomNav items={navItems} />}
         <PullToRefresh>
           <main className={cn(
             "min-h-screen safe-area-inset",
-            !isLoginPage && session ? "pb-20" : ""
+            session ? "pb-20" : ""
           )}>
             <div className="w-full md:max-w-4xl lg:max-w-5xl xl:max-w-7xl md:mx-auto md:px-6 lg:px-8">
               {children}
