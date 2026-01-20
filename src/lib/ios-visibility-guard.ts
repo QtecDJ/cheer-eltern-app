@@ -148,11 +148,8 @@ export function useIOSVisibilityGuard(
   useEffect(() => {
     // Nur auf iOS aktiv (wenn gewünscht)
     if (iosOnly && !isIOSPWA()) {
-      if (debug) console.log('[iOS Visibility Guard] Not iOS PWA, inactive');
       return;
     }
-
-    if (debug) console.log('[iOS Visibility Guard] Initialized for:', key);
 
     // Lade letzte Visibility-Zeit
     const stored = getLastVisibleTime(key);
@@ -170,7 +167,6 @@ export function useIOSVisibilityGuard(
       debounceTimeout.current = setTimeout(() => {
         // Prevent duplicate processing
         if (isProcessing.current) {
-          if (debug) console.log('[iOS Visibility Guard] Already processing, skipping');
           return;
         }
 
@@ -181,12 +177,7 @@ export function useIOSVisibilityGuard(
           lastHiddenTime.current = Date.now();
           setLastVisibleTime(key, lastHiddenTime.current);
 
-          if (debug) {
-            console.log('[iOS Visibility Guard] App hidden:', {
-              key,
-              timestamp: new Date(lastHiddenTime.current).toISOString(),
-            });
-          }
+          // App hidden - no debug logs
 
           stableOnPause();
         } else {
@@ -194,24 +185,14 @@ export function useIOSVisibilityGuard(
           const now = Date.now();
           const pauseDuration = now - lastHiddenTime.current;
 
-          if (debug) {
-            console.log('[iOS Visibility Guard] App visible:', {
-              key,
-              pauseDuration: Math.round(pauseDuration / 1000) + 's',
-              minRequired: Math.round(minPauseDuration / 1000) + 's',
-            });
-          }
+          // App visible - no debug logs
 
           // Nur bei "echtem" Resume (lange Pause)
           if (pauseDuration >= minPauseDuration) {
-            if (debug) {
-              console.log('[iOS Visibility Guard] Triggering resume callback');
-            }
+              // Triggering resume callback
             stableOnResume();
           } else {
-            if (debug) {
-              console.log('[iOS Visibility Guard] Pause too short, skipping resume');
-            }
+            // Pause too short, skipping resume
           }
 
           // Update last visible time
@@ -271,9 +252,6 @@ export class IOSVisibilityGuardManager {
 
     // Nur auf iOS aktiv
     if (this.options.iosOnly && !isIOSPWA()) {
-      if (this.options.debug) {
-        console.log('[iOS Visibility Guard] Not iOS PWA, manager inactive');
-      }
       return;
     }
 
@@ -284,9 +262,7 @@ export class IOSVisibilityGuardManager {
   private start(): void {
     document.addEventListener('visibilitychange', this.handleVisibilityBound);
     
-    if (this.options.debug) {
-      console.log('[iOS Visibility Guard] Manager started for:', this.key);
-    }
+    // Manager started
   }
 
   private handleVisibilityChange(): void {
@@ -302,20 +278,13 @@ export class IOSVisibilityGuardManager {
         this.lastHiddenTime = Date.now();
         setLastVisibleTime(this.key, this.lastHiddenTime);
 
-        if (this.options.debug) {
-          console.log('[iOS Visibility Guard] Hidden:', this.key);
-        }
+        // Hidden
 
         this.options.onPause?.();
       } else {
         const pauseDuration = Date.now() - this.lastHiddenTime;
 
-        if (this.options.debug) {
-          console.log('[iOS Visibility Guard] Visible:', {
-            key: this.key,
-            pauseDuration: Math.round(pauseDuration / 1000) + 's',
-          });
-        }
+        // Visible
 
         if (pauseDuration >= (this.options.minPauseDuration || DEFAULT_MIN_PAUSE)) {
           this.options.onResume?.();
@@ -337,9 +306,7 @@ export class IOSVisibilityGuardManager {
       clearTimeout(this.debounceTimeout);
     }
 
-    if (this.options.debug) {
-      console.log('[iOS Visibility Guard] Manager destroyed:', this.key);
-    }
+    // Manager destroyed
   }
 }
 
@@ -350,36 +317,4 @@ export class IOSVisibilityGuardManager {
 /**
  * Check ob aktuell ein Resume passieren würde
  */
-export function wouldTriggerResume(
-  key: string,
-  minPauseDuration: number = DEFAULT_MIN_PAUSE
-): boolean {
-  const lastTime = getLastVisibleTime(key);
-  if (!lastTime) return false;
-
-  const pauseDuration = Date.now() - lastTime;
-  return pauseDuration >= minPauseDuration;
-}
-
-/**
- * Manuell Resume-Zeit zurücksetzen
- */
-export function resetResumeTimer(key: string): void {
-  setLastVisibleTime(key, Date.now());
-}
-
-/**
- * Clear alle Visibility-Guards
- */
-export function clearAllVisibilityGuards(): void {
-  try {
-    const keys = Object.keys(localStorage);
-    keys.forEach(key => {
-      if (key.startsWith(STORAGE_PREFIX)) {
-        localStorage.removeItem(key);
-      }
-    });
-  } catch (e) {
-    // Ignore
-  }
-}
+// Deprecated helpers removed — see repository cleanup

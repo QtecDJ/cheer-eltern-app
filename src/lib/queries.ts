@@ -20,17 +20,11 @@ import { prisma } from "@/lib/db";
  * Minimales Member-Profil für Listen (z.B. Teilnehmerlisten)
  * Nur 4 Felder = ~100 bytes statt ~2KB pro Member
  */
-export async function getMemberListItem(memberId: number) {
-  return await prisma.member.findUnique({
-    where: { id: memberId },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      photoUrl: true,
-    },
-  });
-}
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
+// `getMemberListItem` moved to `src/deprecated/lib/queries.deprecated.ts` and
+// removed to clean up unused exports.
 
 /**
  * Home-Page Member Daten - optimiert für Dashboard
@@ -262,6 +256,7 @@ export async function getUpcomingTrainingsMinimal(teamId: number) {
     select: {
       id: true,
       title: true,
+      updatedAt: true,
       date: true,
       time: true,
       location: true,
@@ -284,31 +279,10 @@ export async function getUpcomingTrainingsMinimal(teamId: number) {
  * Events-Liste minimal
  * Keine Teilnehmer-Details, nur Anzahl
  */
-export async function getEventsListMinimal(limit = 15) {
-  return await prisma.event.findMany({
-    where: {
-      status: { in: ["upcoming", "completed"] },
-    },
-    orderBy: { date: "asc" },
-    take: limit,
-    select: {
-      id: true,
-      title: true,
-      date: true,
-      time: true,
-      location: true,
-      type: true,
-      status: true,
-      description: true,
-      // Zähle Teilnehmer statt alle zu laden
-      _count: {
-        select: {
-          participants: true,
-        },
-      },
-    },
-  });
-}
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
+// `getEventsListMinimal` moved to `src/deprecated/lib/queries.deprecated.ts` and removed.
 
 /**
  * Events mit Teilnehmer-Details (für Events-Seite)
@@ -420,6 +394,7 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
       id: true,
       title: true,
       content: true,
+      updatedAt: true,
       priority: true,
       isPinned: true,
       createdAt: true,

@@ -21,13 +21,10 @@ export function OfflineIndicator() {
       
       // Nach 3 Sekunden Banner ausblenden
       setTimeout(() => setWasOffline(false), 3000);
-      
-      console.log("[OfflineIndicator] App is back online");
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      console.log("[OfflineIndicator] App is offline - using cached data");
     };
 
     window.addEventListener("online", handleOnline);

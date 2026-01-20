@@ -9,6 +9,7 @@ export function ServiceWorkerRegistration() {
   const [isOnline, setIsOnline] = useState(true);
   const [showOfflineToast, setShowOfflineToast] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [contentCacheSize, setContentCacheSize] = useState<number | null>(null);
 
   const handleUpdate = useCallback(() => {
     if (registration?.waiting) {
@@ -47,7 +48,30 @@ export function ServiceWorkerRegistration() {
           });
           
           setRegistration(reg);
-          console.log("[PWA] Service Worker registriert:", reg.scope);
+
+          // Query SW for content cache size (if controller present)
+          const queryContentCacheSize = async () => {
+            try {
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                const mc = new MessageChannel();
+                const promise = new Promise((resolve) => {
+                  mc.port1.onmessage = (ev) => resolve(ev.data);
+                  setTimeout(() => resolve({ success: false }), 1500);
+                });
+
+                navigator.serviceWorker.controller.postMessage({ type: 'GET_CONTENT_CACHE_SIZE' }, [mc.port2]);
+                const res: any = await promise;
+                if (res?.success) {
+                  setContentCacheSize(res.size ?? 0);
+                }
+              }
+            } catch (err) {
+              console.warn('[PWA] Query content cache size failed', err);
+            }
+          };
+
+          // Initial query
+          queryContentCacheSize();
 
           // Update-Check alle 30 Minuten
           setInterval(() => {
@@ -59,9 +83,7 @@ export function ServiceWorkerRegistration() {
             const newWorker = reg.installing;
             if (newWorker) {
               newWorker.addEventListener("statechange", () => {
-                if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                  // Neuer SW verfügbar
-                  console.log("[PWA] Neue Version verfügbar");
+                  if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
                   setUpdateAvailable(true);
                 }
               });
@@ -95,6 +117,11 @@ export function ServiceWorkerRegistration() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    // Log content cache size changes for debugging
+    // content cache size updated
+  }, [contentCacheSize]);
 
   return (
     <>
@@ -194,29 +221,4 @@ function OnlineIndicator() {
 }
 
 // Hook für PWA Features
-export function usePWA() {
-  const [isStandalone, setIsStandalone] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
-
-  useEffect(() => {
-    // Check Standalone Mode
-    const standalone = window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    setIsStandalone(standalone);
-
-    // Online Status
-    setIsOnline(navigator.onLine);
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  return { isStandalone, isOnline };
-}
+// `usePWA` moved to `src/deprecated/components/service-worker.deprecated.tsx` and removed.

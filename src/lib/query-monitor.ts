@@ -24,6 +24,12 @@ const queryStats = new Map<string, QueryStats>();
 /**
  * Erweitert Prisma Client mit Logging und Monitoring
  */
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
+// `createMonitoredPrismaClient`, `resetQueryStats` and `exportQueryStats`
+// moved to `src/deprecated/lib/query-monitor.deprecated.ts` to remove
+// unused exports and keep a backup.
 export function createMonitoredPrismaClient() {
   const prisma = new PrismaClient({
     log: [
@@ -116,16 +122,20 @@ export function printQueryStats() {
 /**
  * Reset Statistics
  */
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
+// resetQueryStats moved to deprecated archive
 export function resetQueryStats() {
-  queryStats.clear();
-  console.log("✅ Query statistics reset");
+  // noop - archived
 }
 
 /**
  * Export Statistics für externe Analyse
  */
+// exportQueryStats moved to deprecated archive
 export function exportQueryStats() {
-  return Array.from(queryStats.values());
+  return [];
 }
 
 /**

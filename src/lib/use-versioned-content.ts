@@ -194,7 +194,6 @@ export function useVersionedContent<T>(
           );
           
           if (cachedData) {
-            console.log(`[useVersionedContent] OFFLINE: Using expired cache for ${key}`);
             setContent(cachedData.data);
             setIsFromCache(true);
             setLoading(false);
@@ -245,10 +244,9 @@ export function useVersionedContent<T>(
       clearTimeout(loadTimeoutRef.current);
     }
     
-    loadTimeoutRef.current = setTimeout(() => {
+      loadTimeoutRef.current = setTimeout(() => {
       // Check if version changed
       if (lastVersionRef.current !== version) {
-        console.log(`[useVersionedContent] Version changed: ${key} (${lastVersionRef.current} → ${version})`);
         lastVersionRef.current = version;
         loadContent(false); // Let version-check decide if fetch needed
       } else {
@@ -272,7 +270,6 @@ export function useVersionedContent<T>(
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log(`[useVersionedContent] App resumed (iOS) - revalidating: ${key}`);
         // Background revalidation (show cached content, update in background)
         loadContent(false);
       }
@@ -292,7 +289,6 @@ export function useVersionedContent<T>(
     if (!enabled || !shouldRevalidateOnReconnect) return;
     
     const handleOnline = () => {
-      console.log(`[useVersionedContent] Network reconnected - revalidating: ${key}`);
       loadContent(false);
     };
     
@@ -414,9 +410,8 @@ export async function prefetchVersionedContent<T>(
   key: string,
   options: GetVersionedContentOptions<T>
 ): Promise<void> {
-  try {
+    try {
     await getVersionedContent(key, options);
-    console.log(`[useVersionedContent] Prefetched: ${key}`);
   } catch (err) {
     console.warn(`[useVersionedContent] Prefetch failed: ${key}`, err);
   }

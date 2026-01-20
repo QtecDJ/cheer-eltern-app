@@ -258,9 +258,6 @@ export async function costGuardedFetch(
 
   // Check Rate Limit
   if (!canMakeRequest(endpointKey, rateLimit)) {
-    if (debug) {
-      console.warn('[Cost Guard] Rate limit exceeded:', endpointKey);
-    }
     throw new Error(`Rate limit exceeded for ${endpointKey}`);
   }
 
@@ -270,9 +267,6 @@ export async function costGuardedFetch(
     const existing = coalescedRequests.get(coalesceKey);
     
     if (existing) {
-      if (debug) {
-        console.log('[Cost Guard] Coalescing request:', coalesceKey);
-      }
       return existing;
     }
   }
@@ -293,15 +287,6 @@ export async function costGuardedFetch(
     
     // Add to queue
     requestQueue.push(queuedRequest);
-    
-    if (debug) {
-      console.log('[Cost Guard] Queued request:', {
-        url: endpointKey,
-        priority,
-        queueSize: requestQueue.length,
-      });
-    }
-    
     // Start processing
     processQueue();
   });

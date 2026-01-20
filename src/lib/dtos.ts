@@ -290,45 +290,28 @@ export type ActionResultDTO = ActionSuccessDTO | ActionErrorDTO;
  * Hilfsfunktionen zum Konvertieren von Prisma Models zu DTOs
  */
 
-export function toMemberListDTO(member: any): MemberListDTO {
-  return {
-    id: member.id,
-    firstName: member.firstName,
-    lastName: member.lastName,
-    photoUrl: member.photoUrl,
-  };
-}
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
 
-export function toTeamMinimalDTO(team: any): TeamMinimalDTO | null {
-  if (!team) return null;
-  return {
-    id: team.id,
-    name: team.name,
-    color: team.color,
-  };
-}
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
 
-export function toAttendanceStatsDTO(stats: {
-  total: number;
-  present: number;
-  absent: number;
-  excused: number;
-}): AttendanceStatsDTO {
-  return {
-    total: stats.total,
-    present: stats.present,
-    absent: stats.absent,
-    excused: stats.excused,
-  };
-}
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
+// DTO mapper functions moved to `src/deprecated/lib/dtos.deprecated.ts` and removed
+// to clean up unused exports.
 
 /**
  * Type Guards
  */
-export function isActionSuccess(result: ActionResultDTO): result is ActionSuccessDTO {
-  return result.success === true;
-}
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
 
-export function isActionError(result: ActionResultDTO): result is ActionErrorDTO {
-  return result.success === false;
-}
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
+// Type guard helpers moved to `src/deprecated/lib/dtos.deprecated.ts` and removed.

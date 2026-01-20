@@ -153,13 +153,11 @@ export async function getSession(): Promise<SessionUser | null> {
   }
 }
 
-export async function requireAuth(): Promise<SessionUser> {
-  const session = await getSession();
-  if (!session) {
-    throw new Error("Nicht eingeloggt");
-  }
-  return session;
-}
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
+ */
+// `requireAuth` moved to `src/deprecated/lib/auth.deprecated.ts` and removed
+// to clean up unused exports.
 
 // Session aktualisieren (z.B. nach Profil-Änderungen)
 export async function updateSession(updates: Partial<SessionUser>): Promise<void> {

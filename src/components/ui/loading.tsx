@@ -24,6 +24,8 @@ export function LoadingSkeleton() {
   );
 }
 
-export function CardSkeleton() {
-  return <div className="h-24 bg-muted rounded-2xl animate-pulse" />;
-}
+/**
+ * @deprecated moved to src/deprecated/components/ui/loading.deprecated.tsx
+ * Keep re-export to avoid breaking imports.
+ */
+// CardSkeleton deprecated; removed during cleanup

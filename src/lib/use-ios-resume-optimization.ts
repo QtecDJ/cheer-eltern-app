@@ -34,13 +34,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-
 interface IOSResumeOptions {
-  /** Mindest-Zeit zwischen Reloads in Millisekunden (default: 120000 = 2 Min) */
   minInterval?: number;
-  /** Debounce-Zeit für visibility events in ms (default: 1000) */
   debounceMs?: number;
-  /** Debug-Logs aktivieren */
   debug?: boolean;
 }
 
@@ -59,7 +55,6 @@ function isIOSPWA(): boolean {
 
 /**
  * Hook zur Optimierung von iOS App-Resume Verhalten
- * Verhindert unnötige Re-Fetches durch intelligentes Debouncing
  */
 export function useIOSResumeOptimization(
   key: string,
@@ -76,74 +71,45 @@ export function useIOSResumeOptimization(
   const lastResumeTime = useRef<number>(0);
 
   useEffect(() => {
-    // Nur auf iOS PWA aktiv
     if (!isIOSPWA()) {
-      if (debug) console.log('[iOSResume] Not iOS PWA, hook inactive');
       return;
     }
 
     const storageKey = `ios_resume_${key}`;
 
-    // Lade letzte Resume-Zeit aus localStorage
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
         lastResumeTime.current = parseInt(stored, 10);
       }
     } catch (e) {
-      // Ignore
+      // ignore
     }
 
     const handleVisibilityChange = () => {
-      // Nur bei visible
-      if (document.visibilityState !== 'visible') {
-        return;
-      }
+      if (document.visibilityState !== 'visible') return;
 
-      // Clear vorheriges Debounce
-      if (debounceTimeout.current) {
-        clearTimeout(debounceTimeout.current);
-      }
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 
-      // Debounce: Warte kurz ob weitere Events kommen
       debounceTimeout.current = setTimeout(() => {
         const now = Date.now();
         const timeSinceLastResume = now - lastResumeTime.current;
 
-        if (debug) {
-          console.log('[iOSResume]', {
-            key,
-            timeSinceLastResume: Math.round(timeSinceLastResume / 1000) + 's',
-            minInterval: Math.round(minInterval / 1000) + 's',
-          });
-        }
+        // resume check
 
-        // Nur ausführen wenn genug Zeit vergangen
         if (timeSinceLastResume >= minInterval) {
-          if (debug) console.log('[iOSResume] Triggering resume action');
-          
           lastResumeTime.current = now;
-          try {
-            localStorage.setItem(storageKey, now.toString());
-          } catch (e) {
-            // Ignore storage errors
-          }
-
+          try { localStorage.setItem(storageKey, now.toString()); } catch (e) {}
           onResume();
-        } else {
-          if (debug) console.log('[iOSResume] Skipping resume - too soon');
         }
       }, debounceMs);
     };
 
-    // Listen auf visibility changes
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (debounceTimeout.current) {
-        clearTimeout(debounceTimeout.current);
-      }
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
   }, [key, onResume, minInterval, debounceMs, debug]);
 }
@@ -151,6 +117,11 @@ export function useIOSResumeOptimization(
 /**
  * Gibt zurück ob gerade ein iOS App-Resume passiert ist
  * Nützlich für conditional rendering
+ */
+
+
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
  */
 export function useIsIOSResuming(key: string, windowMs: number = 5000): boolean {
   const storageKey = `ios_resume_${key}`;
@@ -173,6 +144,9 @@ export function useIsIOSResuming(key: string, windowMs: number = 5000): boolean 
 /**
  * Manuell triggern eines Resume-Events
  * Für custom use-cases
+ */
+/**
+ * @deprecated Candidate for removal/relocation. Kept for compatibility.
  */
 export function triggerIOSResume(key: string): void {
   const storageKey = `ios_resume_${key}`;

@@ -344,7 +344,6 @@ function cleanupLocalStorage(): void {
       entries.slice(0, toDelete).forEach(entry => {
         localStorage.removeItem(entry.key);
       });
-      console.log(`[ContentCache] Cleaned up ${toDelete} old localStorage entries`);
     }
   } catch (error) {
     console.warn('[ContentCache] localStorage cleanup failed:', error);
@@ -518,20 +517,15 @@ export async function getVersionedContent<T>(
       if (cached.expiresAt > now) {
         // Prüfe Version
         if (cached.version === version) {
-          // Cache HIT mit matching version
-          console.log(`[ContentCache] ✅ Cache hit with matching version: ${key}`);
           return cached.data;
         } else {
-          console.log(`[ContentCache] 🔄 Cache hit but version outdated: ${key} (${cached.version} → ${version})`);
         }
       } else {
-        console.log(`[ContentCache] ⏰ Cache expired: ${key}`);
       }
     }
   }
   
   // 2. Cache MISS oder outdated Version - fetch neu
-  console.log(`[ContentCache] 📥 Fetching fresh content: ${key}`);
   const freshData = await fetcher();
   
   // 3. Update Cache
@@ -631,9 +625,6 @@ export async function cleanupExpiredContent(
             deletedCount++;
             cursor.continue();
           } else {
-            if (deletedCount > 0) {
-              console.log(`[ContentCache] Cleaned up ${deletedCount} expired IndexedDB entries`);
-            }
           }
         };
         
@@ -712,5 +703,5 @@ export const ContentCacheUtils = {
 
 // Log iOS detection on load
 if (typeof window !== 'undefined') {
-  console.log(`[ContentCache] Initialized - iOS: ${IS_IOS}, PWA: ${IS_IOS_PWA}`);
+  // content cache initialized
 }

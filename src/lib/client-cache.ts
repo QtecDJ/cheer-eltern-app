@@ -372,7 +372,6 @@ export async function getCache<T>(
   
   // Check version if provided
   if (version && entry.version !== version) {
-    console.log(`[ClientCache] Version mismatch for ${key}: ${entry.version} !== ${version}`);
     await removeCache(key);
     updateStats(false);
     return null;
@@ -429,7 +428,7 @@ export async function clearCache(): Promise<void> {
     console.warn('[ClientCache] Failed to clear IndexedDB', e);
   }
   
-  console.log('[ClientCache] All cache cleared');
+  // all cache cleared
 }
 
 /**
@@ -481,25 +480,22 @@ export async function cacheFirst<T>(
   const cached = await getCache<T>(key, options);
   
   if (cached) {
-    console.log(`[ClientCache] Cache HIT: ${key}`);
+    // cache hit
     
     // 2. Background update if enabled
     if (background) {
       fetcher()
         .then((data) => {
           setCache(key, data, options);
-          console.log(`[ClientCache] Background update: ${key}`);
         })
-        .catch((error) => {
-          console.warn(`[ClientCache] Background fetch failed: ${key}`, error);
-        });
+        .catch(() => {});
     }
     
     return cached;
   }
   
   // 3. Cache miss -> fetch and cache
-  console.log(`[ClientCache] Cache MISS: ${key}`);
+  // cache miss
   const data = await fetcher();
   await setCache(key, data, options);
   
@@ -518,7 +514,6 @@ export async function prefetch<T>(
   try {
     const data = await fetcher();
     await setCache(key, data, options);
-    console.log(`[ClientCache] Prefetched: ${key}`);
   } catch (error) {
     console.warn(`[ClientCache] Prefetch failed: ${key}`, error);
   }

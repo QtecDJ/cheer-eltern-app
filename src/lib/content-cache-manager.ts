@@ -121,7 +121,7 @@ export function useContentCacheManager() {
       }
       
       await refresh();
-      console.log('[CacheManager] Content cache cleared successfully');
+      // cache cleared
       return true;
     } catch (error) {
       console.error('[CacheManager] Failed to clear cache:', error);
@@ -144,7 +144,7 @@ export function useContentCacheManager() {
         lastCleanup: new Date(),
       }));
       
-      console.log('[CacheManager] Expired content cleaned up');
+      // expired content cleaned up
       return true;
     } catch (error) {
       console.error('[CacheManager] Failed to cleanup expired content:', error);
@@ -199,7 +199,7 @@ export function useContentCacheLogoutHandler() {
           
           keysToDelete.forEach(key => localStorage.removeItem(key));
           
-          console.log('[CacheManager] Content cache cleared on logout');
+          // content cache cleared on logout
         } catch (error) {
           console.warn('[CacheManager] Failed to clear cache on logout:', error);
         }
@@ -259,12 +259,7 @@ export function useContentCacheInitialization() {
         
         // Log initialization
         const stats = await getContentCacheStats();
-        console.log('[CacheManager] Initialized', {
-          indexedDB: stats.indexedDB,
-          localStorage: stats.localStorage.entries,
-          isIOS: ContentCacheUtils.isIOSDevice(),
-          isPWA: ContentCacheUtils.isIOSPWA(),
-        });
+          // cache manager initialized
       } catch (error) {
         console.warn('[CacheManager] Initialization failed:', error);
       }
@@ -300,7 +295,7 @@ export function useContentCacheVisibilityCleanup() {
     
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[CacheManager] App resumed (iOS PWA) - scheduling cleanup');
+        // App resumed (iOS PWA) - scheduling cleanup
         
         // Debounce cleanup (nicht bei jedem Tab-Switch)
         if (cleanupTimeout) {

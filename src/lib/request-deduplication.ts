@@ -78,12 +78,8 @@ export async function deduplicatedFetch<T = any>(
   if (cached) {
     const age = Date.now() - cached.timestamp;
     if (age < ttl) {
-      if (debug) {
-        console.log('[RequestDedup] Cache hit:', key, `(${age}ms old)`);
-      }
       return cached.data;
     } else {
-      // Cache expired
       cachedResults.delete(key);
     }
   }
@@ -91,16 +87,11 @@ export async function deduplicatedFetch<T = any>(
   // 2. Prüfe ob Request bereits läuft
   const pending = pendingRequests.get(key);
   if (pending) {
-    if (debug) {
-      console.log('[RequestDedup] Joining pending request:', key);
-    }
     return pending.promise;
   }
 
   // 3. Starte neuen Request
-  if (debug) {
-    console.log('[RequestDedup] Starting new request:', key);
-  }
+  // Starting new request
 
   const abortController = new AbortController();
   const timeoutId = setTimeout(() => abortController.abort(), timeout);
@@ -153,39 +144,6 @@ export async function deduplicatedFetch<T = any>(
 /**
  * Manuell Cache löschen
  */
-export function clearDeduplicationCache(pattern?: string | RegExp): void {
-  if (!pattern) {
-    cachedResults.clear();
-    pendingRequests.clear();
-    return;
-  }
-
-  const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
-
-  // Clear cached results
-  for (const key of cachedResults.keys()) {
-    if (regex.test(key)) {
-      cachedResults.delete(key);
-    }
-  }
-
-  // Abort und clear pending requests
-  for (const [key, pending] of pendingRequests.entries()) {
-    if (regex.test(key)) {
-      pending.abortController?.abort();
-      pendingRequests.delete(key);
-    }
-  }
-}
-
-/**
- * Get Cache Stats
- */
-export function getDeduplicationStats() {
-  return {
-    cachedResults: cachedResults.size,
-    pendingRequests: pendingRequests.size,
-    cacheKeys: Array.from(cachedResults.keys()),
-    pendingKeys: Array.from(pendingRequests.keys()),
-  };
-}
+// `clearDeduplicationCache` and `getDeduplicationStats` moved to
+// `src/deprecated/lib/request-deduplication.deprecated.ts` and removed
+// from this file to clean up unused exports.

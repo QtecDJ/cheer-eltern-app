@@ -31,13 +31,7 @@ export default async function AnwesenheitPage() {
 
   const isAdmin = userRole === "admin";
 
-  console.log('Anwesenheit Debug:', {
-    userId: session.id,
-    userName: session.name,
-    userRole: userRole,
-    isAdmin,
-    coachTeamId,
-  });
+  // Anwesenheit page - user context loaded
 
   // Wenn Coach und kein Team zugewiesen, zeige Fehlermeldung
   if (!isAdmin && !coachTeamId) {
@@ -53,13 +47,7 @@ export default async function AnwesenheitPage() {
   
   const currentTraining = await getNextTrainingForAttendance(coachTeamId);
 
-  console.log('Training gefunden:', {
-    trainingId: currentTraining?.id,
-    trainingTitle: currentTraining?.title,
-    trainingTeamId: currentTraining?.teamId,
-    trainingTeamName: currentTraining?.team?.name,
-    matchesCoachTeam: currentTraining?.teamId === coachTeamId,
-  });
+  // current training loaded
 
   if (!currentTraining) {
     // Kein Training gefunden

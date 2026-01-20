@@ -186,7 +186,6 @@ export function useIOSCache<T>(
       
       // Only revalidate if last fetch was > 30 seconds ago
       if (timeSinceLastFetch > 30 * 1000) {
-        console.log(`[iOS Hook] Revalidating on resume: ${key}`);
         iosPerformanceMonitor.recordResume();
         fetchData(true); // Silent revalidation
       }
@@ -243,7 +242,6 @@ export function useIOSAutoRevalidate(
         const pauseDuration = Date.now() - lastVisible.current;
         
         if (pauseDuration > minPauseDuration) {
-          console.log(`[iOS] Auto-revalidating after ${Math.round(pauseDuration / 1000)}s pause`);
           await onRevalidate();
         }
       }
@@ -425,7 +423,6 @@ export function useIOSPrefetch<T>(
     
     const timer = setTimeout(async () => {
       try {
-        console.log(`[iOS] Prefetching: ${key}`);
         const data = await fetcher();
         setIOSCache(key, data);
         hasPrefetched.current = true;

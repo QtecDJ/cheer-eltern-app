@@ -63,18 +63,15 @@ export function InstallPrompt() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      console.log("[PWA] Install prompt verfügbar - wird in 30s angezeigt");
       
       // NEU: Zeige Prompt erst nach 30 Sekunden
       setTimeout(() => {
         setShowPrompt(true);
-        console.log("[PWA] Install prompt wird jetzt angezeigt");
       }, 30000);
     };
 
     // App wurde installiert
     const handleAppInstalled = () => {
-      console.log("[PWA] App wurde installiert");
       setDeferredPrompt(null);
       setIsInstalled(true);
     };
@@ -96,7 +93,6 @@ export function InstallPrompt() {
 
     // Warte auf User-Entscheidung
     const { outcome } = await deferredPrompt.userChoice;
-    console.log("[PWA] User choice:", outcome);
 
     if (outcome === "accepted") {
       setIsInstalled(true);

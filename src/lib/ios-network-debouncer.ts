@@ -165,7 +165,6 @@ export async function debouncedFetch(
 
   // Immediate-Mode: Kein Debounce
   if (immediate) {
-    if (debug) console.log('[Debouncer] Immediate mode:', requestKey);
     return fetch(url, fetchOptions);
   }
 
@@ -174,12 +173,7 @@ export async function debouncedFetch(
   if (storedCooldown) {
     const timeSince = Date.now() - storedCooldown;
     if (timeSince < cooldownMs) {
-      if (debug) {
-        console.log('[Debouncer] In cooldown:', {
-          requestKey,
-          timeRemaining: Math.round((cooldownMs - timeSince) / 1000) + 's',
-        });
-      }
+      // in cooldown
       // Return cached response wenn möglich, sonst warten
       // Für jetzt: Warte einfach kurz
       await new Promise(resolve => setTimeout(resolve, Math.min(cooldownMs - timeSince, 1000)));
@@ -189,11 +183,6 @@ export async function debouncedFetch(
   // Check ob bereits ein Request für diesen Key läuft
   const existingRequest = debouncedRequests.get(requestKey);
   if (existingRequest) {
-    if (debug) {
-      console.log('[Debouncer] Joining existing request:', requestKey);
-    }
-
-    // Join existing request
     return new Promise<Response>((resolve, reject) => {
       existingRequest.resolvers.push(resolve);
       existingRequest.rejectors.push(reject);
@@ -201,20 +190,14 @@ export async function debouncedFetch(
   }
 
   // Neuer Request
-  if (debug) {
-    console.log('[Debouncer] Creating new debounced request:', {
-      requestKey,
-      debounceMs,
-      isIOS,
-    });
-  }
+  // Creating new debounced request
 
   // Erstelle Promise für alle Wartenden
   const resolvers: Array<(response: Response) => void> = [];
   const rejectors: Array<(error: Error) => void> = [];
 
   const executeRequest = async (): Promise<Response> => {
-    if (debug) console.log('[Debouncer] Executing request:', requestKey);
+    // Executing request
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -231,9 +214,7 @@ export async function debouncedFetch(
       setCooldown(requestKey);
 
       // Resolve alle Wartenden
-      if (debug) {
-        console.log('[Debouncer] Request completed, resolving', resolvers.length, 'waiters');
-      }
+      // Request completed, resolving waiters
 
       // Clone response für jeden Waiter (Responses können nur 1x consumed werden)
       const clones = resolvers.map(() => response.clone());
@@ -243,9 +224,7 @@ export async function debouncedFetch(
     } catch (error) {
       clearTimeout(timeoutId);
 
-      if (debug) {
-        console.error('[Debouncer] Request failed:', requestKey, error);
-      }
+      // Request failed
 
       // Reject alle Wartenden
       const err = error instanceof Error ? error : new Error(String(error));

@@ -186,7 +186,7 @@ export function clearExpiredIOSCache(): void {
     });
     
     if (cleared > 0) {
-      console.log(`[iOS] Cleared ${cleared} expired cache entries`);
+      // cleared expired cache entries
     }
   } catch (e) {
     console.warn('[iOS] Failed to clear expired cache', e);
@@ -207,7 +207,7 @@ export function clearAllIOSCache(): void {
         localStorage.removeItem(key);
       }
     });
-    console.log('[iOS] Cleared all cache');
+    // cleared all iOS cache
   } catch (e) {
     console.warn('[iOS] Failed to clear cache', e);
   }
@@ -261,11 +261,11 @@ export class IOSLifecycleManager {
     // Page Show (back from bfcache - iOS Safari)
     window.addEventListener('pageshow', this.handlePageShow.bind(this));
     
-    console.log('[iOS] Lifecycle manager initialized');
+    // lifecycle manager initialized
   }
   
   private onLaunch(): void {
-    console.log('[iOS] App launched');
+    // app launched
     this.callbacks.onLaunch?.();
     
     // Clear expired cache on launch
@@ -275,20 +275,20 @@ export class IOSLifecycleManager {
   private handleVisibilityChange(): void {
     if (document.hidden) {
       // App went to background
-      console.log('[iOS] App hidden');
+      // app hidden
       this.lastVisible = Date.now();
       this.callbacks.onHidden?.();
       this.callbacks.onPause?.();
     } else {
       // App came to foreground
       const pauseDuration = Date.now() - this.lastVisible;
-      console.log(`[iOS] App visible (paused for ${Math.round(pauseDuration / 1000)}s)`);
+      // app visible
       
       this.callbacks.onVisible?.();
       
       // If app was paused for significant time, trigger resume
       if (pauseDuration > this.pauseThreshold) {
-        console.log('[iOS] App resumed after pause');
+        // app resumed after pause
         this.callbacks.onResume?.();
       }
     }
@@ -299,7 +299,7 @@ export class IOSLifecycleManager {
     
     // Only trigger resume if significant pause
     if (pauseDuration > this.pauseThreshold) {
-      console.log('[iOS] Window focused after pause');
+      // window focused after pause
       this.callbacks.onResume?.();
     }
   }
@@ -313,7 +313,7 @@ export class IOSLifecycleManager {
     if (event.persisted) {
       // Page restored from bfcache (iOS Safari)
       const pauseDuration = Date.now() - this.lastVisible;
-      console.log(`[iOS] Page restored from bfcache (${Math.round(pauseDuration / 1000)}s)`);
+      // page restored from bfcache
       
       if (pauseDuration > this.pauseThreshold) {
         this.callbacks.onResume?.();
@@ -359,19 +359,17 @@ export async function iosSafeFetch<T>(
   // 1. Check iOS cache first (instant)
   const cached = getIOSCache<T>(key);
   if (cached) {
-    console.log(`[iOS] Cache HIT: ${key}`);
     return cached;
   }
   
   // 2. Check deduplication (prevent rapid duplicate fetches)
   const lastFetch = fetchTimestamps.get(key);
   if (lastFetch && Date.now() - lastFetch < dedupWindow) {
-    console.log(`[iOS] Dedup prevented fetch: ${key}`);
     throw new Error('Duplicate fetch prevented');
   }
   
   // 3. Fetch fresh data
-  console.log(`[iOS] Cache MISS: ${key} - fetching...`);
+  // cache miss - fetching
   fetchTimestamps.set(key, Date.now());
   
   try {
@@ -395,7 +393,7 @@ export async function iosSafeFetch<T>(
 export async function revalidateOnResume(keys: string[]): Promise<void> {
   if (!isIOS()) return;
   
-  console.log(`[iOS] Revalidating ${keys.length} cache keys on resume`);
+  // revalidating keys on resume
   
   // Clear old timestamps to allow fresh fetches
   keys.forEach(key => fetchTimestamps.delete(key));
@@ -425,7 +423,6 @@ export async function sendToServiceWorker(
     
     if (registration.active) {
       registration.active.postMessage({ type, payload });
-      console.log(`[iOS] Message sent to SW: ${type}`);
     }
   } catch (error) {
     console.warn('[iOS] Failed to send message to SW', error);
@@ -439,7 +436,6 @@ export async function sendToServiceWorker(
 export async function prefetchURLsOnIOS(urls: string[]): Promise<void> {
   if (!isIOS()) return;
   
-  console.log(`[iOS] Requesting SW to prefetch ${urls.length} URLs`);
   await sendToServiceWorker('CACHE_URLS', { urls });
 }
 

@@ -20,6 +20,7 @@ import {
   Info,
   PartyPopper,
 } from "lucide-react";
+import { ResponseButtons } from "@/components/training/ResponseButtons";
 import { useVersionedContent } from "@/lib/use-versioned-content";
 import React, { useEffect, useState } from "react";
 
@@ -70,6 +71,7 @@ interface HomeContentProps {
     isPinned: boolean;
     createdAt: Date;
   }>;
+  attendanceMap?: Record<number, string>;
   // entfernt: profileSwitchInfo
 }
 
@@ -79,7 +81,7 @@ export function HomeContent({
   attendanceStats,
   latestAssessment,
   announcements,
-  
+  attendanceMap,
 }: HomeContentProps) {
   const age = calculateAge(child.birthDate);
   const attendanceRate = calculateAttendanceRate(
@@ -259,13 +261,12 @@ export function HomeContent({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {upcomingTrainings.slice(0, 3).map((training, index) => (
-              <a
+              <div
                 key={training.id}
-                href="/training"
                 className={`block animate-slide-up stagger-${index + 1}`}
               >
               <Card
-                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                className="hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-start gap-3">
                   {/* Datum Badge */}
@@ -304,10 +305,16 @@ export function HomeContent({
                         </div>
                       )}
                     </div>
+                    {/* Zu-/Absage Buttons (gleiche Komponente wie auf der Trainingsseite) */}
+                    <ResponseButtons
+                      trainingId={training.id}
+                      memberId={child.id}
+                      currentStatus={attendanceMap ? attendanceMap[training.id] : undefined}
+                    />
                   </div>
                 </div>
               </Card>
-              </a>
+              </div>
             ))}
           </div>
         )}

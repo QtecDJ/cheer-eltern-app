@@ -194,7 +194,6 @@ export async function iosGuardedFetch(
   
   // Force-Mode: Kein Guard
   if (force) {
-    if (debug) console.log('[iOS Guard] Force mode - bypassing guard:', requestId);
     return fetch(url, fetchOptions);
   }
 
@@ -203,9 +202,6 @@ export async function iosGuardedFetch(
   // 1. Check: Läuft dieser Request bereits?
   const activeRequest = activeRequests.get(requestId);
   if (activeRequest && activeRequest.status === 'pending' && activeRequest.promise) {
-    if (debug) {
-      console.log('[iOS Guard] Request already pending, joining:', requestId);
-    }
     return activeRequest.promise;
   }
 
@@ -217,13 +213,7 @@ export async function iosGuardedFetch(
     if (timeSinceLastRequest < blockDuplicatesFor) {
       const waitTime = blockDuplicatesFor - timeSinceLastRequest;
       
-      if (debug) {
-        console.log('[iOS Guard] Request blocked (too recent):', {
-          requestId,
-          timeSinceLastRequest: Math.round(timeSinceLastRequest / 1000) + 's',
-          waitTime: Math.round(waitTime / 1000) + 's',
-        });
-      }
+      // Request blocked due to recent duplicate
       
       // Return cached Response wenn verfügbar, sonst Error
       return new Response(
@@ -246,14 +236,7 @@ export async function iosGuardedFetch(
   }
 
   // 3. Request durchführen
-  if (debug) {
-    console.log('[iOS Guard] Allowing request:', {
-      requestId,
-      isIOS,
-      isPWA,
-      blockTime: blockDuplicatesFor,
-    });
-  }
+  // Allowing request
 
   const promise = fetch(url, fetchOptions)
     .then(response => {
@@ -267,9 +250,7 @@ export async function iosGuardedFetch(
         record.timestamp = now;
       }
       
-      if (debug) {
-        console.log('[iOS Guard] Request completed:', requestId);
-      }
+      // Request completed
       
       return response;
     })
@@ -280,9 +261,7 @@ export async function iosGuardedFetch(
         record.status = 'failed';
       }
       
-      if (debug) {
-        console.error('[iOS Guard] Request failed:', requestId, error);
-      }
+      // Request failed
       
       throw error;
     })

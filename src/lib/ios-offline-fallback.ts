@@ -281,21 +281,13 @@ export async function offlineFallbackFetch(
   // Check Network Health
   const networkHealthy = isNetworkHealthy();
   
-  if (debug) {
-    console.log('[Offline Fallback] Starting request:', {
-      url,
-      networkHealthy,
-      consecutiveFailures: networkHealth.consecutiveFailures,
-    });
-  }
+  // debug disabled in production
 
   // Wenn Netzwerk unhealthy: Versuche Cache zuerst
   if (!networkHealthy && fallbackToCache) {
     const cached = getCache(url, cacheTTL);
     if (cached) {
-      if (debug) {
-        console.log('[Offline Fallback] Using cache (unhealthy network):', url);
-      }
+      // using cache due to unhealthy network
       
       // Return cached response
       return new Response(JSON.stringify(cached.data), {
@@ -336,36 +328,20 @@ export async function offlineFallbackFetch(
         }
       }
 
-      if (debug) {
-        console.log('[Offline Fallback] Request successful:', {
-          url,
-          attempt,
-          status: response.status,
-        });
-      }
+      // request successful
 
       return response;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
       recordFailure();
 
-      if (debug) {
-        console.error('[Offline Fallback] Request failed:', {
-          url,
-          attempt,
-          error: lastError.message,
-        });
-      }
+      // request failed
 
       // Letzter Versuch: Fallback zu Cache
       if (attempt === maxRetries) {
-        if (fallbackToCache) {
+          if (fallbackToCache) {
           const cached = getCache(url, cacheTTL * 2); // Längerer Cache bei Fallback
           if (cached) {
-            if (debug) {
-              console.log('[Offline Fallback] Using cache (all retries failed):', url);
-            }
-            
             return new Response(JSON.stringify(cached.data), {
               status: cached.status,
               headers: new Headers({
@@ -384,9 +360,7 @@ export async function offlineFallbackFetch(
       // Warte mit Exponential Backoff
       const delay = calculateRetryDelay(attempt, initialRetryDelay, backoffFactor);
       
-      if (debug) {
-        console.log('[Offline Fallback] Retrying in', delay, 'ms');
-      }
+      // retrying after backoff
       
       await sleep(delay);
     }

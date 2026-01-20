@@ -50,16 +50,67 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Alle Daten parallel laden (optimiert mit minimalen Selects)
-    const [upcomingTrainings, attendanceStats, announcements, latestAssessment] = 
-      await Promise.all([
-        getUpcomingTrainingsMinimal(child.teamId!),
-        getAttendanceStats(child.id),
-        getAnnouncementsMinimal(child.teamId ?? undefined),
-        getLatestAssessmentMinimal(child.id),
-      ]);
+    // Alle Daten parallel laden (robust gegen Teilfehler)
+    const loaders = {
+      upcomingTrainings: getUpcomingTrainingsMinimal(child.teamId!),
+      attendanceStats: getAttendanceStats(child.id),
+      announcements: getAnnouncementsMinimal(child.teamId ?? undefined),
+      latestAssessment: getLatestAssessmentMinimal(child.id),
+    } as const;
+
+    const settled = await Promise.allSettled(Object.values(loaders));
+
+    // Default fallbacks
+    let upcomingTrainings: any = [];
+    let attendanceStats: any = { total: 0, present: 0, absent: 0, excused: 0 };
+    let announcements: any = [];
+    let latestAssessment: any = null;
+
+    // Map settled results back to keys in the same order
+    const keys = Object.keys(loaders) as Array<keyof typeof loaders>;
+    for (let i = 0; i < settled.length; i++) {
+      const res = settled[i];
+      const key = keys[i];
+      if (res.status === 'fulfilled') {
+        try {
+          switch (key) {
+            case 'upcomingTrainings': upcomingTrainings = res.value; break;
+            case 'attendanceStats': attendanceStats = res.value; break;
+            case 'announcements': announcements = res.value; break;
+            case 'latestAssessment': latestAssessment = res.value; break;
+          }
+        } catch (err) {
+          console.warn(`[bootstrap] Failed to assign ${key}:`, err);
+        }
+      } else {
+        console.warn(`[bootstrap] Loader ${key} failed:`, res.reason);
+      }
+    }
 
     // Aggregierte Response
+    // Build optional content version map (server-controlled versioning)
+    const contentVersions: Record<string, string> = {};
+
+    // Announcements: announcement-<id>
+    if (Array.isArray(announcements)) {
+      for (const a of announcements) {
+        if (a?.id) {
+          const v = a.updatedAt ? new Date(a.updatedAt).toISOString() : (a.createdAt ? new Date(a.createdAt).toISOString() : new Date().toISOString());
+          contentVersions[`announcement-${a.id}`] = v;
+        }
+      }
+    }
+
+    // Trainings: event-<id>-description
+    if (Array.isArray(upcomingTrainings)) {
+      for (const t of upcomingTrainings) {
+        if (t?.id) {
+          const v = t.updatedAt ? new Date(t.updatedAt).toISOString() : new Date().toISOString();
+          contentVersions[`event-${t.id}-description`] = v;
+        }
+      }
+    }
+
     return NextResponse.json({
       child,
       upcomingTrainings,
@@ -67,6 +118,7 @@ export async function GET(request: NextRequest) {
       announcements,
       latestAssessment,
       cachedAt: new Date().toISOString(),
+      contentVersions,
     }, {
       headers: {
         'Cache-Control': 'private, max-age=90, stale-while-revalidate=180',
