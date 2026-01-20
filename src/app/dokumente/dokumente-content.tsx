@@ -16,14 +16,6 @@ interface Document {
 // Beispiel-Dokumente - später aus DB oder API laden
 const documents: Document[] = [
   {
-    id: "4",
-    title: "Information zur CMT",
-    description: "Information zur CMT",
-    filename: "https://web.icacheer.space/documents/cmtinfo.pdf",
-    category: "Cheer",
-    isExternal: true
-  },
-  {
     id: "1",
     title: "Offizielles Regelwerk der ICA",
     description: "Offizielles Regelwerk der ICA",
