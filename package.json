@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "postinstall": "prisma generate --schema=eltern-app/prisma/schema.prisma",
-    "build": "cd eltern-app && next build"
+    "postinstall": "echo \"skip root postinstall (use eltern-app/postinstall)\"",
+    "build": "cd eltern-app && npm ci && npm run build --prefix eltern-app"
   },
   "keywords": [],
   "author": "",
