@@ -1,6 +1,10 @@
 const { Client } = require('pg');
 
-const connectionString = 'postgresql://neondb_owner:npg_ZvmfB4Dur2KO@ep-calm-star-ag0w1zic-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require';
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('Missing DATABASE_URL environment variable. Aborting.');
+  process.exit(1);
+}
 
 async function analyzeDatabase() {
   const client = new Client({ connectionString });

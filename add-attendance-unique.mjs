@@ -1,7 +1,11 @@
 import pg from 'pg';
 const { Pool } = pg;
 
-const DATABASE_URL = "postgresql://neondb_owner:npg_ZvmfB4Dur2KO@ep-calm-star-ag0w1zic-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require";
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error('Missing DATABASE_URL environment variable. Aborting.');
+  process.exit(1);
+}
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
