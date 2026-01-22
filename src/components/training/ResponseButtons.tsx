@@ -14,11 +14,11 @@ export function ResponseButtons({
 }: {
   trainingId: number;
   memberId: number;
-  currentStatus: string | undefined;
+  currentStatus: string | null | undefined;
   onStatusChange?: (newStatus: string | null) => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [optimisticStatus, setOptimisticStatus] = useState<string | undefined>(currentStatus);
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null | undefined>(currentStatus);
   const [showReasonDialog, setShowReasonDialog] = useState(false);
   const [reason, setReason] = useState("");
   const dialogRef = useRef<HTMLDialogElement>(null);

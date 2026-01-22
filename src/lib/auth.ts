@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "./db";
 import bcrypt from "bcryptjs";
+import { logger } from '@/lib/logger';
 
 const SESSION_COOKIE = "member_session";
 const PUBLIC_SESSION_COOKIE = "member_session_public";
@@ -139,7 +140,7 @@ export async function login(firstName: string, lastName: string, password: strin
     });
     return { success: true };
   } catch (error) {
-    console.error("Login error:", error);
+    logger.error("Login error:", error);
     return { success: false, error: "Ein Fehler ist aufgetreten" };
   }
 }

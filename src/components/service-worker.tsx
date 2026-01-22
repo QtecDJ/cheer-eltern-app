@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { RefreshCw, X, Wifi, WifiOff } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 // Service Worker Registrierung Komponente
 export function ServiceWorkerRegistration() {
@@ -10,6 +11,18 @@ export function ServiceWorkerRegistration() {
   const [showOfflineToast, setShowOfflineToast] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [contentCacheSize, setContentCacheSize] = useState<number | null>(null);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const offlineToastTimeoutRef = useRef<number | null>(null);
+
+  // Detect reduced-motion preference once on mount
+  useEffect(() => {
+    try {
+      const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+      if (mq && mq.matches) setReduceMotion(true);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   const handleUpdate = useCallback(() => {
     if (registration?.waiting) {
@@ -81,7 +94,7 @@ export function ServiceWorkerRegistration() {
                 }
               }
             } catch (err) {
-              console.warn('[PWA] Query content cache size failed', err);
+              logger.warn('[PWA] Query content cache size failed', err);
             }
           };
 
@@ -111,7 +124,7 @@ export function ServiceWorkerRegistration() {
           }
 
         } catch (error) {
-          console.error("[PWA] Service Worker Registrierung fehlgeschlagen:", error);
+          logger.error("[PWA] Service Worker Registrierung fehlgeschlagen:", error);
         }
       };
 
@@ -166,7 +179,7 @@ export function ServiceWorkerRegistration() {
     <>
       {/* Update Banner */}
       {updateAvailable && (
-        <div className="fixed top-0 left-0 right-0 z-[100] animate-slide-down safe-area-top">
+        <div aria-live="polite" role="status" className={`fixed top-0 left-0 right-0 z-[100] ${!reduceMotion ? 'animate-slide-down' : ''} safe-area-top`}>
           <div className="bg-primary text-primary-foreground px-4 py-3 shadow-lg">
             <div className="max-w-lg mx-auto flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -198,7 +211,7 @@ export function ServiceWorkerRegistration() {
 
       {/* Offline Toast */}
       {showOfflineToast && (
-        <div className="fixed top-4 left-4 right-4 z-[100] animate-slide-down safe-area-top">
+        <div aria-live="polite" role="status" className={`fixed top-4 left-4 right-4 z-[100] ${!reduceMotion ? 'animate-slide-down' : ''} safe-area-top`}>
           <div className="max-w-sm mx-auto bg-amber-500 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3">
             <WifiOff className="w-5 h-5 shrink-0" />
             <div className="flex-1">
@@ -208,6 +221,7 @@ export function ServiceWorkerRegistration() {
             <button
               onClick={() => setShowOfflineToast(false)}
               className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+              aria-label="Schließen"
             >
               <X className="w-4 h-4" />
             </button>
@@ -227,9 +241,17 @@ export function ServiceWorkerRegistration() {
 function OnlineIndicator() {
   const [show, setShow] = useState(false);
   const [wasOffline, setWasOffline] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const timeoutRef = { current: null as number | null };
+    try {
+      const mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+      if (mq && mq.matches) setReduceMotion(true);
+    } catch (e) {
+      // ignore
+    }
+
     const handleOffline = () => setWasOffline(true);
     const handleOnline = () => {
       // read latest value via setter pattern to avoid stale closure
@@ -259,7 +281,7 @@ function OnlineIndicator() {
   if (!show) return null;
 
   return (
-    <div className="fixed top-4 left-4 right-4 z-[100] animate-slide-down safe-area-top">
+    <div aria-live="polite" role="status" className={`fixed top-4 left-4 right-4 z-[100] ${!reduceMotion ? 'animate-slide-down' : ''} safe-area-top`}>
       <div className="max-w-sm mx-auto bg-emerald-500 text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3">
         <Wifi className="w-5 h-5" />
         <p className="font-medium text-sm">Wieder online</p>

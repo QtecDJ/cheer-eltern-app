@@ -17,7 +17,8 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import {
   ContentCacheUtils,
   clearContentCache,
@@ -70,12 +71,15 @@ export function useContentCacheManager() {
   /**
    * Lade aktuelle Cache-Stats
    */
+  const mountedRef = useRef(true);
+
   const refresh = useCallback(async () => {
     try {
       const stats = await getContentCacheStats();
       const isIOS = ContentCacheUtils.isIOSDevice();
       const isPWA = ContentCacheUtils.isIOSPWA();
       
+      if (!mountedRef.current) return;
       setState(prev => ({
         ...prev,
         indexedDBAvailable: stats.indexedDB.available,
@@ -85,7 +89,8 @@ export function useContentCacheManager() {
         isPWA,
       }));
     } catch (error) {
-      console.error('[CacheManager] Failed to refresh stats:', error);
+      if (!mountedRef.current) return;
+      logger.error('[CacheManager] Failed to refresh stats:', error);
     }
   }, []);
   
@@ -93,6 +98,7 @@ export function useContentCacheManager() {
    * Lösche gesamten Content Cache
    */
   const clearCache = useCallback(async () => {
+    if (!mountedRef.current) return false;
     setState(prev => ({ ...prev, isClearing: true }));
     
     try {
@@ -102,11 +108,13 @@ export function useContentCacheManager() {
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
         try {
           const messageChannel = new MessageChannel();
+          let timeoutId: number | null = null;
           const promise = new Promise((resolve) => {
             messageChannel.port1.onmessage = (event) => {
+              if (!mountedRef.current) return resolve({ success: false });
               resolve(event.data);
             };
-            setTimeout(() => resolve({ success: false }), 1000);
+            timeoutId = window.setTimeout(() => resolve({ success: false }), 1000) as unknown as number;
           });
           
           navigator.serviceWorker.controller.postMessage(
@@ -115,8 +123,9 @@ export function useContentCacheManager() {
           );
           
           await promise;
+          if (timeoutId) clearTimeout(timeoutId);
         } catch (error) {
-          console.warn('[CacheManager] Failed to clear SW content cache:', error);
+          logger.warn('[CacheManager] Failed to clear SW content cache:', error);
         }
       }
       
@@ -124,10 +133,14 @@ export function useContentCacheManager() {
       // cache cleared
       return true;
     } catch (error) {
-      console.error('[CacheManager] Failed to clear cache:', error);
+      if (mountedRef.current) {
+        logger.error('[CacheManager] Failed to clear cache:', error);
+      }
       return false;
     } finally {
-      setState(prev => ({ ...prev, isClearing: false }));
+      if (mountedRef.current) {
+        setState(prev => ({ ...prev, isClearing: false }));
+      }
     }
   }, [refresh]);
   
@@ -138,7 +151,7 @@ export function useContentCacheManager() {
     try {
       await cleanupExpiredContent('auto');
       await refresh();
-      
+      if (!mountedRef.current) return false;
       setState(prev => ({
         ...prev,
         lastCleanup: new Date(),
@@ -147,6 +160,7 @@ export function useContentCacheManager() {
       // expired content cleaned up
       return true;
     } catch (error) {
+      if (!mountedRef.current) return false;
       console.error('[CacheManager] Failed to cleanup expired content:', error);
       return false;
     }
@@ -154,7 +168,11 @@ export function useContentCacheManager() {
   
   // Initial load
   useEffect(() => {
+    mountedRef.current = true;
     refresh();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [refresh]);
   
   return {
@@ -201,7 +219,7 @@ export function useContentCacheLogoutHandler() {
           
           // content cache cleared on logout
         } catch (error) {
-          console.warn('[CacheManager] Failed to clear cache on logout:', error);
+          logger.warn('[CacheManager] Failed to clear cache on logout:', error);
         }
       }
     };
@@ -224,7 +242,7 @@ export function prepareLogoutCacheClear() {
     
     // Auch async clear versuchen (wird wahrscheinlich nicht fertig vor beforeunload)
     clearContentCache('auto').catch(err => {
-      console.warn('[CacheManager] Async logout cache clear failed:', err);
+      logger.warn('[CacheManager] Async logout cache clear failed:', err);
     });
   }
 }
@@ -261,7 +279,7 @@ export function useContentCacheInitialization() {
         const stats = await getContentCacheStats();
           // cache manager initialized
       } catch (error) {
-        console.warn('[CacheManager] Initialization failed:', error);
+        logger.warn('[CacheManager] Initialization failed:', error);
       }
     };
     
@@ -304,7 +322,7 @@ export function useContentCacheVisibilityCleanup() {
         
         cleanupTimeout = setTimeout(() => {
           cleanupExpiredContent('auto').catch(err => {
-            console.warn('[CacheManager] Visibility cleanup failed:', err);
+            logger.warn('[CacheManager] Visibility cleanup failed:', err);
           });
         }, 1000); // 1s delay
       }

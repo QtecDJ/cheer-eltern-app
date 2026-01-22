@@ -147,7 +147,7 @@ export function TrainingContent({
   const today = new Date().toISOString().split("T")[0];
 
   // Local attendanceMap so UI updates instantly after action
-  const [localAttendanceMap, setLocalAttendanceMap] = useState<Record<number, string>>(attendanceMap);
+  const [localAttendanceMap, setLocalAttendanceMap] = useState<Record<number, string | null>>(attendanceMap);
 
   // Trennung in kommende und vergangene Trainings
   const upcomingTrainings = trainings.filter((t) => t.date >= today);

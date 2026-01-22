@@ -53,6 +53,11 @@ Füge folgende Environment Variables in deinem Vercel Projekt hinzu:
 | `DATABASE_URL` | PostgreSQL Connection String (Neon) |
 | `SESSION_SECRET` | Geheimer Schlüssel für Session-Cookies (min. 32 Zeichen) |
 
+**Security note:**
+- Nie reale Secrets in `.env.example` oder im Repo committen.
+- Wenn ein Secret versehentlich veröffentlicht wurde, rotiere es sofort (DB credentials, Cloudinary API secret, Session secret).
+- Lokale secrets sollten in `.env.local` bleiben and the file should be listed in `.gitignore`.
+
 ### Deploy
 
 1. Pushe das Repository zu GitHub

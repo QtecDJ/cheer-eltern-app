@@ -36,6 +36,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { cacheFirst, getCache, setCache, CacheOptions } from './client-cache';
+import { logger } from './logger';
 
 export interface UseCachedDataResult<T> {
   data: T | null;
@@ -64,6 +65,7 @@ export function useCachedData<T>(
   const [error, setError] = useState<Error | null>(null);
   const [isFromCache, setIsFromCache] = useState(false);
   const { enabled = true, ...cacheOptions } = options;
+  const cacheOptionsKey = JSON.stringify(cacheOptions || {});
   const mountedRef = useRef(true);
 
   const loadData = useCallback(async () => {
@@ -91,7 +93,7 @@ export function useCachedData<T>(
             setIsFromCache(false);
           })
           .catch((err) => {
-            console.warn(`[useCachedData] Background update failed: ${key}`, err);
+            logger.warn(`[useCachedData] Background update failed: ${key}`, err);
           });
       } else {
         // Cache miss - fetch fresh
@@ -107,7 +109,9 @@ export function useCachedData<T>(
       setError(err instanceof Error ? err : new Error(String(err)));
       setLoading(false);
     }
-  }, [key, fetcher, enabled, cacheOptions]);
+  }, [key, fetcher, enabled, cacheOptionsKey]);
+
+  const cacheOptionsKeyForHooks = cacheOptionsKey; // stable name for other hooks
 
   const refetch = useCallback(async () => {
     try {
@@ -121,7 +125,7 @@ export function useCachedData<T>(
       if (!mountedRef.current) return;
       setError(err instanceof Error ? err : new Error(String(err)));
     }
-  }, [key, fetcher, cacheOptions]);
+  }, [key, fetcher, cacheOptionsKey]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -146,8 +150,10 @@ export function useCacheFirst<T>(
   const [data, setData] = useState<T | null>(null);
 
   useEffect(() => {
+    const optionsKey = JSON.stringify(options || {});
     cacheFirst(key, fetcher, options).then(setData);
-  }, [key, fetcher, options]);
+  // include optionsKey so effect re-runs only when options change semantically
+  }, [key, fetcher, JSON.stringify(options || {})]);
 
   return data;
 }
@@ -162,6 +168,7 @@ export function usePrefetch<T>(
   options: CacheOptions & { trigger?: boolean } = {}
 ): void {
   const { trigger = true, ...cacheOptions } = options;
+  const cacheOptionsKeyPrefetch = JSON.stringify(cacheOptions || {});
 
   useEffect(() => {
     if (!trigger) return;
@@ -172,10 +179,10 @@ export function usePrefetch<T>(
         // Not cached - prefetch
         fetcher()
           .then((data) => setCache(key, data, cacheOptions))
-          .catch((err) => console.warn(`[usePrefetch] Failed: ${key}`, err));
+          .catch((err) => logger.warn(`[usePrefetch] Failed: ${key}`, err));
       }
     });
-  }, [key, fetcher, trigger, cacheOptions]);
+  }, [key, fetcher, trigger, cacheOptionsKeyPrefetch]);
 }
 
 /**
@@ -189,13 +196,15 @@ export function useOptimisticUpdate<T>(
   updateOptimistic: (updater: (current: T | null) => T) => Promise<void>;
   syncWithServer: (fetcher: () => Promise<T>) => Promise<void>;
 } {
+  const optionsKeyOptimistic = JSON.stringify(options || {});
+
   const updateOptimistic = useCallback(
     async (updater: (current: T | null) => T) => {
       const current = await getCache<T>(key, options);
       const updated = updater(current);
       await setCache(key, updated, options);
     },
-    [key, options]
+    [key, optionsKeyOptimistic]
   );
 
   const syncWithServer = useCallback(
@@ -204,10 +213,10 @@ export function useOptimisticUpdate<T>(
         const serverData = await fetcher();
         await setCache(key, serverData, options);
       } catch (err) {
-        console.warn(`[useOptimisticUpdate] Sync failed: ${key}`, err);
+        logger.warn(`[useOptimisticUpdate] Sync failed: ${key}`, err);
       }
     },
-    [key, options]
+    [key, optionsKeyOptimistic]
   );
 
   return { updateOptimistic, syncWithServer };
