@@ -34,7 +34,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { cacheFirst, getCache, setCache, CacheOptions } from './client-cache';
 
 export interface UseCachedDataResult<T> {
@@ -64,6 +64,7 @@ export function useCachedData<T>(
   const [error, setError] = useState<Error | null>(null);
   const [isFromCache, setIsFromCache] = useState(false);
   const { enabled = true, ...cacheOptions } = options;
+  const mountedRef = useRef(true);
 
   const loadData = useCallback(async () => {
     if (!enabled) return;
@@ -76,6 +77,7 @@ export function useCachedData<T>(
       const cached = await getCache<T>(key, cacheOptions);
       
       if (cached) {
+        if (!mountedRef.current) return;
         setData(cached);
         setIsFromCache(true);
         setLoading(false);
@@ -83,6 +85,7 @@ export function useCachedData<T>(
         // Background update
         fetcher()
           .then((freshData) => {
+            if (!mountedRef.current) return;
             setCache(key, freshData, cacheOptions);
             setData(freshData);
             setIsFromCache(false);
@@ -93,12 +96,14 @@ export function useCachedData<T>(
       } else {
         // Cache miss - fetch fresh
         const freshData = await fetcher();
+        if (!mountedRef.current) return;
         await setCache(key, freshData, cacheOptions);
         setData(freshData);
         setIsFromCache(false);
         setLoading(false);
       }
     } catch (err) {
+      if (!mountedRef.current) return;
       setError(err instanceof Error ? err : new Error(String(err)));
       setLoading(false);
     }
@@ -108,16 +113,22 @@ export function useCachedData<T>(
     try {
       setError(null);
       const freshData = await fetcher();
+      if (!mountedRef.current) return;
       await setCache(key, freshData, cacheOptions);
       setData(freshData);
       setIsFromCache(false);
     } catch (err) {
+      if (!mountedRef.current) return;
       setError(err instanceof Error ? err : new Error(String(err)));
     }
   }, [key, fetcher, cacheOptions]);
 
   useEffect(() => {
+    mountedRef.current = true;
     loadData();
+    return () => {
+      mountedRef.current = false;
+    };
   }, [loadData]);
 
   return { data, loading, error, refetch, isFromCache };

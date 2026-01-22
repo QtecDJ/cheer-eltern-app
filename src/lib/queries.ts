@@ -146,26 +146,33 @@ export async function getTeamMembers(teamId: number, limit = 20) {
  * Attendance-Statistiken (aggregiert, kein Transfer großer Listen)
  */
 export async function getAttendanceStats(memberId: number) {
-  const counts = await prisma.attendance.groupBy({
-    by: ["status"],
-    where: { memberId },
-    _count: { id: true },
+  // Hole die neuesten Attendance-Einträge für Trainings und wähle pro trainingId den aktuellsten Eintrag
+  const attendances = await prisma.attendance.findMany({
+    where: { memberId, type: "training" },
+    orderBy: { updatedAt: "desc" },
+    take: 1000,
+    select: { trainingId: true, status: true },
   });
 
+  const latestByTraining = new Map<number, string>();
+  for (const att of attendances) {
+    if (att.trainingId && !latestByTraining.has(att.trainingId)) {
+      latestByTraining.set(att.trainingId, att.status);
+    }
+  }
+
   const stats = {
-    total: 0,
+    total: latestByTraining.size,
     present: 0,
     absent: 0,
     excused: 0,
   };
 
-  counts.forEach((count) => {
-    const num = count._count.id;
-    stats.total += num;
-    if (count.status === "present") stats.present = num;
-    if (count.status === "absent") stats.absent = num;
-    if (count.status === "excused") stats.excused = num;
-  });
+  for (const status of latestByTraining.values()) {
+    if (status === "present") stats.present++;
+    if (status === "absent") stats.absent++;
+    if (status === "excused") stats.excused++;
+  }
 
   return stats;
 }
@@ -175,25 +182,22 @@ export async function getAttendanceStats(memberId: number) {
  * Nur IDs und Status, keine kompletten Objekte
  */
 export async function getAttendanceMap(memberId: number, limit = 50) {
+  // Lade neueste Attendances (updatedAt) zuerst und nimm für jede trainingId den aktuellsten Eintrag
   const attendances = await prisma.attendance.findMany({
-    where: { 
-      memberId,
-      type: "training",
-    },
-    orderBy: { date: "desc" },
+    where: { memberId, type: "training" },
+    orderBy: { updatedAt: "desc" },
     take: limit,
-    select: {
-      trainingId: true,
-      status: true,
-    },
+    select: { trainingId: true, status: true },
   });
 
-  return attendances.reduce((map, att) => {
-    if (att.trainingId) {
+  const map: Record<number, string> = {};
+  for (const att of attendances) {
+    if (att.trainingId && map[att.trainingId] === undefined) {
       map[att.trainingId] = att.status;
     }
-    return map;
-  }, {} as Record<number, string>);
+  }
+
+  return map;
 }
 
 // ============================================

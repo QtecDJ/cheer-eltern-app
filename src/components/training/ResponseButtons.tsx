@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Loader2, Check, X, MessageSquare } from "lucide-react";
 import { respondToTraining, ResponseStatus } from "@/app/training/actions";
@@ -9,10 +10,12 @@ export function ResponseButtons({
   trainingId,
   memberId,
   currentStatus,
+  onStatusChange,
 }: {
   trainingId: number;
   memberId: number;
   currentStatus: string | undefined;
+  onStatusChange?: (newStatus: string | null) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [optimisticStatus, setOptimisticStatus] = useState<string | undefined>(currentStatus);
@@ -33,10 +36,25 @@ export function ResponseButtons({
     setOptimisticStatus(currentStatus);
   }, [currentStatus]);
 
+  const router = useRouter();
+
   const handleResponse = (status: ResponseStatus, reasonText?: string) => {
+    const previousStatus = optimisticStatus;
     setOptimisticStatus(status === "confirmed" ? "present" : "excused");
+
     startTransition(async () => {
-      await respondToTraining(memberId, trainingId, status, reasonText);
+      const res = await respondToTraining(memberId, trainingId, status, reasonText);
+      if (!res || !res.success) {
+        // Revert optimistic state silently on error
+        setOptimisticStatus(previousStatus);
+      } else {
+        // Update parent/local map immediately (no logging)
+        const newStatus = status === "confirmed" ? "present" : status === "declined" ? "excused" : "pending";
+        onStatusChange?.(newStatus);
+
+        // Refresh server components to pick up revalidated data
+        router.refresh();
+      }
     });
   };
 

@@ -110,7 +110,19 @@ export async function login(firstName: string, lastName: string, password: strin
     };
 
     const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE, JSON.stringify(sessionData), {
+    const sessionJson = JSON.stringify(sessionData);
+
+    // Safe check: warn if cookie size approaches limits (avoid accidental breakage)
+    try {
+      const approxSize = Buffer.byteLength(sessionJson, 'utf8');
+      if (approxSize > 3800) {
+        console.warn('[Auth] Session cookie size approaching limit:', approxSize);
+      }
+    } catch (e) {
+      // Buffer might not be available in some runtimes - ignore
+    }
+
+    cookieStore.set(SESSION_COOKIE, sessionJson, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

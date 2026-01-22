@@ -4,7 +4,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { calculateAge, calculateAttendanceRate, getRelativeDate } from "@/lib/utils";
+import { calculateAge, calculateAttendanceRate, getRelativeDate, cn } from "@/lib/utils";
 import {
   Bell,
   Calendar,
@@ -19,10 +19,35 @@ import {
   AlertTriangle,
   Info,
   PartyPopper,
+  XCircle,
 } from "lucide-react";
 import { ResponseButtons } from "@/components/training/ResponseButtons";
 import { useVersionedContent } from "@/lib/use-versioned-content";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+
+function getAttendanceInfo(status: string | undefined) {
+  switch (status) {
+    case "present":
+    case "confirmed":
+      return {
+        icon: CheckCircle2,
+        label: "Zugesagt",
+        variant: "success" as const,
+        color: "text-emerald-500",
+      };
+    case "absent":
+    case "excused":
+    case "declined":
+      return {
+        icon: XCircle,
+        label: "Abgesagt",
+        variant: "danger" as const,
+        color: "text-red-500",
+      };
+    default:
+      return null;
+  }
+} 
 
 interface HomeContentProps {
   child: {
@@ -88,6 +113,14 @@ export function HomeContent({
     attendanceStats.present,
     attendanceStats.total
   );
+
+  // Local map so the dashboard updates instantly after a response
+  const [localAttendanceMap, setLocalAttendanceMap] = React.useState<Record<number, string> | undefined>(attendanceMap);
+
+  // Stable setter to avoid recreating heavy callbacks
+  const setStatus = useCallback((id: number, newStatus: string | null) => {
+    setLocalAttendanceMap(prev => ({ ...(prev || {}), [id]: newStatus as string }));
+  }, []);
 
 
   return (
@@ -304,12 +337,27 @@ export function HomeContent({
                           <span className="truncate">{training.trainer}</span>
                         </div>
                       )}
+
+                      {(() => {
+                        const attendance = getAttendanceInfo(localAttendanceMap ? localAttendanceMap[training.id] : undefined);
+                        const AttendanceIcon = attendance?.icon;
+                        return attendance && AttendanceIcon ? (
+                          <div className="flex items-center gap-2 mt-2">
+                            <AttendanceIcon className={cn("w-4 h-4", attendance.color)} />
+                            <Badge variant={attendance.variant} size="sm">
+                              {attendance.label}
+                            </Badge>
+                          </div>
+                        ) : null;
+                      })()}
+
                     </div>
                     {/* Zu-/Absage Buttons (gleiche Komponente wie auf der Trainingsseite) */}
                     <ResponseButtons
                       trainingId={training.id}
                       memberId={child.id}
-                      currentStatus={attendanceMap ? attendanceMap[training.id] : undefined}
+                      currentStatus={localAttendanceMap ? localAttendanceMap[training.id] : undefined}
+                      onStatusChange={(newStatus) => setStatus(training.id, newStatus)}
                     />
                   </div>
                 </div>

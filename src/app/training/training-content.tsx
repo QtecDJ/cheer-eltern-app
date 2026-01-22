@@ -146,6 +146,9 @@ export function TrainingContent({
 }: TrainingContentProps) {
   const today = new Date().toISOString().split("T")[0];
 
+  // Local attendanceMap so UI updates instantly after action
+  const [localAttendanceMap, setLocalAttendanceMap] = useState<Record<number, string>>(attendanceMap);
+
   // Trennung in kommende und vergangene Trainings
   const upcomingTrainings = trainings.filter((t) => t.date >= today);
   const pastTrainings = trainings.filter((t) => t.date < today);
@@ -274,7 +277,8 @@ export function TrainingContent({
                     <ResponseButtons
                       trainingId={training.id}
                       memberId={member.id}
-                      currentStatus={attendanceMap[training.id]}
+                      currentStatus={localAttendanceMap[training.id]}
+                      onStatusChange={(newStatus) => setLocalAttendanceMap(prev => ({ ...prev, [training.id]: newStatus }))}
                     />
                   </div>
                 </div>

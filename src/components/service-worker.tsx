@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { RefreshCw, X, Wifi, WifiOff } from "lucide-react";
 
 // Service Worker Registrierung Komponente
@@ -21,16 +21,25 @@ export function ServiceWorkerRegistration() {
 
   useEffect(() => {
     // Online/Offline Status
+    const offlineToastTimeoutRef = { current: null as number | null };
     const handleOnline = () => {
       setIsOnline(true);
       setShowOfflineToast(false);
+      // Clear any pending toast hide timer
+      if (offlineToastTimeoutRef.current) {
+        clearTimeout(offlineToastTimeoutRef.current);
+        offlineToastTimeoutRef.current = null;
+      }
     };
     
     const handleOffline = () => {
       setIsOnline(false);
       setShowOfflineToast(true);
-      // Toast nach 5 Sekunden ausblenden
-      setTimeout(() => setShowOfflineToast(false), 5000);
+      // Toast nach 5 Sekunden ausblenden (store id so we can clear on unmount)
+      if (offlineToastTimeoutRef.current) {
+        clearTimeout(offlineToastTimeoutRef.current);
+      }
+      offlineToastTimeoutRef.current = window.setTimeout(() => setShowOfflineToast(false), 5000) as unknown as number;
     };
 
     setIsOnline(navigator.onLine);
@@ -39,6 +48,11 @@ export function ServiceWorkerRegistration() {
 
     // Service Worker nur in Production oder wenn explizit aktiviert
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      // store interval id and handlers for cleanup
+      const updateIntervalRef = { current: null as number | null };
+      let loadHandler: (() => void) | null = null;
+      let controllerChangeHandler: (() => void) | null = null;
+
       // Warte bis die Seite geladen ist
       const registerSW = async () => {
         try {
@@ -56,7 +70,8 @@ export function ServiceWorkerRegistration() {
                 const mc = new MessageChannel();
                 const promise = new Promise((resolve) => {
                   mc.port1.onmessage = (ev) => resolve(ev.data);
-                  setTimeout(() => resolve({ success: false }), 1500);
+                  const t = setTimeout(() => resolve({ success: false }), 1500);
+                  // best-effort: clean this timeout if needed when unmounting is handled below
                 });
 
                 navigator.serviceWorker.controller.postMessage({ type: 'GET_CONTENT_CACHE_SIZE' }, [mc.port2]);
@@ -74,9 +89,9 @@ export function ServiceWorkerRegistration() {
           queryContentCacheSize();
 
           // Update-Check alle 30 Minuten
-          setInterval(() => {
+          updateIntervalRef.current = window.setInterval(() => {
             reg.update();
-          }, 30 * 60 * 1000);
+          }, 30 * 60 * 1000) as unknown as number;
 
           // Update gefunden
           reg.addEventListener("updatefound", () => {
@@ -103,18 +118,42 @@ export function ServiceWorkerRegistration() {
       if (document.readyState === "complete") {
         registerSW();
       } else {
+        loadHandler = registerSW;
         window.addEventListener("load", registerSW);
       }
 
       // Controller-Wechsel behandeln
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
+      controllerChangeHandler = () => {
         window.location.reload();
-      });
+      };
+      navigator.serviceWorker.addEventListener("controllerchange", controllerChangeHandler);
+
+      // Cleanup for SW related handlers/intervals
+      return () => {
+        if (updateIntervalRef.current) {
+          clearInterval(updateIntervalRef.current);
+        }
+        if (loadHandler) {
+          window.removeEventListener("load", loadHandler);
+        }
+        if (controllerChangeHandler) {
+          navigator.serviceWorker.removeEventListener("controllerchange", controllerChangeHandler);
+        }
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+        if (offlineToastTimeoutRef.current) {
+          clearTimeout(offlineToastTimeoutRef.current);
+        }
+      };
     }
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      // if service worker branch didn't attach listeners we still clear toast timer
+      if ((offlineToastTimeoutRef as any).current) {
+        clearTimeout((offlineToastTimeoutRef as any).current);
+      }
     };
   }, []);
 
@@ -190,13 +229,19 @@ function OnlineIndicator() {
   const [wasOffline, setWasOffline] = useState(false);
 
   useEffect(() => {
+    const timeoutRef = { current: null as number | null };
     const handleOffline = () => setWasOffline(true);
     const handleOnline = () => {
-      if (wasOffline) {
-        setShow(true);
-        setTimeout(() => setShow(false), 3000);
-        setWasOffline(false);
-      }
+      // read latest value via setter pattern to avoid stale closure
+      setWasOffline(prev => {
+        if (prev) {
+          setShow(true);
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          timeoutRef.current = window.setTimeout(() => setShow(false), 3000) as unknown as number;
+          return false;
+        }
+        return prev;
+      });
     };
 
     window.addEventListener("offline", handleOffline);
@@ -205,8 +250,11 @@ function OnlineIndicator() {
     return () => {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [wasOffline]);
+  }, []);
 
   if (!show) return null;
 

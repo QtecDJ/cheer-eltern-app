@@ -22,9 +22,9 @@ export async function respondToTraining(
     });
 
     if (existingAttendance) {
-      // Update bestehende Antwort
-      await prisma.attendance.update({
-        where: { id: existingAttendance.id },
+      // Update bestehende Antwort(en) — aktualisiere alle Einträge für dieses Training und Mitglied
+      await prisma.attendance.updateMany({
+        where: { memberId, trainingId, type: "training" },
         data: {
           status: status === "confirmed" ? "present" : status === "declined" ? "excused" : "pending",
           notes: status === "declined" ? "Vom Elternteil abgesagt" : null,
