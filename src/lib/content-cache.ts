@@ -128,6 +128,9 @@ function isIOSPWA(): boolean {
 const IS_IOS = isIOSDevice();
 const IS_IOS_PWA = isIOSPWA();
 
+// In-flight request dedupe map to prevent concurrent fetches for the same cache key
+const inFlightRequests = new Map<string, Promise<any>>();
+
 // ============================================
 // STORAGE DETECTION
 // ============================================
@@ -526,19 +529,35 @@ export async function getVersionedContent<T>(
   }
   
   // 2. Cache MISS oder outdated Version - fetch neu
-  const freshData = await fetcher();
-  
-  // 3. Update Cache
-  const contentEntry: VersionedContent<T> = {
-    data: freshData,
-    version,
-    fetchedAt: now,
-    expiresAt: now + adjustedTTL,
-  };
-  
-  await setContentCache(cacheKey, contentEntry, storage);
-  
-  return freshData;
+  // Dedupe concurrent fetches for the same cacheKey to avoid duplicate network calls
+  if (inFlightRequests.has(cacheKey)) {
+    return inFlightRequests.get(cacheKey) as Promise<T>;
+  }
+
+  const fetchPromise = (async () => {
+    const freshData = await fetcher();
+
+    // 3. Update Cache
+    const contentEntry: VersionedContent<T> = {
+      data: freshData,
+      version,
+      fetchedAt: now,
+      expiresAt: now + adjustedTTL,
+    };
+
+    await setContentCache(cacheKey, contentEntry, storage);
+
+    return freshData;
+  })();
+
+  inFlightRequests.set(cacheKey, fetchPromise);
+
+  try {
+    const result = await fetchPromise;
+    return result;
+  } finally {
+    inFlightRequests.delete(cacheKey);
+  }
 }
 
 // ============================================

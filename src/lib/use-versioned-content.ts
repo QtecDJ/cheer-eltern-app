@@ -137,6 +137,10 @@ export function useVersionedContent<T>(
   const abortControllerRef = useRef<AbortController | null>(null);
   const loadTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastVersionRef = useRef<string>(version);
+
+  // Stabilize fetcher identity to avoid unnecessary reloads when callers pass inline fetchers
+  const fetcherRef = useRef(fetcher);
+  useEffect(() => { fetcherRef.current = fetcher; }, [fetcher]);
   
   /**
    * Lade Content (mit Version-Check und Offline-Fallback)
@@ -156,14 +160,14 @@ export function useVersionedContent<T>(
       setError(null);
       
       const fetchOptions: GetVersionedContentOptions<T> = {
-        fetcher,
+        fetcher: fetcherRef.current,
         version,
         ttl,
         storage,
         namespace,
         forceRefresh,
       };
-      
+
       const data = await getVersionedContent(key, fetchOptions);
       
       // Check if request was aborted
@@ -207,7 +211,7 @@ export function useVersionedContent<T>(
       setError(err instanceof Error ? err : new Error('Failed to load content'));
       setLoading(false);
     }
-  }, [enabled, key, fetcher, version, ttl, storage, namespace]);
+  }, [enabled, key, version, ttl, storage, namespace]);
   
   /**
    * Manuell neu laden
@@ -347,14 +351,17 @@ export function useBulkVersionedContent<T>(
   const [contents, setContents] = useState<Map<string, T | null>>(new Map());
   const [errors, setErrors] = useState<Map<string, Error>>(new Map());
   const [loading, setLoading] = useState(true);
-  
+
+  // Minimal deps representation so we don't re-run when callers pass inline objects/functions
+  const itemsKey = items.map(i => `${i.key}:${i.version}`).join('|');
+
   const loadAll = useCallback(async (forceRefresh = false) => {
-    if (!options.enabled) return;
-    
+    if (options.enabled === false) return;
+
     setLoading(true);
     const newContents = new Map<string, T | null>();
     const newErrors = new Map<string, Error>();
-    
+
     await Promise.allSettled(
       items.map(async (item) => {
         try {
@@ -374,21 +381,21 @@ export function useBulkVersionedContent<T>(
         }
       })
     );
-    
+
     setContents(newContents);
     setErrors(newErrors);
     setLoading(false);
-  }, [items, options]);
-  
+  }, [itemsKey, options.enabled, options.ttl, options.storage, options.namespace]);
+
   const refetchAll = useCallback(async () => {
     await loadAll(true);
   }, [loadAll]);
-  
+
   useEffect(() => {
     if (options.enabled !== false) {
       loadAll(false);
     }
-  }, [loadAll, options.enabled]);
+  }, [itemsKey, options.enabled, loadAll]);
   
   return {
     contents,

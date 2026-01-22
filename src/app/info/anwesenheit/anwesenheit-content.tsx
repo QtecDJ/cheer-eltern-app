@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -66,28 +66,34 @@ export function AnwesenheitContent({
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState<number | null>(null);
+  const previousAttendanceRef = useRef<Record<number, AttendanceStatus> | null>(null);
+  const toggleCacheRef = useRef<Map<number, (status: AttendanceStatus) => void>>(new Map());
   
   useEffect(() => {
     setMounted(true);
   }, []);
-  
-  // Initialisiere Anwesenheit mit bestehenden Daten
-  const initialAttendance: Record<number, AttendanceStatus> = {};
-  (existingAttendances || []).forEach(att => {
-    if (att.status === "present") {
-      initialAttendance[att.memberId] = "present";
-    } else if (att.status === "excused" || att.status === "absent") {
-      initialAttendance[att.memberId] = "absent";
-    }
+
+  // Initialisiere Anwesenheit nur einmal (Performance)
+  const [attendance, setAttendance] = useState<Record<number, AttendanceStatus>>(() => {
+    const initialAttendance: Record<number, AttendanceStatus> = {};
+    (existingAttendances || []).forEach(att => {
+      if (att.status === "present") {
+        initialAttendance[att.memberId] = "present";
+      } else if (att.status === "excused" || att.status === "absent") {
+        initialAttendance[att.memberId] = "absent";
+      }
+    });
+    return initialAttendance;
   });
   
-  const [attendance, setAttendance] = useState<Record<number, AttendanceStatus>>(initialAttendance);
-  
-  // Erstelle Map für Abwesenheitsgründe
-  const attendanceInfo = new Map<number, ExistingAttendance>();
-  (existingAttendances || []).forEach(att => {
-    attendanceInfo.set(att.memberId, att);
-  });
+  // Erstelle Map für Abwesenheitsgründe (memoized)
+  const attendanceInfo = useMemo(() => {
+    const map = new Map<number, ExistingAttendance>();
+    (existingAttendances || []).forEach(att => {
+      map.set(att.memberId, att);
+    });
+    return map;
+  }, [existingAttendances]);
 
   // Formatiere Datum
   const formatDate = (dateString: string) => {
@@ -100,26 +106,27 @@ export function AnwesenheitContent({
     });
   };
 
-  // Filter Mitglieder
-  const filteredMembers = members.filter((member) => {
-    const matchesSearch = searchQuery === "" || 
-      member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.lastName.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesSearch;
-  });
+  // Filter Mitglieder (memoized)
+  const filteredMembers = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter((member) => {
+      const matchesSearch =
+        member.name.toLowerCase().includes(q) ||
+        member.firstName.toLowerCase().includes(q) ||
+        member.lastName.toLowerCase().includes(q);
+      return matchesSearch;
+    });
+  }, [members, searchQuery]);
 
-  // Toggle Anwesenheit
-  const toggleAttendance = async (memberId: number, status: AttendanceStatus) => {
-    // Optimistisches Update
-    const previousAttendance = attendance;
-    const newStatus = attendance[memberId] === status ? null : status;
-    
-    setAttendance(prev => ({
-      ...prev,
-      [memberId]: newStatus
-    }));
+  // Toggle Anwesenheit (stable callback, uses ref for rollback)
+  const toggleAttendance = useCallback(async (memberId: number, status: AttendanceStatus) => {
+    // Optimistisches Update (store previous state in a ref for rollback)
+    setAttendance(prev => {
+      previousAttendanceRef.current = prev;
+      const newStatus = prev[memberId] === status ? null : status;
+      return { ...prev, [memberId]: newStatus };
+    });
 
     // Zeige Speicher-Status
     setSaving(memberId);
@@ -133,7 +140,7 @@ export function AnwesenheitContent({
         body: JSON.stringify({
           trainingId: training.id,
           memberId,
-          status: newStatus,
+          status: (attendance[memberId] === status ? null : status),
         }),
       });
 
@@ -143,22 +150,32 @@ export function AnwesenheitContent({
     } catch (error) {
       console.error("Fehler beim Speichern der Anwesenheit:", error);
       // Rollback bei Fehler
-      setAttendance(previousAttendance);
+      setAttendance(previousAttendanceRef.current || {});
       alert("Fehler beim Speichern. Bitte versuche es erneut.");
     } finally {
       setSaving(null);
     }
-  };
+  }, [training.id]);
 
-  // Statistiken berechnen
-  const presentCount = Object.values(attendance).filter(s => s === "present").length;
-  const absentCount = Object.values(attendance).filter(s => s === "absent").length;
+  // Provide cached per-member handler to avoid creating new functions on each render
+  const getToggle = useCallback((memberId: number) => {
+    let fn = toggleCacheRef.current.get(memberId);
+    if (!fn) {
+      fn = (status: AttendanceStatus) => toggleAttendance(memberId, status);
+      toggleCacheRef.current.set(memberId, fn);
+    }
+    return fn;
+  }, [toggleAttendance]);
+
+  // Statistiken berechnen (memoized)
+  const presentCount = useMemo(() => Object.values(attendance).filter(s => s === "present").length, [attendance]);
+  const absentCount = useMemo(() => Object.values(attendance).filter(s => s === "absent").length, [attendance]);
   
   // Verwende den vom Server berechneten excusedCount für Hydration-Konsistenz
   const excusedCount = initialExcusedCount;
   
   // Nicht markiert = alle außer anwesend, abwesend und entschuldigt
-  const notMarkedCount = filteredMembers.length - presentCount - absentCount - excusedCount;
+  const notMarkedCount = filteredMembers.length - presentCount - absentCount - excusedCount; 
 
   return (
     <div className="px-4 md:px-6 lg:px-8 pt-6 pb-24 md:pb-8 max-w-lg md:max-w-4xl mx-auto">
@@ -299,7 +316,7 @@ export function AnwesenheitContent({
 }
 
 // Einzelne Anwesenheits-Karte
-function AttendanceCard({ 
+const AttendanceCard = React.memo(function AttendanceCard({ 
   member, 
   status,
   onToggle,
@@ -371,4 +388,4 @@ function AttendanceCard({
       </CardContent>
     </Card>
   );
-}
+});

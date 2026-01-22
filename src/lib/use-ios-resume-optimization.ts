@@ -70,6 +70,10 @@ export function useIOSResumeOptimization(
   const debounceTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
   const lastResumeTime = useRef<number>(0);
 
+  // Keep a ref to the onResume callback so we don't re-attach listeners when callers pass inline functions
+  const onResumeRef = useRef(onResume);
+  useEffect(() => { onResumeRef.current = onResume; }, [onResume]);
+
   useEffect(() => {
     if (!isIOSPWA()) {
       return;
@@ -100,7 +104,7 @@ export function useIOSResumeOptimization(
         if (timeSinceLastResume >= minInterval) {
           lastResumeTime.current = now;
           try { localStorage.setItem(storageKey, now.toString()); } catch (e) {}
-          onResume();
+          onResumeRef.current?.();
         }
       }, debounceMs);
     };
@@ -111,7 +115,7 @@ export function useIOSResumeOptimization(
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
-  }, [key, onResume, minInterval, debounceMs, debug]);
+  }, [key, minInterval, debounceMs, debug]);
 }
 
 /**
