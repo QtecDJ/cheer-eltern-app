@@ -189,6 +189,7 @@ export default function AlarmReminderButton(props: Props) {
               ? { kind: "training", training: { ...reminderData.training, missingCount: reminderData.missingCount } }
               : reminderToShow
           }
+          adminData={reminderData ?? undefined}
           onClose={handleClose}
           role={props.role}
         />
