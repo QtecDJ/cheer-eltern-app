@@ -24,6 +24,7 @@ import {
 import { ResponseButtons } from "@/components/training/ResponseButtons";
 import { useVersionedContent } from "@/lib/use-versioned-content";
 import React, { useEffect, useState, useCallback } from "react";
+import AlarmReminderButton from "@/components/alarmReminder/AlarmReminderButton";
 
 function getAttendanceInfo(status: string | undefined) {
   switch (status) {
@@ -124,7 +125,16 @@ export function HomeContent({
 
 
   return (
-    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
+    <>
+      <AlarmReminderButton
+        upcomingTrainings={upcomingTrainings}
+        attendanceMap={localAttendanceMap}
+        polls={[]}
+        memberId={child.id}
+        role={child.role}
+        teamName={child.team?.name ?? null}
+      />
+      <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header mit Begrüßung */}
       <header className="mb-6 md:mb-8 animate-fade-in">
         <div>
