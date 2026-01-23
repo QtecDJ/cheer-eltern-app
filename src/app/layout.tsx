@@ -8,6 +8,7 @@ import { PullToRefresh } from "@/components/pull-to-refresh";
 import { ContentCacheInit } from "@/components/content-cache-init";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { cn } from "@/lib/utils";
+import AlarmReminderButton from "@/components/alarmReminder/AlarmReminderButton";
 
 export const metadata: Metadata = {
   title: "Member App",
@@ -141,6 +142,17 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         {session && <InstallPrompt />}
         {session && <ContentCacheInit />}
         {session && <OfflineIndicator />}
+        {/* Global alarm reminder for coaches/admins - client component receives session info */}
+        {session && (
+          <AlarmReminderButton
+            upcomingTrainings={[]}
+            attendanceMap={{}}
+            polls={[]}
+            memberId={session.id}
+            role={session.userRole || undefined}
+            teamName={session.teamName}
+          />
+        )}
         {session && <BottomNav items={navItems} />}
         <PullToRefresh>
           <main className={cn(

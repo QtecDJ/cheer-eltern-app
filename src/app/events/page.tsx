@@ -99,14 +99,15 @@ export default async function EventsPage() {
     redirect("/login");
   }
 
-  // Trainer/Coach: Zeige Announcements für coachTeamId, sonst für teamId als Athlet
-  const relevantTeamId = session.coachTeamId || session.teamId;
+  // Prefer athlete team but also include coach team so users see announcements for both
+  const teamIds = Array.from(new Set([session.teamId, session.coachTeamId].filter(Boolean))) as number[];
+  const relevantTeamIdOrArray = teamIds.length > 0 ? teamIds : undefined;
 
   // Alle Daten parallel laden mit optimierten Queries
   const [events, competitions, rawAnnouncements] = await Promise.all([
     getEventsWithParticipants(),
     getCompetitionsWithParticipants(),
-    getEventAnnouncementsWithPolls(relevantTeamId ?? undefined, session.id),
+    getEventAnnouncementsWithPolls(relevantTeamIdOrArray, session.id),
   ]);
 
   // Transform announcements to match expected format

@@ -50,24 +50,34 @@ export function useAlarmReminderLogic({
       upcomingTrainings.find((t) => {
         // Parse training date/time. If time available, combine; otherwise use local date.
         try {
-          const [y, m, d] = (t.date || "").split("-").map((s) => Number(s));
-          if (!y || !m || !d) return false;
+          // Parse date robustly: accept full ISO or YYYY-MM-DD, and optionally apply provided time
+          const baseDate = new Date(t.date);
+          if (isNaN(baseDate.getTime())) return false;
 
-          let dt: number;
-          if (t && (t as any).time) {
+          let dateObj = new Date(baseDate.getTime());
+          if ((t as any).time) {
             const timeStr = (t as any).time as string;
             const [hh = "0", mm = "0"] = timeStr.split(":");
-            dt = new Date(y, m - 1, d, Number(hh), Number(mm)).getTime();
-          } else {
-            dt = new Date(y, m - 1, d).getTime();
+            const hhNum = Number(hh || 0);
+            const mmNum = Number(mm || 0);
+            if (!Number.isFinite(hhNum) || !Number.isFinite(mmNum)) return false;
+            dateObj.setHours(hhNum, mmNum, 0, 0);
           }
 
-          if (isNaN(dt)) return false;
+          const dt = dateObj.getTime();
           const delta = dt - now;
           if (delta < 0 || delta > maxMs) return false;
 
           // Respect team ownership: members see only their team unless role allows global view
-          const teamMatches = !t.team || !t.team.name || !teamName || t.team.name === teamName;
+          // Normalize names (case-insensitive, collapse whitespace, handle HTML entities) to avoid mismatches
+          const normalize = (s?: string | null) =>
+            (s || "")
+              .replace(/&amp;/g, "&")
+              .toLowerCase()
+              .replace(/\s+/g, " ")
+              .trim();
+          const teamMatches =
+            !t.team || !t.team.name || !teamName || normalize(t.team.name) === normalize(teamName);
           const roleLower = (role || "").toLowerCase();
           const roleAllowsAll = ["admin", "coach", "orga"].includes(roleLower);
           if (!teamMatches && !roleAllowsAll) return false;

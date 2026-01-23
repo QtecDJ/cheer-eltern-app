@@ -423,7 +423,7 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
  * Ankündigungen mit Poll-Daten für Events-Seite
  * Komplex, aber optimiert
  */
-export async function getEventAnnouncementsWithPolls(teamId?: number, memberId?: number, limit = 15) {
+export async function getEventAnnouncementsWithPolls(teamId?: number | number[] , memberId?: number, limit = 15) {
   const now = new Date();
   // Kombiniere alle Bedingungen in einer AND-Liste, damit keine überschrieben wird
   const andConditions: any[] = [
@@ -442,12 +442,26 @@ export async function getEventAnnouncementsWithPolls(teamId?: number, memberId?:
     },
   ];
   if (teamId) {
-    andConditions.push({
-      OR: [
-        { AnnouncementTeam: { none: {} } },
-        { AnnouncementTeam: { some: { teamId } } },
-      ],
-    });
+    if (Array.isArray(teamId)) {
+      const ids = teamId.filter(Boolean) as number[];
+      if (ids.length > 0) {
+        andConditions.push({
+          OR: [
+            { AnnouncementTeam: { none: {} } },
+            { AnnouncementTeam: { some: { teamId: { in: ids } } } },
+          ],
+        });
+      } else {
+        andConditions.push({ AnnouncementTeam: { none: {} } });
+      }
+    } else {
+      andConditions.push({
+        OR: [
+          { AnnouncementTeam: { none: {} } },
+          { AnnouncementTeam: { some: { teamId } } },
+        ],
+      });
+    }
   } else {
     andConditions.push({ AnnouncementTeam: { none: {} } });
   }
