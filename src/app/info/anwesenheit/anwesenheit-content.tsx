@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -70,6 +72,8 @@ interface AnwesenheitContentProps {
   existingAttendances: ExistingAttendance[];
   initialExcusedCount: number;
   isAdmin: boolean;
+  teams?: Team[] | null;
+  selectedTeamId?: number | null;
 }
 
 type AttendanceStatus = "present" | "absent" | null;
@@ -80,7 +84,9 @@ export function AnwesenheitContent({
   existingAttendances,
   initialExcusedCount,
   isAdmin 
+  , teams = null, selectedTeamId = null
 }: AnwesenheitContentProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState<number | null>(null);
@@ -196,6 +202,28 @@ export function AnwesenheitContent({
           <h1 className="text-2xl font-bold">Anwesenheit</h1>
         </div>
         
+        {/* Admin Team Selector */}
+        {isAdmin && teams && teams.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-3 overflow-x-auto py-1">
+              {/* 'Alle Teams' removed per request */}
+              {teams.map((t) => {
+                const active = selectedTeamId === t.id;
+                return (
+                  <Link
+                    key={t.id}
+                    href={`/info/anwesenheit?teamId=${t.id}`}
+                    className={`px-3 py-1 rounded-full text-sm border whitespace-nowrap ${active ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-card'}`}
+                    style={{ borderColor: t.color || undefined }}
+                  >
+                    {t.name}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Training Info Card */}
         <Card className="bg-primary/5 border-primary/20 mb-4">
           <CardContent className="py-4">
@@ -296,7 +324,7 @@ export function AnwesenheitContent({
 
       {/* Mitglieder-Liste */}
       <div className="space-y-2">
-        {filteredMembers.map((member) => {
+            {filteredMembers.map((member) => {
           const info = attendanceInfo.get(member.id);
           const hasDeclined = info?.status === "excused";
           
@@ -406,8 +434,13 @@ const AttendanceCard = React.memo(function AttendanceCard({
                 )}
               </div>
             )}
-            {status === "present" && updatedAt && (
-              <p className="text-xs text-muted-foreground mt-1">Zugesagt: {formatDateTime(updatedAt)}</p>
+
+            {status === "present" && (
+              <p className="text-xs text-muted-foreground mt-1">Zugesagt{updatedAt ? `: ${formatDateTime(updatedAt)}` : " (Zeitpunkt fehlt)"}</p>
+            )}
+
+            {status === "absent" && (
+              <p className="text-xs text-muted-foreground mt-1">Abwesend{updatedAt ? `: ${formatDateTime(updatedAt)}` : ""}</p>
             )}
           </div>
           

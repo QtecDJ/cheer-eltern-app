@@ -2,7 +2,8 @@ import {
   getNextTrainingForAttendance, 
   getTeamMembersForAttendance, 
   getAttendancesForTraining,
-  getCoachTeamName 
+  getCoachTeamName,
+  getActiveTeamsForFilter,
 } from "@/lib/queries";
 import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -11,7 +12,7 @@ import { AnwesenheitContent } from "./anwesenheit-content";
 // Revalidate every 30 seconds for attendance
 export const revalidate = 30;
 
-export default async function AnwesenheitPage() {
+export default async function AnwesenheitPage({ searchParams }: { searchParams?: any }) {
   const session = await getSession();
   
   if (!session) {
@@ -45,7 +46,31 @@ export default async function AnwesenheitPage() {
     );
   }
   
-  const currentTraining = await getNextTrainingForAttendance(coachTeamId);
+  // Bestimme das selektierte Team: für Admins kann `searchParams.teamId` gewählt werden
+  let selectedTeamId: number | null = coachTeamId ?? null;
+  // `searchParams` can be a Promise in some Next.js contexts — await it safely
+  const params = await (searchParams ?? {});
+  if (isAdmin) {
+    const raw = params?.teamId;
+    let teamIdStr: string | undefined;
+    if (Array.isArray(raw)) {
+      teamIdStr = raw[0];
+    } else {
+      teamIdStr = raw;
+    }
+
+    if (teamIdStr) {
+      const parsed = Number(teamIdStr);
+      selectedTeamId = Number.isFinite(parsed) ? parsed : null;
+    } else {
+      selectedTeamId = null;
+    }
+  }
+
+  // Wenn Admin, lade verfügbare Teams zur Auswahl
+  const activeTeams = isAdmin ? await getActiveTeamsForFilter() : null;
+
+  const currentTraining = await getNextTrainingForAttendance(selectedTeamId ?? null);
 
   // current training loaded
 
@@ -104,6 +129,8 @@ export default async function AnwesenheitPage() {
       existingAttendances={serializedAttendances}
       initialExcusedCount={excusedCount}
       isAdmin={isAdmin}
+      teams={activeTeams}
+      selectedTeamId={selectedTeamId ?? null}
     />
   );
 }
