@@ -8,19 +8,29 @@ import type { ReminderKind } from "./useAlarmReminderLogic";
 interface Props {
   reminder: ReminderKind;
   onClose: () => void;
+  role?: string | undefined;
 }
 
-export default function ReminderInfoCard({ reminder, onClose }: Props) {
-  const primaryText =
+export default function ReminderInfoCard({ reminder, onClose, role }: Props) {
+  let primaryText =
     reminder.kind === "training"
       ? "Kurzer Hinweis: Für das heutige Training fehlt noch deine Rückmeldung."
       : "Zur Info: Es gibt aktuell eine laufende Abstimmung.";
 
   const actionLabel = reminder.kind === "training" ? "Zum Training" : "Zur Abstimmung";
-  const actionHref =
-    reminder.kind === "training"
-      ? `/training/${reminder.training.id}`
-      : `/events`;
+  const actionHref = reminder.kind === "training" ? `/training/${reminder.training.id}` : `/events`;
+
+  // If user is a coach/admin and a precomputed missingCount is available, show coach-specific message
+  const roleLower = (role || "").toLowerCase();
+  const isCoachLike = ["coach", "admin", "orga"].includes(roleLower);
+  if (reminder.kind === "training" && isCoachLike) {
+    const missing = reminder.training.missingCount;
+    if (typeof missing === "number") {
+      primaryText = `Kurz zur Info: Bei "${reminder.training.title}" haben noch ${missing} Teilnehmende nicht geantwortet.`;
+    } else {
+      primaryText = `Kurz zur Info: Es fehlen noch Rückmeldungen für "${reminder.training.title}".`;
+    }
+  }
 
   return (
     <div

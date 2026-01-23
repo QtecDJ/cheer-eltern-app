@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import { ReactNode, HTMLAttributes } from "react";
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
   variant?: "default" | "gradient" | "outline";
@@ -13,9 +13,11 @@ export function Card({
   className,
   variant = "default",
   padding = "md",
+  ...props
 }: CardProps) {
   return (
     <div
+      {...props}
       className={cn(
         "rounded-2xl transition-all duration-200",
         // Variants

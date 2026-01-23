@@ -39,11 +39,29 @@ interface Member {
   team: Team | null;
 }
 
+// Module-level date helpers so child components can use them
+const formatDateTime = (dateString?: string | null) => {
+  if (!dateString) return "";
+  const d = new Date(dateString);
+  return d.toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" });
+};
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("de-DE", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
 interface ExistingAttendance {
   memberId: number;
   status: string;
   reason: string | null;
   notes: string | null;
+  updatedAt?: string | null;
 }
 
 interface AnwesenheitContentProps {
@@ -95,16 +113,9 @@ export function AnwesenheitContent({
     return map;
   }, [existingAttendances]);
 
-  // Formatiere Datum
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("de-DE", { 
-      weekday: "long", 
-      year: "numeric", 
-      month: "long", 
-      day: "numeric" 
-    });
-  };
+  // Modal state for decline details
+  const [selectedDecline, setSelectedDecline] = useState<ExistingAttendance | null>(null);
+ 
 
   // Filter Mitglieder (memoized)
   const filteredMembers = useMemo(() => {
@@ -297,6 +308,8 @@ export function AnwesenheitContent({
               onToggle={(status) => toggleAttendance(member.id, status)}
               hasDeclined={hasDeclined}
               declineReason={info?.reason || null}
+              updatedAt={info?.updatedAt ?? null}
+              onOpenDecline={() => info && setSelectedDecline(info)}
               isSaving={saving === member.id}
             />
           );
@@ -311,32 +324,70 @@ export function AnwesenheitContent({
           </div>
         )}
       </div>
+      {selectedDecline && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          onClick={() => setSelectedDecline(null)}
+        >
+          <div className="max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-sm">Abwesenheitsgrund</h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {selectedDecline.reason || "Keine Angabe"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      {selectedDecline.updatedAt ? `Gemeldet: ${formatDateTime(selectedDecline.updatedAt)}` : "Zeitpunkt unbekannt"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedDecline(null)}
+                    className="text-muted-foreground hover:text-foreground p-2 rounded-md"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // Einzelne Anwesenheits-Karte
-const AttendanceCard = React.memo(function AttendanceCard({ 
-  member, 
+const AttendanceCard = React.memo(function AttendanceCard({
+  member,
   status,
   onToggle,
   hasDeclined,
   declineReason,
+  updatedAt,
   isSaving,
-}: { 
-  member: Member; 
+  onOpenDecline,
+}: {
+  member: Member;
   status: AttendanceStatus;
   onToggle: (status: AttendanceStatus) => void;
   hasDeclined: boolean;
   declineReason: string | null;
+  updatedAt?: string | null;
   isSaving?: boolean;
+  onOpenDecline?: () => void;
 }) {
   return (
-    <Card className={`transition-all ${
-      status === "present" ? "bg-green-500/10 border-green-500/30" :
-      status === "absent" ? "bg-red-500/10 border-red-500/30" : 
-      hasDeclined ? "bg-amber-500/10 border-amber-500/30" : ""
-    } ${isSaving ? "opacity-50" : ""}`}>
+    <Card
+      onClick={hasDeclined && onOpenDecline ? onOpenDecline : undefined}
+      className={`transition-all ${
+        status === "present" ? "bg-green-500/10 border-green-500/30" :
+        status === "absent" ? "bg-red-500/10 border-red-500/30" : 
+        hasDeclined ? "bg-amber-500/10 border-amber-500/30" : ""
+      } ${isSaving ? "opacity-50" : ""} ${hasDeclined ? 'cursor-pointer' : ''}`}
+      role={hasDeclined ? 'button' : undefined}
+    >
       <CardContent className="py-3">
         <div className="flex items-center gap-3">
           <Avatar name={member.name} src={member.photoUrl} size="md" />
@@ -349,18 +400,21 @@ const AttendanceCard = React.memo(function AttendanceCard({
                   Entschuldigt
                 </Badge>
                 {declineReason && (
-                  <span className="text-xs text-muted-foreground truncate">
+                  <button onClick={onOpenDecline} className="text-xs text-muted-foreground truncate hover:underline">
                     {declineReason}
-                  </span>
+                  </button>
                 )}
               </div>
+            )}
+            {status === "present" && updatedAt && (
+              <p className="text-xs text-muted-foreground mt-1">Zugesagt: {formatDateTime(updatedAt)}</p>
             )}
           </div>
           
           {/* Anwesenheits-Buttons */}
           <div className="flex gap-2 shrink-0">
             <button
-              onClick={() => onToggle("present")}
+              onClick={(e) => { e.stopPropagation(); onToggle("present"); }}
               disabled={isSaving}
               className={`p-2 rounded-lg transition-colors ${
                 status === "present"
@@ -372,7 +426,7 @@ const AttendanceCard = React.memo(function AttendanceCard({
               <Check className="w-5 h-5" />
             </button>
             <button
-              onClick={() => onToggle("absent")}
+              onClick={(e) => { e.stopPropagation(); onToggle("absent"); }}
               disabled={isSaving}
               className={`p-2 rounded-lg transition-colors ${
                 status === "absent"

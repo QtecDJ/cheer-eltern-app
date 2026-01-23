@@ -378,6 +378,7 @@ export function HomeContent({
         )}
       </section>
     </div>
+    </>
   );
 }
 

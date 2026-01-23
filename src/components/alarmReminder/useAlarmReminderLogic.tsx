@@ -7,6 +7,8 @@ export interface TrainingItem {
   title: string;
   date: string; // ISO
   team?: { name?: string } | null;
+  // optional precomputed missing responses count (frontend will use if available)
+  missingCount?: number | null;
 }
 
 export interface PollItem {
@@ -46,19 +48,36 @@ export function useAlarmReminderLogic({
 
     return (
       upcomingTrainings.find((t) => {
-        const date = new Date(t.date).getTime();
-        if (isNaN(date)) return false;
-        const delta = date - now;
-        if (delta < 0 || delta > maxMs) return false;
+        // Parse training date/time. If time available, combine; otherwise use local date.
+        try {
+          const [y, m, d] = (t.date || "").split("-").map((s) => Number(s));
+          if (!y || !m || !d) return false;
 
-        // Respect team ownership: members see only their team unless role allows global view
-        const teamMatches = !t.team || !t.team.name || !teamName || t.team.name === teamName;
-        const roleAllowsAll = role === "Admin" || role === "Coach" || role === "Orga";
-        if (!teamMatches && !roleAllowsAll) return false;
+          let dt: number;
+          if (t && (t as any).time) {
+            const timeStr = (t as any).time as string;
+            const [hh = "0", mm = "0"] = timeStr.split(":");
+            dt = new Date(y, m - 1, d, Number(hh), Number(mm)).getTime();
+          } else {
+            dt = new Date(y, m - 1, d).getTime();
+          }
 
-        // Attendance missing
-        const att = attendanceMap ? attendanceMap[t.id] : undefined;
-        return att === undefined || att === null || att === "";
+          if (isNaN(dt)) return false;
+          const delta = dt - now;
+          if (delta < 0 || delta > maxMs) return false;
+
+          // Respect team ownership: members see only their team unless role allows global view
+          const teamMatches = !t.team || !t.team.name || !teamName || t.team.name === teamName;
+          const roleLower = (role || "").toLowerCase();
+          const roleAllowsAll = ["admin", "coach", "orga"].includes(roleLower);
+          if (!teamMatches && !roleAllowsAll) return false;
+
+          // Attendance missing
+          const att = attendanceMap ? attendanceMap[t.id] : undefined;
+          return att === undefined || att === null || att === "";
+        } catch (e) {
+          return false;
+        }
       }) || null
     );
   }, [upcomingTrainings, attendanceMap, now, role, teamName]);
@@ -83,6 +102,24 @@ export function useAlarmReminderLogic({
     if (pollReminder) return { kind: "poll", poll: pollReminder };
     return null;
   }, [trainingReminder, pollReminder]);
+
+  // Debug logging in development to help troubleshooting when reminder doesn't appear
+  try {
+    if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+      // eslint-disable-next-line no-console
+      console.debug("useAlarmReminderLogic inputs:", {
+        upcomingTrainings: upcomingTrainings?.slice(0, 5),
+        attendanceMap: attendanceMap || null,
+        polls: polls?.slice(0, 5),
+        role,
+        teamName,
+      });
+      // eslint-disable-next-line no-console
+      console.debug("useAlarmReminderLogic result:", { reminder, shouldShow: reminder !== null });
+    }
+  } catch (e) {
+    // ignore
+  }
 
   return {
     reminder,

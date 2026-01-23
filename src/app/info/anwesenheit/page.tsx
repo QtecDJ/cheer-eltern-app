@@ -88,6 +88,12 @@ export default async function AnwesenheitPage() {
   // Hole bestehende Attendance-Einträge für dieses Training
   const attendances = await getAttendancesForTraining(currentTraining.id);
 
+  // Serialisiere serverseitige Date-Objekte zu ISO-Strings für Props
+  const serializedAttendances = attendances.map((a) => ({
+    ...a,
+    updatedAt: a.updatedAt ? a.updatedAt.toISOString() : null,
+  }));
+
   // Berechne Statistiken auf dem Server für Hydration-Konsistenz
   const excusedCount = attendances.filter(a => a.status === "excused").length;
 
@@ -95,7 +101,7 @@ export default async function AnwesenheitPage() {
     <AnwesenheitContent
       training={currentTraining}
       members={members}
-      existingAttendances={attendances}
+      existingAttendances={serializedAttendances}
       initialExcusedCount={excusedCount}
       isAdmin={isAdmin}
     />

@@ -739,6 +739,7 @@ export async function getAttendancesForTraining(trainingId: number) {
       status: true,
       reason: true,
       notes: true,
+      updatedAt: true,
     },
   });
 }

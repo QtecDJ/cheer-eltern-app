@@ -65,6 +65,7 @@ export default function AlarmReminderButton(props: Props) {
         <ReminderInfoCard
           reminder={reminder}
           onClose={handleClose}
+          role={props.role}
         />
       )}
     </>
