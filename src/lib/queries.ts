@@ -771,3 +771,79 @@ export async function getCoachTeamName(coachTeamId: number) {
 /**
  
  */
+
+// ======================
+// Message / Ticket APIs
+// ======================
+
+export async function createMessage(data: { subject: string; body: string; senderId: number }) {
+  return await prisma.message.create({
+    data: {
+      subject: data.subject,
+      body: data.body,
+      senderId: data.senderId,
+    },
+  });
+}
+
+export async function getMessagesForStaff(limit = 50) {
+  // Return recent open/assigned messages
+  return await prisma.message.findMany({
+    where: { status: { in: ["open", "assigned"] } },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      subject: true,
+      senderId: true,
+      status: true,
+      assignedTo: true,
+      createdAt: true,
+      sender: { select: { id: true, firstName: true, lastName: true, name: true } },
+    },
+  });
+}
+
+export async function getMessageById(id: number) {
+  return await prisma.message.findUnique({
+    where: { id },
+    include: {
+      sender: { select: { id: true, firstName: true, lastName: true, email: true, name: true } },
+      assignee: { select: { id: true, firstName: true, lastName: true, name: true } },
+      replies: { include: { author: { select: { id: true, firstName: true, lastName: true, name: true } } }, orderBy: { createdAt: "asc" } },
+    },
+  });
+}
+
+export async function createMessageReply(messageId: number, authorId: number, body: string) {
+  return await prisma.messageReply.create({
+    data: {
+      messageId,
+      authorId,
+      body,
+    },
+  });
+}
+
+export async function assignMessageTo(messageId: number, assigneeId: number | null) {
+  return await prisma.message.update({
+    where: { id: messageId },
+    data: {
+      assignedTo: assigneeId,
+      status: assigneeId ? "assigned" : "open",
+    },
+  });
+}
+
+export async function markMessageResolved(messageId: number) {
+  return await prisma.message.update({
+    where: { id: messageId },
+    data: { status: "resolved", resolvedAt: new Date() },
+  });
+}
+
+export async function deleteResolvedMessagesOlderThan(hours = 48) {
+  const cutoff = new Date(Date.now() - hours * 3600 * 1000);
+  const deleted = await prisma.message.deleteMany({ where: { status: "resolved", resolvedAt: { lt: cutoff } } });
+  return deleted;
+}

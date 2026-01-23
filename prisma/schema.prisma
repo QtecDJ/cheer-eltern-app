@@ -366,3 +366,37 @@ model PushSubscription {
   @@index([endpoint])
   @@map("push_subscriptions")
 }
+
+model Message {
+  id          Int       @id @default(autoincrement())
+  subject     String    @db.VarChar(255)
+  body        String
+  senderId    Int
+  assignedTo  Int?
+  status      String    @default("open") // open | assigned | resolved
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sender      Member    @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  assignee    Member?   @relation("MessageAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  replies     MessageReply[]
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@index([senderId])
+}
+
+model MessageReply {
+  id         Int      @id @default(autoincrement())
+  messageId  Int
+  authorId   Int
+  body       String
+  createdAt  DateTime @default(now())
+
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  author     Member   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([authorId])
+}
