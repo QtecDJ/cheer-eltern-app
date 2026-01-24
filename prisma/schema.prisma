@@ -67,6 +67,8 @@ model Member {
   events            Event[]            @relation("EventParticipations")
   trainings         TrainingSession[]  @relation("TrainingParticipants")
   pushSubscriptions PushSubscription[]
+  // Neue Spalte: Rollen als Array (backwards-compatible zu `userRole` string)
+  roles            String[]  @default([])
 
   @@index([email])
   @@index([status])
@@ -375,6 +377,7 @@ model Message {
   id         Int       @id @default(autoincrement())
   subject    String    @db.VarChar(255)
   body       String
+  audience   String?
   senderId   Int
   assignedTo Int?
   status     String    @default("open") // open | assigned | resolved

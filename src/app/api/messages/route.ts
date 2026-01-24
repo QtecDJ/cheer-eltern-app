@@ -10,9 +10,10 @@ export async function POST(req: Request) {
     const body = await req.json();
     const subject = (body.subject || "").toString().slice(0, 255);
     const message = (body.message || "").toString();
+    const target = (body.target || body.target === "" ? body.target : "admins").toString();
     if (!subject || !message) return NextResponse.json({ error: "missing" }, { status: 400 });
 
-    const created = await createMessage({ subject, body: message, senderId: session.id });
+    const created = await createMessage({ subject, body: message, senderId: session.id, target });
     // Return the created message so the client can navigate to it
     return NextResponse.json({ success: true, message: created });
   } catch (e) {

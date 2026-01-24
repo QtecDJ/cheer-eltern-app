@@ -16,12 +16,20 @@ export interface SessionUser {
   teamId: number | null;
   teamName: string | null;
   userRole: string | null;
+  roles?: string[] | null;
   coachTeamId: number | null;
 }
 
 // Hilfsfunktion zum Prüfen ob User Admin oder Trainer ist
-export function isAdminOrTrainer(userRole: string | null): boolean {
-  return userRole === "admin" || userRole === "trainer" || userRole === "coach";
+export function isAdminOrTrainer(userRoleOrRoles: string | string[] | null): boolean {
+  if (!userRoleOrRoles) return false;
+  let roles: string[] = [];
+  if (Array.isArray(userRoleOrRoles)) {
+    roles = userRoleOrRoles.map((r) => (r || "").toString().trim().toLowerCase());
+  } else {
+    roles = userRoleOrRoles.toString().split(",").map((r) => r.trim().toLowerCase());
+  }
+  return roles.includes("admin") || roles.includes("trainer") || roles.includes("coach") || roles.includes("orga");
 }
 
 // Passwort-Vergleich: unterstützt bcrypt-Hashes und Klartext-Passwörter
@@ -107,6 +115,7 @@ export async function login(firstName: string, lastName: string, password: strin
       teamId: member.teamId,
       teamName: member.team?.name || null,
       userRole: member.userRole || null,
+      roles: (member as any).roles || (member.userRole ? member.userRole.split(',').map((r: string) => r.trim()) : []),
       coachTeamId: member.coachTeamId || null,
     };
 

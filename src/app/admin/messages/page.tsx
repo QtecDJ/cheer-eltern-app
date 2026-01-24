@@ -14,6 +14,11 @@ export default async function MessagesAdminPage() {
   if (!isAdminOrTrainer(role)) redirect("/");
 
   const messages = await getMessagesForStaff(100);
+  // If the current session is only 'orga', show only messages targeted to Orga
+  let filtered = messages;
+  if ((role || "").toLowerCase().includes("orga") && !(role || "").toLowerCase().includes("admin")) {
+    filtered = messages.filter((m: any) => (m.audience || "admins") === "orga");
+  }
 
   return (
     <div className="py-6">
@@ -22,7 +27,7 @@ export default async function MessagesAdminPage() {
         {(() => {
           // Group messages by sender team name
           const groups: Record<string, any[]> = {};
-          for (const m of messages) {
+          for (const m of filtered) {
             const teamName = m.sender?.team?.name || "Keine Mannschaft";
             if (!groups[teamName]) groups[teamName] = [];
             groups[teamName].push(m);
@@ -50,7 +55,7 @@ export default async function MessagesAdminPage() {
             </div>
           ));
         })()}
-        {messages.length === 0 && <div className="text-sm text-muted-foreground">Keine offenen Nachrichten.</div>}
+        {filtered.length === 0 && <div className="text-sm text-muted-foreground">Keine offenen Nachrichten.</div>}
       </div>
     </div>
   );

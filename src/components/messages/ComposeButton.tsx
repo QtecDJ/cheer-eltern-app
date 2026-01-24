@@ -6,6 +6,7 @@ export default function ComposeButton({ label = "Neue Nachricht" }: { label?: st
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [target, setTarget] = useState<string>("admins");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +26,7 @@ export default function ComposeButton({ label = "Neue Nachricht" }: { label?: st
       const res = await fetch(`/api/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: subject.trim(), message: body.trim() }),
+        body: JSON.stringify({ subject: subject.trim(), message: body.trim(), target }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "Serverfehler");
@@ -68,6 +69,14 @@ export default function ComposeButton({ label = "Neue Nachricht" }: { label?: st
 
             <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Betreff" className="w-full p-2 border rounded mb-2" />
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Nachricht" className="w-full p-2 border rounded" />
+
+            <div className="mt-2">
+              <label className="text-sm">Zielgruppe</label>
+              <select value={target} onChange={(e) => setTarget(e.target.value)} className="w-full p-1 border rounded bg-transparent mt-1">
+                <option value="admins">ICA Leitung</option>
+                <option value="orga">Orga Team</option>
+              </select>
+            </div>
 
             {error && <div className="text-sm text-destructive mt-2">{error}</div>}
 

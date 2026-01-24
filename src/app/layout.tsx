@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { BottomNav, type NavItem } from "@/components/bottom-nav";
-import { getSession } from "@/lib/auth";
+import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { InstallPrompt } from "@/components/install-prompt";
 import { PullToRefresh } from "@/components/pull-to-refresh";
@@ -119,7 +119,7 @@ import { cookies } from "next/headers";
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getSession();
   const userRole = session?.userRole || null;
-  const isAdminOrTrainer = userRole === "admin" || userRole === "trainer" || userRole === "coach";
+  const hasAdminAccess = isAdminOrTrainer(userRole);
   const navItems: NavItem[] = [
     { href: "/", icon: "Home", label: "Home" },
     { href: "/training", icon: "Calendar", label: "Training" },
@@ -141,7 +141,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         {session && <InstallPrompt />}
         {session && <ContentCacheInit />}
         {session && <OfflineIndicator />}
-           {isAdminOrTrainer && <AdminQuickButton />}
+          {hasAdminAccess && <AdminQuickButton />}
         {session && <BottomNav items={navItems} />}
         <PullToRefresh>
           <main className={cn(

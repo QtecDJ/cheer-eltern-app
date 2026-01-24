@@ -5,6 +5,7 @@ import React, { useState } from "react";
 export default function MessageForm() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [target, setTarget] = useState<string>("admins");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +18,7 @@ export default function MessageForm() {
       const res = await fetch(`/api/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: subject.trim(), message: body.trim() }),
+        body: JSON.stringify({ subject: subject.trim(), message: body.trim(), target: target }),
       });
       if (!res.ok) throw new Error("Serverfehler");
       const json = await res.json();
@@ -47,6 +48,13 @@ export default function MessageForm() {
   return (
     <form onSubmit={send} className="space-y-2">
       <label className="text-sm font-medium">Nachricht an das Team</label>
+      <div className="flex gap-2 items-center">
+        <label className="text-sm">Zielgruppe</label>
+          <select value={target} onChange={(e) => setTarget(e.target.value)} className="p-1 border rounded bg-transparent">
+          <option value="admins">ICA Leitung</option>
+          <option value="orga">Orga Team</option>
+        </select>
+      </div>
       <input
         value={subject}
         onChange={(e) => setSubject(e.target.value)}

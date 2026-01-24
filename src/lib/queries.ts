@@ -777,13 +777,14 @@ export async function getCoachTeamName(coachTeamId: number) {
 // Message / Ticket APIs
 // ======================
 
-export async function createMessage(data: { subject: string; body: string; senderId: number }) {
+export async function createMessage(data: { subject: string; body: string; senderId: number; target?: string }) {
   const body = encryptText(data.body || "");
   return await prisma.message.create({
     data: {
       subject: data.subject,
       body,
       senderId: data.senderId,
+      audience: data.target || "admins",
     },
   });
 }
@@ -797,6 +798,7 @@ export async function getMessagesForStaff(limit = 50) {
     select: {
       id: true,
       subject: true,
+      audience: true,
       senderId: true,
       status: true,
       assignedTo: true,
