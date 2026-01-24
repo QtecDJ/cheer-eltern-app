@@ -10,8 +10,7 @@ export const revalidate = 60;
 export default async function MessagesAdminPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-  const role = session.userRole || null;
-  if (!isAdminOrTrainer(role)) redirect("/");
+  if (!isAdminOrTrainer(session.roles ?? session.userRole ?? null)) redirect("/");
 
   const messages = await getMessagesForStaff(100);
   // If the current session is only 'orga', show only messages targeted to Orga

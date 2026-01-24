@@ -4,7 +4,7 @@ import { assignMessageTo } from "@/lib/queries";
 
 export async function POST(req: Request, context: any) {
   const session = await getSession();
-  if (!session || !isAdminOrTrainer(session.userRole || null)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!session || !isAdminOrTrainer(session.roles ?? session.userRole ?? null)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   try {
     const body = await req.json();
     const assigneeId = body.assigneeId ?? null;

@@ -8,7 +8,7 @@ import MessageActions from "@/components/admin/MessageActions";
 export default async function MessageDetailPage({ params }: { params: any }) {
   const session = await getSession();
   if (!session) redirect("/login");
-  if (!isAdminOrTrainer(session.userRole || null)) redirect("/");
+  if (!isAdminOrTrainer(session.roles ?? session.userRole ?? null)) redirect("/");
   const resolvedParams = await params;
   const id = Number(resolvedParams.id);
   const message = await getMessageById(id);

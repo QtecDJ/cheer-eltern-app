@@ -119,7 +119,7 @@ import { cookies } from "next/headers";
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getSession();
   const userRole = session?.userRole || null;
-  const hasAdminAccess = isAdminOrTrainer(userRole);
+  const hasAdminAccess = isAdminOrTrainer(session?.roles ?? userRole ?? null);
   const navItems: NavItem[] = [
     { href: "/", icon: "Home", label: "Home" },
     { href: "/training", icon: "Calendar", label: "Training" },
