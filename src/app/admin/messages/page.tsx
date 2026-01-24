@@ -15,7 +15,8 @@ export default async function MessagesAdminPage() {
   const messages = await getMessagesForStaff(100);
   // If the current session is only 'orga', show only messages targeted to Orga
   let filtered = messages;
-  if ((role || "").toLowerCase().includes("orga") && !(role || "").toLowerCase().includes("admin")) {
+  const rolesStr = session.roles ? (session.roles as string[]).join(",") : (session.userRole || "");
+  if (rolesStr.toLowerCase().includes("orga") && !rolesStr.toLowerCase().includes("admin")) {
     filtered = messages.filter((m: any) => (m.audience || "admins") === "orga");
   }
 
