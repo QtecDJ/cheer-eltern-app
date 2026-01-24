@@ -169,7 +169,39 @@ export async function getSession(): Promise<SessionUser | null> {
       return null;
     }
 
-    return JSON.parse(sessionCookie.value) as SessionUser;
+    const parsed = JSON.parse(sessionCookie.value) as SessionUser;
+
+    // If roles are missing in an existing session, try to refresh them from DB
+    if ((!parsed.roles || parsed.roles.length === 0) && parsed.id) {
+      try {
+        const member = await prisma.member.findUnique({ where: { id: parsed.id }, select: { userRole: true, roles: true, firstName: true, lastName: true, name: true, teamId: true } });
+        if (member) {
+          const roles = (member.roles && member.roles.length > 0) ? member.roles : (member.userRole ? member.userRole.split(",").map(r => r.trim()) : []);
+          const updatedSession: SessionUser = { ...parsed, roles, userRole: member.userRole || parsed.userRole };
+          // Update cookie with refreshed roles
+          cookieStore.set(SESSION_COOKIE, JSON.stringify(updatedSession), {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24 * 30,
+            path: "/",
+          });
+          // update public cookie as well
+          cookieStore.set(PUBLIC_SESSION_COOKIE, buildPublicSessionCookie(updatedSession), {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24 * 30,
+            path: "/",
+          });
+          return updatedSession;
+        }
+      } catch (e) {
+        // Ignore DB errors here and fall back to cookie value
+      }
+    }
+
+    return parsed as SessionUser;
   } catch {
     return null;
   }
