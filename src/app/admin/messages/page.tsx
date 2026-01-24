@@ -19,20 +19,37 @@ export default async function MessagesAdminPage() {
     <div className="py-6">
       <h1 className="text-2xl font-semibold mb-4">Nachrichten / Tickets</h1>
       <div className="space-y-2">
-        {messages.map((m: any) => (
-          <Link key={m.id} href={`/admin/messages/${m.id}`}>
-            <Card className="p-3 hover:shadow-md cursor-pointer">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{m.subject}</div>
-                  <div className="text-xs text-muted-foreground">Von: {m.sender?.firstName ? `${m.sender.firstName} ${m.sender.lastName}` : m.sender?.name}</div>
-                </div>
-                <div className="text-xs text-muted-foreground">{new Date(m.createdAt).toLocaleString()}</div>
+        {(() => {
+          // Group messages by sender team name
+          const groups: Record<string, any[]> = {};
+          for (const m of messages) {
+            const teamName = m.sender?.team?.name || "Keine Mannschaft";
+            if (!groups[teamName]) groups[teamName] = [];
+            groups[teamName].push(m);
+          }
+
+          return Object.entries(groups).map(([team, msgs]) => (
+            <div key={team}>
+              <div className="text-sm font-medium mb-1">{team} ({msgs.length})</div>
+              <div className="space-y-2">
+                {msgs.map((m: any) => (
+                  <Link key={m.id} href={`/admin/messages/${m.id}`}>
+                    <Card className="p-3 hover:shadow-md cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium">{m.subject}</div>
+                          <div className="text-xs text-muted-foreground">Von: {m.sender?.firstName ? `${m.sender.firstName} ${m.sender.lastName}` : m.sender?.name}</div>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{new Date(m.createdAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+                      </div>
+                      <div className="mt-2 text-sm text-muted-foreground">Status: {m.status}{m.assignedTo ? ` — Zugewiesen` : ""}</div>
+                    </Card>
+                  </Link>
+                ))}
               </div>
-              <div className="mt-2 text-sm text-muted-foreground">Status: {m.status}{m.assignedTo ? ` — Zugewiesen` : ""}</div>
-            </Card>
-          </Link>
-        ))}
+            </div>
+          ));
+        })()}
         {messages.length === 0 && <div className="text-sm text-muted-foreground">Keine offenen Nachrichten.</div>}
       </div>
     </div>

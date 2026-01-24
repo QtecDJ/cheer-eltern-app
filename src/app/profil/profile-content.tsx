@@ -264,9 +264,9 @@ export function ProfileContent({
             Abmelden
           </button>
         </form>
-
         {/* Support-Bereich */}
         <div className="mt-8 pt-6 border-t border-border">
+          {/* Message compose removed from profile page per request */}
           <div className="space-y-4 text-sm text-muted-foreground">
             <p>
               Die ICA Members App wird allen Mitgliedern

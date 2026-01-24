@@ -11,6 +11,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import { encryptText, decryptText } from "@/lib/crypto";
 
 // ============================================
 // MEMBER QUERIES
@@ -777,10 +778,11 @@ export async function getCoachTeamName(coachTeamId: number) {
 // ======================
 
 export async function createMessage(data: { subject: string; body: string; senderId: number }) {
+  const body = encryptText(data.body || "");
   return await prisma.message.create({
     data: {
       subject: data.subject,
-      body: data.body,
+      body,
       senderId: data.senderId,
     },
   });
@@ -788,7 +790,7 @@ export async function createMessage(data: { subject: string; body: string; sende
 
 export async function getMessagesForStaff(limit = 50) {
   // Return recent open/assigned messages
-  return await prisma.message.findMany({
+  const rows = await prisma.message.findMany({
     where: { status: { in: ["open", "assigned"] } },
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -799,28 +801,61 @@ export async function getMessagesForStaff(limit = 50) {
       status: true,
       assignedTo: true,
       createdAt: true,
-      sender: { select: { id: true, firstName: true, lastName: true, name: true } },
+      body: true,
+      sender: { select: { id: true, firstName: true, lastName: true, name: true, teamId: true, team: { select: { id: true, name: true } } } },
     },
   });
+  // Decrypt bodies before returning
+  return rows.map((r) => ({ ...r, body: r.body ? decryptText(r.body) : r.body }));
 }
 
-export async function getMessageById(id: number) {
-  return await prisma.message.findUnique({
-    where: { id },
+export async function getMessagesForMember(memberId: number, limit = 50) {
+  const rows = await prisma.message.findMany({
+    where: { senderId: memberId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: {
+      replies: {
+        include: { author: { select: { id: true, firstName: true, lastName: true, name: true } } },
+        orderBy: { createdAt: "asc" },
+      },
+      assignee: { select: { id: true, firstName: true, lastName: true, name: true } },
+    },
+  });
+
+  return rows.map((r) => ({
+    ...r,
+    body: r.body ? decryptText(r.body as string) : r.body,
+    replies: r.replies?.map((rep: any) => ({ ...rep, body: rep.body ? decryptText(rep.body) : rep.body })),
+  }));
+}
+
+export async function getMessageById(id: number | string) {
+  const parsedId = typeof id === "string" ? parseInt(id, 10) : id;
+  if (!parsedId || Number.isNaN(parsedId)) return null;
+
+  const row = await prisma.message.findUnique({
+    where: { id: parsedId },
     include: {
       sender: { select: { id: true, firstName: true, lastName: true, email: true, name: true } },
       assignee: { select: { id: true, firstName: true, lastName: true, name: true } },
       replies: { include: { author: { select: { id: true, firstName: true, lastName: true, name: true } } }, orderBy: { createdAt: "asc" } },
     },
   });
+  if (!row) return null;
+  // decrypt the message body and replies
+  const decryptedBody = row.body ? decryptText(row.body) : row.body;
+  const replies = row.replies?.map((r: any) => ({ ...r, body: r.body ? decryptText(r.body) : r.body }));
+  return { ...row, body: decryptedBody, replies };
 }
 
 export async function createMessageReply(messageId: number, authorId: number, body: string) {
+  const enc = encryptText(body || "");
   return await prisma.messageReply.create({
     data: {
       messageId,
       authorId,
-      body,
+      body: enc,
     },
   });
 }

@@ -56,6 +56,10 @@ model Member {
   AnnouncementRSVP  AnnouncementRSVP[]
   attendances       Attendance[]
   LoginLog          LoginLog[]
+  // Messages relations (tickets)
+  messagesSent      Message[]          @relation("MessageSender")
+  messagesAssigned  Message[]          @relation("MessageAssignee")
+  messageReplies    MessageReply[]
   team              Team?              @relation(fields: [teamId], references: [id])
   notifications     Notification[]
   PollVote          PollVote[]
@@ -352,15 +356,15 @@ model AnnouncementTeam {
 }
 
 model PushSubscription {
-  id         String    @id @default(uuid())
-  memberId   Int
-  endpoint   String    @unique
-  p256dh     String
-  auth       String
-  userAgent  String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  memberId  Int
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
 
   @@index([memberId])
   @@index([endpoint])
@@ -368,19 +372,19 @@ model PushSubscription {
 }
 
 model Message {
-  id          Int       @id @default(autoincrement())
-  subject     String    @db.VarChar(255)
-  body        String
-  senderId    Int
-  assignedTo  Int?
-  status      String    @default("open") // open | assigned | resolved
-  resolvedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         Int       @id @default(autoincrement())
+  subject    String    @db.VarChar(255)
+  body       String
+  senderId   Int
+  assignedTo Int?
+  status     String    @default("open") // open | assigned | resolved
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  sender      Member    @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
-  assignee    Member?   @relation("MessageAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
-  replies     MessageReply[]
+  sender   Member         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  assignee Member?        @relation("MessageAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  replies  MessageReply[]
 
   @@index([status])
   @@index([createdAt(sort: Desc)])
@@ -388,14 +392,14 @@ model Message {
 }
 
 model MessageReply {
-  id         Int      @id @default(autoincrement())
-  messageId  Int
-  authorId   Int
-  body       String
-  createdAt  DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  messageId Int
+  authorId  Int
+  body      String
+  createdAt DateTime @default(now())
 
-  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  author     Member   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  author  Member  @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([messageId])
   @@index([authorId])

@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { markMessageResolved } from "@/lib/queries";
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, context: any) {
   const session = await getSession();
   if (!session || !isAdminOrTrainer(session.userRole || null)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   try {
-    const id = Number(params.id);
+    const id = Number((context?.params && (await context.params).id) ?? context?.params?.id ?? context?.params);
     await markMessageResolved(id);
     return NextResponse.json({ success: true });
   } catch (e) {

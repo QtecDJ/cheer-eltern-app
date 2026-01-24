@@ -13,7 +13,8 @@ export async function POST(req: Request) {
     if (!subject || !message) return NextResponse.json({ error: "missing" }, { status: 400 });
 
     const created = await createMessage({ subject, body: message, senderId: session.id });
-    return NextResponse.json({ success: true, id: created.id });
+    // Return the created message so the client can navigate to it
+    return NextResponse.json({ success: true, message: created });
   } catch (e) {
     console.error("Create message error:", e);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

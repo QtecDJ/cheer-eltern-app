@@ -9,9 +9,10 @@ import {
   CalendarDays, 
   User, 
   ClipboardList, 
-  FileText, 
+  FileText,
   BookOpen 
 } from "lucide-react";
+import { Mail } from "lucide-react";
 
 const iconMap = {
   Home,
@@ -22,6 +23,7 @@ const iconMap = {
   File: FileText,
   FileText,
   BookOpen,
+  Mail,
 } as const;
 
 export interface NavItem {

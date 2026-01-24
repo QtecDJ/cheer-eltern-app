@@ -1,0 +1,83 @@
+"use client";
+
+import React, { useState } from "react";
+
+export default function ComposeButton({ label = "Neue Nachricht" }: { label?: string }) {
+  const [open, setOpen] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const openModal = () => setOpen(true);
+  const closeModal = () => {
+    setOpen(false);
+    setSubject("");
+    setBody("");
+    setError(null);
+  };
+
+  const send = async () => {
+    if (!subject.trim() || !body.trim()) return setError("Bitte Betreff und Nachricht ausfüllen.");
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: subject.trim(), message: body.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "Serverfehler");
+      // show confirmation briefly then navigate to message anchor if available
+      if (json?.message?.id) {
+        // show simple confirmation
+        setError(null);
+        // small success overlay
+        const prevLabel = document.activeElement as HTMLElement | null;
+        // close modal content but keep overlay for a moment
+        closeModal();
+        // navigate after a short delay so user sees the sent state in modal
+        setTimeout(() => {
+          window.location.href = `/messages#msg-${json.message.id}`;
+        }, 600);
+        return;
+      }
+      closeModal();
+    } catch (e: any) {
+      setError(e?.message || "Fehler beim Senden");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button onClick={openModal} className="py-2 px-3 bg-primary text-primary-foreground rounded">
+        {label}
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
+          <div className="relative w-full max-w-lg mx-4 bg-background border rounded p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-medium">{label}</div>
+              <button onClick={closeModal} className="text-sm text-muted-foreground">Schließen</button>
+            </div>
+
+            <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Betreff" className="w-full p-2 border rounded mb-2" />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Nachricht" className="w-full p-2 border rounded" />
+
+            {error && <div className="text-sm text-destructive mt-2">{error}</div>}
+
+            <div className="flex gap-2 mt-3">
+              <button onClick={send} disabled={loading} className="ml-auto py-2 px-3 bg-primary text-primary-foreground rounded">{loading ? "Sende…" : "Senden"}</button>
+              <button onClick={closeModal} className="py-2 px-3 rounded border">Abbrechen</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

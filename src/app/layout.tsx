@@ -8,7 +8,7 @@ import { PullToRefresh } from "@/components/pull-to-refresh";
 import { ContentCacheInit } from "@/components/content-cache-init";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { cn } from "@/lib/utils";
-import AlarmReminderButton from "@/components/alarmReminder/AlarmReminderButton";
+import AdminQuickButton from "@/components/admin/AdminQuickButton";
 
 export const metadata: Metadata = {
   title: "Member App",
@@ -123,13 +123,12 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const navItems: NavItem[] = [
     { href: "/", icon: "Home", label: "Home" },
     { href: "/training", icon: "Calendar", label: "Training" },
+    { href: "/messages", icon: "Mail", label: "Nachricht" },
     { href: "/events", icon: "CalendarDays", label: "Events" },
     { href: "/dokumente", icon: "File", label: "Dokumente" },
     { href: "/berichte", icon: "BookOpen", label: "Berichte" },
   ];
-  if (isAdminOrTrainer) {
-    navItems.push({ href: "/info", icon: "ClipboardList", label: "Info" });
-  }
+  // Info nav removed for admins per request
   navItems.push({ href: "/profil", icon: "User", label: "Profil" });
 
   return (
@@ -142,17 +141,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         {session && <InstallPrompt />}
         {session && <ContentCacheInit />}
         {session && <OfflineIndicator />}
-        {/* Global alarm reminder for coaches/admins - client component receives session info */}
-        {session && (
-          <AlarmReminderButton
-            upcomingTrainings={[]}
-            attendanceMap={{}}
-            polls={[]}
-            memberId={session.id}
-            role={session.userRole || undefined}
-            teamName={session.teamName}
-          />
-        )}
+           {isAdminOrTrainer && <AdminQuickButton />}
         {session && <BottomNav items={navItems} />}
         <PullToRefresh>
           <main className={cn(

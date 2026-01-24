@@ -5,12 +5,12 @@ import React from "react";
 import { Card } from "@/components/ui/card";
 import MessageActions from "@/components/admin/MessageActions";
 
-export default async function MessageDetailPage({ params }: { params: { id: string } }) {
+export default async function MessageDetailPage({ params }: { params: any }) {
   const session = await getSession();
   if (!session) redirect("/login");
   if (!isAdminOrTrainer(session.userRole || null)) redirect("/");
-
-  const id = Number(params.id);
+  const resolvedParams = await params;
+  const id = Number(resolvedParams.id);
   const message = await getMessageById(id);
   if (!message) return <div className="py-6">Nachricht nicht gefunden.</div>;
 
@@ -20,7 +20,7 @@ export default async function MessageDetailPage({ params }: { params: { id: stri
 
       <Card className="p-4 mb-4">
         <div className="text-sm text-muted-foreground">Von: {message.sender?.firstName ? `${message.sender.firstName} ${message.sender.lastName}` : message.sender?.name}</div>
-        <div className="text-xs text-muted-foreground">Erstellt: {new Date(message.createdAt).toLocaleString()}</div>
+        <div className="text-xs text-muted-foreground">Erstellt: {new Date(message.createdAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
         <div className="mt-3 whitespace-pre-wrap">{message.body}</div>
       </Card>
 
