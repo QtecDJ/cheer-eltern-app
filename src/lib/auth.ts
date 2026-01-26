@@ -29,7 +29,7 @@ export function isAdminOrTrainer(userRoleOrRoles: string | string[] | null): boo
   } else {
     roles = userRoleOrRoles.toString().split(",").map((r) => r.trim().toLowerCase());
   }
-  return roles.includes("admin") || roles.includes("trainer") || roles.includes("coach");
+  return roles.includes("admin") || roles.includes("trainer") || roles.includes("coach") || roles.includes("orga");
 }
 
 // Passwort-Vergleich: unterstützt bcrypt-Hashes und Klartext-Passwörter
