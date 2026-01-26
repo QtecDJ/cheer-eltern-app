@@ -917,7 +917,7 @@ export async function createMessageForAssignees(data: { subject: string; body: s
 }
 
 export async function getActiveTeamsWithMembers() {
-  return await prisma.team.findMany({
+  const teams = await prisma.team.findMany({
     where: { status: "active" },
     orderBy: { name: "asc" },
     select: {
@@ -927,6 +927,27 @@ export async function getActiveTeamsWithMembers() {
       members: { select: { id: true, firstName: true, lastName: true, name: true }, orderBy: { firstName: "asc" } },
     },
   });
+
+  // Also include a synthetic group for Admins & Orga (they may not belong to a team)
+  const specialMembers = await prisma.member.findMany({
+    where: {
+      OR: [
+        { roles: { has: "admin" } },
+        { roles: { has: "orga" } },
+        { userRole: "admin" },
+        { userRole: "orga" },
+      ],
+      status: "active",
+    },
+    select: { id: true, firstName: true, lastName: true, name: true },
+    orderBy: { firstName: "asc" },
+  });
+
+  if (specialMembers && specialMembers.length > 0) {
+    teams.unshift({ id: -1, name: "Admins & Orga", color: undefined, members: specialMembers });
+  }
+
+  return teams;
 }
 
 export async function getMessageById(id: number | string) {
