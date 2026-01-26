@@ -92,6 +92,16 @@ export default function MessageActions({ messageId, onReply }: { messageId: numb
           </button>
 
           <button
+            title="Wieder öffnen"
+            aria-label="Wieder öffnen"
+            onClick={() => post(`/api/admin/messages/${messageId}/assign`, { assigneeId: null })}
+            disabled={loading}
+            className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center"
+          >
+            <RotateCw className="w-4 h-4" />
+          </button>
+
+          <button
             title="Löschen"
             aria-label="Löschen"
             onClick={() => setDeleteOpen(true)}

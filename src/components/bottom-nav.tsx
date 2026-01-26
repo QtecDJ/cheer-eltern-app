@@ -56,7 +56,21 @@ export function BottomNav({ items }: BottomNavProps) {
       }
     })();
     // listen for global events to refresh counts (e.g., message read/assigned)
-    const handler = () => {
+    const handler = (e?: any) => {
+      // If event signals a local decrement (user read an assigned message or replied), adjust locally
+      try {
+        const detail = e?.detail;
+        if (detail && detail.localDecrementAssigned) {
+          setUnread((u) => Math.max(0, u - 1));
+          return;
+        }
+        if (detail && detail.localDecrementReplied) {
+          setReplied((r) => Math.max(0, r - 1));
+          return;
+        }
+      } catch (err) {
+        // ignore
+      }
       (async () => {
         try {
           const res = await fetch('/api/messages/unread-count');

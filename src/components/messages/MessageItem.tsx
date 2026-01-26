@@ -13,7 +13,7 @@ export default function MessageItem({ message }: { message: any }) {
       try {
         const res = await fetch(`/api/messages/${message.id}/read`, { method: "POST" });
         if (res.ok && typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('messages:changed'));
+          window.dispatchEvent(new CustomEvent('messages:changed', { detail: { localDecrementAssigned: true } }));
         }
       } catch (e) {
         // ignore errors; server will validate permissions
@@ -43,6 +43,9 @@ export default function MessageItem({ message }: { message: any }) {
         setReplies((s) => [...s, { id: json.reply.id, body: json.reply.body, createdAt: json.reply.createdAt, author: { id: json.reply.authorId, name: authorName } }]);
       }
       setReplyText("");
+      if (json?.reply && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('messages:changed', { detail: { localDecrementReplied: true } }));
+      }
     } catch (e) {
       console.error(e);
     } finally {
