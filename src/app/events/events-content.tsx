@@ -366,15 +366,36 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
 
   const todayTs = new Date(today).setHours(0, 0, 0, 0);
 
-  const upcomingItems = allItems.filter((item) => {
+  let upcomingItems = allItems.filter((item) => {
     const ts = parseTs(item.date);
     return Number.isNaN(ts) ? true : ts >= todayTs;
   });
 
-  const pastItems = allItems.filter((item) => {
+  let pastItems = allItems.filter((item) => {
     const ts = parseTs(item.date);
     return Number.isNaN(ts) ? false : ts < todayTs;
-  }).reverse();
+  });
+
+  // Ensure upcoming items are sorted ascending (nearest first).
+  upcomingItems.sort((a, b) => {
+    const ta = parseTs(a.date);
+    const tb = parseTs(b.date);
+    if (Number.isNaN(ta) && Number.isNaN(tb)) return 0;
+    if (Number.isNaN(ta)) return 1;
+    if (Number.isNaN(tb)) return -1;
+    return ta - tb;
+  });
+
+  // Ensure past items are sorted descending (most recent past first)
+  // so that when displayed they read from newest past to oldest.
+  pastItems.sort((a, b) => {
+    const ta = parseTs(a.date);
+    const tb = parseTs(b.date);
+    if (Number.isNaN(ta) && Number.isNaN(tb)) return 0;
+    if (Number.isNaN(ta)) return 1;
+    if (Number.isNaN(tb)) return -1;
+    return tb - ta;
+  });
 
   // Sortiere Announcements: Angepinnte UND wichtige zuerst, dann angepinnte, dann wichtige, dann nach Datum
   const sortedAnnouncements = [...eventAnnouncements].sort((a, b) => {
