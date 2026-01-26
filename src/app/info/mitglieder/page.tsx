@@ -13,12 +13,19 @@ export default async function MitgliederInfoPage() {
     redirect("/login");
   }
 
-  // Prüfe ob User berechtigt ist (Admin, Trainer, Coach oder Athlete mit coachTeamId)
+  // Prüfe ob User berechtigt ist (Admin, Trainer, Coach, Coach-Team oder zusätzliche Rollen wie 'orga')
   const userRole = session.userRole;
   const coachTeamId = session.coachTeamId;
-  
-  // Berechtigung: Admin/Trainer ODER User hat coachTeamId
-  const hasPermission = isAdminOrTrainer(userRole) || !!coachTeamId;
+
+  // Leite Rollen her (unterstützt neues `roles` array oder altes CSV `userRole`)
+  const roles = session.roles && session.roles.length > 0
+    ? session.roles.map(r => r.toLowerCase())
+    : (userRole || "").toString().split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
+
+  // Berechtigung wenn Admin/Trainer/Coach, oder Coach-Team gesetzt, oder der User eine zusätzliche Rolle ausser 'member' besitzt (z.B. 'orga')
+  const privileged = roles.includes("admin") || roles.includes("trainer") || roles.includes("coach");
+  const hasExtraRole = roles.some(r => r && r !== "member");
+  const hasPermission = privileged || !!coachTeamId || hasExtraRole;
   
   if (!hasPermission) {
     redirect("/");

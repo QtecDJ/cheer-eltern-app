@@ -22,9 +22,15 @@ export default async function AnwesenheitPage({ searchParams }: { searchParams?:
   // Prüfe ob User berechtigt ist (Admin, Trainer, Coach oder Athlete mit coachTeamId)
   const userRole = session.userRole;
   const coachTeamId = session.coachTeamId;
-  
-  // Berechtigung: Admin/Trainer ODER User hat coachTeamId (auch wenn nur Athlete)
-  const hasPermission = isAdminOrTrainer(userRole) || !!coachTeamId;
+
+  // Berechtigung: Admin/Trainer/Coach ODER User hat coachTeamId (auch wenn nur Athlete)
+  // Note: `orga` should NOT grant access to the attendance page — so derive roles and exclude 'orga' here.
+  const roles = session.roles && session.roles.length > 0
+    ? session.roles.map(r => r.toLowerCase())
+    : (userRole || "").toString().split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
+
+  const privileged = roles.includes("admin") || roles.includes("trainer") || roles.includes("coach");
+  const hasPermission = privileged || !!coachTeamId;
   
   if (!hasPermission) {
     redirect("/");

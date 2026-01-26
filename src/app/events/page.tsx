@@ -119,6 +119,9 @@ export default async function EventsPage() {
       competitions={competitions} 
       eventAnnouncements={eventAnnouncements}
       memberId={session.id}
+      // Orga users should not see upcoming trainings and may see full poll voter names
+      showUpcoming={!((session.roles || []).includes("orga") || (session.userRole || "").toString().toLowerCase().split(',').includes('orga'))}
+      showVoterNames={(session.roles || []).includes("orga") || (session.userRole || "").toString().toLowerCase().split(',').includes('orga')}
     />
   );
 }

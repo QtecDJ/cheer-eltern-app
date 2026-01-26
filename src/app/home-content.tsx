@@ -21,6 +21,7 @@ import {
   PartyPopper,
   XCircle,
 } from "lucide-react";
+import { Poll, PollData } from "@/components/ui/poll";
 import { ResponseButtons } from "@/components/training/ResponseButtons";
 import { useVersionedContent } from "@/lib/use-versioned-content";
 import React, { useEffect, useState, useCallback } from "react";
@@ -97,6 +98,14 @@ interface HomeContentProps {
     createdAt: Date;
   }>;
   attendanceMap?: Record<number, string>;
+  showUpcoming?: boolean;
+  showVoterNames?: boolean;
+  polls?: PollData[] | any[];
+  openMessages?: any[];
+  resolvedMessageCount?: number;
+  isOrga?: boolean;
+  // If showVoterNames is true, announcements may contain Poll data from getEventAnnouncementsWithPolls
+  // in that case the announcements array can include Polls in the returned shape.
   // entfernt: profileSwitchInfo
 }
 
@@ -107,6 +116,12 @@ export function HomeContent({
   latestAssessment,
   announcements,
   attendanceMap,
+  showUpcoming = true,
+  showVoterNames = false,
+  polls = [],
+  openMessages = [],
+  resolvedMessageCount = 0,
+  isOrga = false,
 }: HomeContentProps) {
   const age = calculateAge(child.birthDate);
   const attendanceRate = calculateAttendanceRate(
@@ -121,6 +136,69 @@ export function HomeContent({
   const setStatus = useCallback((id: number, newStatus: string | null) => {
     setLocalAttendanceMap(prev => ({ ...(prev || {}), [id]: newStatus as string }));
   }, []);
+
+  // Prepare poll render nodes to avoid complex inline JSX and parsing issues
+  const renderPollNodes = (() => {
+    if (showVoterNames && polls && polls.length > 0) {
+      return polls.map((p: any, idx: number) => {
+        const pollData: PollData = p;
+        return (
+          <div key={`poll-plain-${pollData.id}-${idx}`} className="py-2">
+            <Poll poll={pollData} memberId={child.id} onVote={async () => {}} showVoterNames={true} />
+          </div>
+        );
+      });
+    }
+
+    const source = polls && polls.length > 0 ? polls : announcements;
+    return source.map((a: any, idx: number) => {
+      const pollRaw = a.Poll && a.Poll.length > 0 ? a.Poll[0] : (a.question ? a : null);
+      if (!pollRaw) return null;
+
+      const allVoterIds = (pollRaw.PollOption || []).flatMap((opt: any) => opt.PollVote?.map((v: any) => v.memberId) || []);
+      const uniqueVoters = new Set(allVoterIds);
+      const totalVotes = uniqueVoters.size;
+
+      const pollData: PollData = {
+        id: pollRaw.id,
+        question: pollRaw.question,
+        allowMultiple: pollRaw.allowMultiple,
+        isAnonymous: pollRaw.isAnonymous,
+        endsAt: pollRaw.endsAt ? new Date(pollRaw.endsAt) : null,
+        totalVotes,
+        hasVoted: (pollRaw.PollVote || []).some((v: any) => v.memberId === child.id) || false,
+        options: (pollRaw.PollOption || []).map((option: any) => ({
+          id: option.id,
+          text: option.text,
+          voteCount: (option.PollVote || []).length,
+          percentage: totalVotes > 0 ? (((option.PollVote || []).length) / totalVotes) * 100 : 0,
+          isSelected: (option.PollVote || []).some((v: any) => v.memberId === child.id) || false,
+          voters: pollRaw.isAnonymous ? [] : (option.PollVote?.map((v: any) => ({
+            id: v.Member?.id,
+            firstName: v.Member?.firstName,
+            lastName: v.Member?.lastName,
+            photoUrl: v.Member?.photoUrl,
+          })) || []),
+        })),
+      };
+
+      return (
+        <Card key={`poll-${pollData.id}-${idx}`} className="hover:bg-muted/50 transition-colors">
+          <div className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{a.title || pollData.question}</p>
+                {a.content && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{a.content}</p>}
+              </div>
+              <div className="ml-3 w-56">
+                <Poll poll={pollData} memberId={child.id} onVote={async () => {}} showVoterNames={showVoterNames} />
+              </div>
+            </div>
+          </div>
+        </Card>
+      );
+    });
+  })();
 
 
   return (
@@ -142,10 +220,10 @@ export function HomeContent({
       <Card variant="gradient" className="mb-6 animate-slide-up relative">
         <div className="flex items-center gap-4">
           <Avatar name={child.name} src={child.photoUrl} size="lg" />
-          <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0">
             <h2 className="font-semibold text-lg truncate">{child.name}</h2>
             <div className="flex items-center gap-2 mt-1">
-              <Badge variant="default">{child.role}</Badge>
+              <Badge variant="default">{child.role === 'orga' ? 'Orga Team' : child.role}</Badge>
               <span className="text-sm text-muted-foreground">{age} Jahre</span>
             </div>
             {child.team && (
@@ -162,31 +240,54 @@ export function HomeContent({
         </div>
       </Card>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-        <div className="animate-slide-up stagger-1">
-          <StatCard
-            icon={CheckCircle2}
-            label="Anwesenheit"
-            value={`${attendanceRate}%`}
-            subtext={`${attendanceStats.present}/${attendanceStats.total} Trainings`}
-            variant="success"
-          />
+      {/* Quick Stats - hide for orga, show messages + resolved count instead */}
+      {!isOrga ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+          <div className="animate-slide-up stagger-1">
+            <StatCard
+              icon={CheckCircle2}
+              label="Anwesenheit"
+              value={`${attendanceRate}%`}
+              subtext={`${attendanceStats.present}/${attendanceStats.total} Trainings`}
+              variant="success"
+            />
+          </div>
+          <div className="animate-slide-up stagger-2">
+            <StatCard
+              icon={Star}
+              label="Level"
+              value={latestAssessment?.performanceLevel || "—"}
+              subtext={
+                latestAssessment
+                  ? `Score: ${latestAssessment.overallScore.toFixed(1)}`
+                  : "Noch keine Bewertung"
+              }
+              variant="primary"
+            />
+          </div>
         </div>
-        <div className="animate-slide-up stagger-2">
-          <StatCard
-            icon={Star}
-            label="Level"
-            value={latestAssessment?.performanceLevel || "—"}
-            subtext={
-              latestAssessment
-                ? `Score: ${latestAssessment.overallScore.toFixed(1)}`
-                : "Noch keine Bewertung"
-            }
-            variant="primary"
-          />
+      ) : (
+        <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8">
+          <div className="animate-slide-up stagger-1">
+            <StatCard
+              icon={Bell}
+              label="Offene Nachrichten"
+              value={(openMessages?.length ?? 0).toString()}
+              subtext=""
+              variant="primary"
+            />
+          </div>
+          <div className="animate-slide-up stagger-2">
+            <StatCard
+              icon={CheckCircle2}
+              label="Erledigt"
+              value={(resolvedMessageCount ?? 0).toString()}
+              subtext=""
+              variant="success"
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Ankündigungen */}
       {announcements.length > 0 && (
@@ -280,6 +381,7 @@ export function HomeContent({
       )}
 
       {/* Nächstes Training */}
+      {showUpcoming ? (
       <section className="mb-6 md:mb-8 animate-slide-up stagger-3">
         <CardHeader className="px-0">
           <CardTitle size="lg" className="flex items-center gap-2">
@@ -369,6 +471,21 @@ export function HomeContent({
           </div>
         )}
       </section>
+      ) : (
+        // If trainings are hidden (e.g. orga), show polls (either passed via `polls` or embedded in announcements)
+        <section className="mb-6 md:mb-8 animate-slide-up stagger-3">
+          <CardHeader className="px-0">
+            <CardTitle size="lg" className="flex items-center gap-2">
+              <Megaphone className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+              Umfragen & Ergebnisse
+            </CardTitle>
+          </CardHeader>
+
+          <div className="space-y-3">
+            {renderPollNodes}
+          </div>
+        </section>
+      )}
     </div>
     </>
   );

@@ -49,8 +49,7 @@ export function isIOS(): boolean {
 export function isIOSPWA(): boolean {
   if (typeof window === 'undefined') return false;
   
-  // @ts-ignore - navigator.standalone is iOS-specific
-  const isStandalone = window.navigator.standalone === true;
+  const isStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
   const isDisplayStandalone = window.matchMedia('(display-mode: standalone)').matches;
   
   return isIOS() && (isStandalone || isDisplayStandalone);
@@ -101,7 +100,7 @@ export function isIOSCacheAvailable(): boolean {
  * iOS-safe localStorage wrapper
  * Falls back gracefully if cache is unavailable
  */
-export function setIOSCache(key: string, value: any, ttl: number = 5 * 60 * 1000): boolean {
+export function setIOSCache(key: string, value: unknown, ttl: number = 5 * 60 * 1000): boolean {
   if (!isIOSCacheAvailable()) return false;
   
   try {
@@ -412,7 +411,7 @@ export async function revalidateOnResume(keys: string[]): Promise<void> {
  */
 export async function sendToServiceWorker(
   type: string,
-  payload?: any
+  payload?: unknown
 ): Promise<void> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return;

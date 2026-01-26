@@ -41,9 +41,9 @@ export function createMonitoredPrismaClient() {
   });
 
   // Query Event Listener
-  prisma.$on("query" as never, (e: any) => {
-    const key = `${e.target}.${e.action}`;
-    const duration = parseFloat(e.duration) || 0;
+  prisma.$on("query" as never, (e: { query?: string; params?: string; duration?: number | string; target?: string; action?: string }) => {
+    const key = `${e.target ?? 'unknown'}.${e.action ?? 'unknown'}`;
+    const duration = typeof e.duration === 'number' ? e.duration : parseFloat(String(e.duration || '0')) || 0;
 
     const existing = queryStats.get(key);
     if (existing) {
@@ -55,8 +55,8 @@ export function createMonitoredPrismaClient() {
       existing.lastExecuted = new Date();
     } else {
       queryStats.set(key, {
-        model: e.target,
-        action: e.action,
+        model: e.target ?? 'unknown',
+        action: e.action ?? 'unknown',
         count: 1,
         totalDuration: duration,
         avgDuration: duration,

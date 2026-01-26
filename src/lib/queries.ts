@@ -364,7 +364,7 @@ export async function getCompetitionsWithParticipants(limit = 20) {
 export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
   const now = new Date();
   // Kombiniere alle Bedingungen in einer AND-Liste, damit keine überschrieben wird
-  const andConditions: any[] = [
+  const andConditions: Array<Record<string, unknown>> = [
     {
       OR: [
         { category: { equals: "news", mode: "insensitive" } },
@@ -394,7 +394,7 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
       { isPinned: "desc" },
       { createdAt: "desc" },
     ],
-    take: 20,
+    take: limit,
     select: {
       id: true,
       title: true,
@@ -427,7 +427,7 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
 export async function getEventAnnouncementsWithPolls(teamId?: number | number[] , memberId?: number, limit = 15) {
   const now = new Date();
   // Kombiniere alle Bedingungen in einer AND-Liste, damit keine überschrieben wird
-  const andConditions: any[] = [
+  const andConditions: Array<Record<string, unknown>> = [
     {
       OR: [
         { category: { equals: "event", mode: "insensitive" } },
@@ -547,6 +547,34 @@ export async function getEventAnnouncementsWithPolls(teamId?: number | number[] 
   });
 }
 
+/**
+ * Fetch all polls with options and votes (including voter member info).
+ * Used for admin/orga overviews where polls across teams should be visible.
+ */
+export async function getAllPollsWithVotes(limit = 100) {
+  return await prisma.poll.findMany({
+    orderBy: { id: 'asc' },
+    take: limit,
+    include: {
+      PollOption: {
+        orderBy: { order: 'asc' },
+        include: {
+          PollVote: {
+            include: {
+              Member: {
+                select: { id: true, firstName: true, lastName: true, photoUrl: true },
+              },
+            },
+          },
+        },
+      },
+      PollVote: {
+        select: { id: true, memberId: true },
+      },
+    },
+  });
+}
+
 // ============================================
 // ASSESSMENT QUERIES
 // ============================================
@@ -616,8 +644,8 @@ export async function getMembersWithEmergencyInfo(
         { diseases: { not: null } },
         { medications: { not: null } },
       ],
-      // Team-Filter für Trainer
-      ...(isAdmin ? {} : { teamId: trainerTeamId }),
+      // Team-Filter für Trainer (nur anwenden, wenn trainerTeamId gesetzt ist)
+      ...(isAdmin ? {} : (trainerTeamId != null ? { teamId: trainerTeamId } : {})),
     },
     select: {
       id: true,
@@ -828,7 +856,7 @@ export async function getMessagesForMember(memberId: number, limit = 50) {
   return rows.map((r) => ({
     ...r,
     body: r.body ? decryptText(r.body as string) : r.body,
-    replies: r.replies?.map((rep: any) => ({ ...rep, body: rep.body ? decryptText(rep.body) : rep.body })),
+    replies: r.replies?.map((rep: { body?: string | null }) => ({ ...rep, body: rep.body ? decryptText(rep.body) : rep.body })),
   }));
 }
 
@@ -847,7 +875,7 @@ export async function getMessageById(id: number | string) {
   if (!row) return null;
   // decrypt the message body and replies
   const decryptedBody = row.body ? decryptText(row.body) : row.body;
-  const replies = row.replies?.map((r: any) => ({ ...r, body: r.body ? decryptText(r.body) : r.body }));
+  const replies = row.replies?.map((rep: { body?: string | null }) => ({ ...rep, body: rep.body ? decryptText(rep.body) : rep.body }));
   return { ...row, body: decryptedBody, replies };
 }
 
@@ -883,4 +911,10 @@ export async function deleteResolvedMessagesOlderThan(hours = 48) {
   const cutoff = new Date(Date.now() - hours * 3600 * 1000);
   const deleted = await prisma.message.deleteMany({ where: { status: "resolved", resolvedAt: { lt: cutoff } } });
   return deleted;
+}
+
+export async function getResolvedMessageCount(audience?: string) {
+  const where: any = { status: "resolved" };
+  if (audience) where.audience = audience;
+  return await prisma.message.count({ where });
 }

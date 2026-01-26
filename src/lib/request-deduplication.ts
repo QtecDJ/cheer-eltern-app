@@ -43,8 +43,8 @@ interface DeduplicationOptions {
 }
 
 // In-Memory Cache für laufende und kürzlich abgeschlossene Requests
-const pendingRequests = new Map<string, PendingRequest<any>>();
-const cachedResults = new Map<string, { data: any; timestamp: number }>();
+const pendingRequests = new Map<string, PendingRequest<unknown>>();
+const cachedResults = new Map<string, { data: unknown; timestamp: number }>();
 
 const DEFAULT_TTL = 2000; // 2 Sekunden
 const DEFAULT_TIMEOUT = 10000; // 10 Sekunden
@@ -59,7 +59,7 @@ function defaultKeyGenerator(url: string, options?: RequestInit): string {
 /**
  * Fetch mit automatischer Deduplizierung
  */
-export async function deduplicatedFetch<T = any>(
+export async function deduplicatedFetch<T = unknown>(
   url: string,
   options?: RequestInit & DeduplicationOptions
 ): Promise<T> {
@@ -67,7 +67,6 @@ export async function deduplicatedFetch<T = any>(
     ttl = DEFAULT_TTL,
     timeout = DEFAULT_TIMEOUT,
     keyGenerator = defaultKeyGenerator,
-    debug = false,
     ...fetchOptions
   } = options || {};
 
@@ -78,7 +77,7 @@ export async function deduplicatedFetch<T = any>(
   if (cached) {
     const age = Date.now() - cached.timestamp;
     if (age < ttl) {
-      return cached.data;
+      return cached.data as T;
     } else {
       cachedResults.delete(key);
     }
@@ -87,7 +86,7 @@ export async function deduplicatedFetch<T = any>(
   // 2. Prüfe ob Request bereits läuft
   const pending = pendingRequests.get(key);
   if (pending) {
-    return pending.promise;
+    return pending.promise as Promise<T>;
   }
 
   // 3. Starte neuen Request

@@ -117,7 +117,7 @@ export function ProfileContent({
           />
           <h2 className="text-xl font-bold mt-4">{member.name}</h2>
           <div className="flex items-center gap-2 mt-2">
-            <Badge variant="default">{member.role}</Badge>
+            <Badge variant="default">{member.role === 'orga' ? 'Orga Team' : member.role}</Badge>
             <Badge variant="outline">{age} Jahre</Badge>
           </div>
 
@@ -243,7 +243,7 @@ export function ProfileContent({
                       {m.firstName}
                     </p>
                     <p className="text-[10px] text-muted-foreground truncate w-full">
-                      {m.role}
+                      {m.role === 'orga' ? 'Orga Team' : m.role}
                     </p>
                   </div>
                 ))}

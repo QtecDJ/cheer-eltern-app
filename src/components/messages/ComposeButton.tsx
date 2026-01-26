@@ -2,13 +2,14 @@
 
 import React, { useState } from "react";
 
-export default function ComposeButton({ label = "Neue Nachricht" }: { label?: string }) {
+export default function ComposeButton({ label = "Neue Nachricht", compact = false }: { label?: string; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [target, setTarget] = useState<string>("admins");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
   const openModal = () => setOpen(true);
   const closeModal = () => {
@@ -31,20 +32,21 @@ export default function ComposeButton({ label = "Neue Nachricht" }: { label?: st
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "Serverfehler");
       // show confirmation briefly then navigate to message anchor if available
-      if (json?.message?.id) {
-        // show simple confirmation
-        setError(null);
-        // small success overlay
-        const prevLabel = document.activeElement as HTMLElement | null;
-        // close modal content but keep overlay for a moment
-        closeModal();
-        // navigate after a short delay so user sees the sent state in modal
+        if (json?.message?.id) {
+          setError(null);
+          setSent(true);
+          // keep modal open longer so the user clearly sees confirmation, then close and navigate
+          setTimeout(() => {
+            closeModal();
+            window.location.href = `/messages#msg-${json.message.id}`;
+          }, 2500);
+          return;
+        }
+        // fallback: show sent confirmation then close
+        setSent(true);
         setTimeout(() => {
-          window.location.href = `/messages#msg-${json.message.id}`;
-        }, 600);
-        return;
-      }
-      closeModal();
+          closeModal();
+        }, 2500);
     } catch (e: any) {
       setError(e?.message || "Fehler beim Senden");
     } finally {
@@ -52,9 +54,13 @@ export default function ComposeButton({ label = "Neue Nachricht" }: { label?: st
     }
   };
 
+  const triggerClass = compact
+    ? "h-8 px-3 bg-primary text-primary-foreground rounded text-sm flex items-center leading-none"
+    : "py-2 px-3 bg-primary text-primary-foreground rounded";
+
   return (
     <>
-      <button onClick={openModal} className="py-2 px-3 bg-primary text-primary-foreground rounded">
+      <button onClick={openModal} className={triggerClass}>
         {label}
       </button>
 
@@ -67,12 +73,18 @@ export default function ComposeButton({ label = "Neue Nachricht" }: { label?: st
               <button onClick={closeModal} className="text-sm text-muted-foreground">Schließen</button>
             </div>
 
-            <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Betreff" className="w-full p-2 border rounded mb-2" />
-            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Nachricht" className="w-full p-2 border rounded" />
+              {sent && (
+                <div role="status" aria-live="polite" className="mb-3 text-center text-base font-medium text-green-900 bg-green-100 border border-green-200 px-3 py-2 rounded shadow">
+                  ✅ Nachricht eingegangen
+                </div>
+              )}
+
+            <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Betreff" className="w-full p-2 border rounded mb-2" disabled={sent || loading} />
+            <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder="Nachricht" className="w-full p-2 border rounded" disabled={sent || loading} />
 
             <div className="mt-2">
               <label className="text-sm">Zielgruppe</label>
-              <select value={target} onChange={(e) => setTarget(e.target.value)} className="w-full p-1 border rounded bg-transparent mt-1">
+              <select value={target} onChange={(e) => setTarget(e.target.value)} className="w-full p-1 border rounded bg-transparent mt-1" disabled={sent || loading}>
                 <option value="admins">ICA Leitung</option>
                 <option value="orga">Orga Team</option>
               </select>
@@ -81,8 +93,8 @@ export default function ComposeButton({ label = "Neue Nachricht" }: { label?: st
             {error && <div className="text-sm text-destructive mt-2">{error}</div>}
 
             <div className="flex gap-2 mt-3">
-              <button onClick={send} disabled={loading} className="ml-auto py-2 px-3 bg-primary text-primary-foreground rounded">{loading ? "Sende…" : "Senden"}</button>
-              <button onClick={closeModal} className="py-2 px-3 rounded border">Abbrechen</button>
+              <button onClick={send} disabled={loading || sent} className="ml-auto py-2 px-3 bg-primary text-primary-foreground rounded">{loading ? "Sende…" : sent ? "Gesendet" : "Senden"}</button>
+              <button onClick={() => !sent && closeModal()} className={`py-2 px-3 rounded border ${sent ? 'opacity-50 pointer-events-none' : ''}`}>Abbrechen</button>
             </div>
           </div>
         </div>

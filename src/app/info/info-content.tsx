@@ -5,7 +5,7 @@ import { Users, ClipboardCheck, Video } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export function InfoContent() {
+export function InfoContent({ showAttendance = true }: { showAttendance?: boolean }) {
   const router = useRouter();
   
   return (
@@ -42,24 +42,26 @@ export function InfoContent() {
           </Card>
         </Link>
 
-        {/* Anwesenheit Card */}
-        <Link href="/info/anwesenheit">
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                  <ClipboardCheck className="w-6 h-6 text-green-600 dark:text-green-400" />
+        {/* Anwesenheit Card (nur sichtbar wenn `showAttendance`) */}
+        {showAttendance && (
+          <Link href="/info/anwesenheit">
+            <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                    <ClipboardCheck className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Anwesenheit</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Anwesenheitsliste verwalten
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Anwesenheit</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Anwesenheitsliste verwalten
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -81,10 +81,6 @@ function isIOSDevice(): boolean {
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
-function isIOSPWA(): boolean {
-  if (typeof navigator === 'undefined') return false;
-  return isIOSDevice() && ('standalone' in navigator) && (navigator as any).standalone === true;
-}
 
 // ============================================
 // REQUEST QUEUE
@@ -128,7 +124,7 @@ function setLastRequestTime(requestId: string, timestamp: number): void {
   try {
     const key = `${IOS_GUARD_PREFIX}${requestId}`;
     localStorage.setItem(key, timestamp.toString());
-  } catch (e) {
+  } catch {
     // Ignore storage errors (private mode, quota exceeded)
   }
 }
@@ -138,7 +134,7 @@ function getLastRequestTime(requestId: string): number | null {
     const key = `${IOS_GUARD_PREFIX}${requestId}`;
     const stored = localStorage.getItem(key);
     return stored ? parseInt(stored, 10) : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -151,7 +147,7 @@ function clearRequestGuardStorage(): void {
         localStorage.removeItem(key);
       }
     });
-  } catch (e) {
+  } catch {
     // Ignore
   }
 }
@@ -179,12 +175,9 @@ export async function iosGuardedFetch(
   options?: IOSRequestGuardOptions
 ): Promise<Response> {
   const isIOS = isIOSDevice();
-  const isPWA = isIOSPWA();
-  
   const {
     blockDuplicatesFor = isIOS ? DEFAULT_BLOCK_TIME_IOS : DEFAULT_BLOCK_TIME_OTHER,
     force = false,
-    debug = false,
     requestId: customId,
     ...fetchOptions
   } = options || {};
@@ -292,7 +285,7 @@ export async function iosGuardedFetch(
  * iOS-geschützter JSON Fetch
  * Convenience wrapper für JSON APIs
  */
-export async function iosGuardedFetchJSON<T = any>(
+export async function iosGuardedFetchJSON<T = unknown>(
   url: string,
   options?: IOSRequestGuardOptions
 ): Promise<T> {
@@ -338,7 +331,7 @@ export function clearRequestGuard(url: string, options?: { requestId?: string })
   // Remove from localStorage
   try {
     localStorage.removeItem(`${IOS_GUARD_PREFIX}${requestId}`);
-  } catch (e) {
+  } catch {
     // Ignore
   }
 }
@@ -370,7 +363,7 @@ export function getRequestGuardStats() {
 // EXPORT
 // ============================================
 
-export default {
+const iosGuard = {
   iosGuardedFetch,
   iosGuardedFetchJSON,
   wouldBeBlocked,
@@ -378,3 +371,5 @@ export default {
   clearAllRequestGuards,
   getRequestGuardStats,
 };
+
+export default iosGuard;

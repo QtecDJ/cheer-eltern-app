@@ -109,8 +109,11 @@ function isIOSPWA(): boolean {
   if (!isIOSDevice()) return false;
   
   // Check 1: navigator.standalone (klassische Methode)
-  if ('standalone' in navigator && (navigator as any).standalone === true) {
-    return true;
+  if ('standalone' in navigator) {
+    const nav = navigator as Navigator & { standalone?: boolean };
+    if (nav.standalone === true) {
+      return true;
+    }
   }
   
   // Check 2: display-mode media query (moderne Methode)

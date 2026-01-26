@@ -189,9 +189,22 @@ interface EventsContentProps {
   competitions: Competition[];
   eventAnnouncements?: EventAnnouncement[];
   memberId: number;
+  showUpcoming?: boolean;
+  showVoterNames?: boolean;
 }
 
-export function EventsContent({ events, competitions, eventAnnouncements = [], memberId }: EventsContentProps) {
+// Helper: group announcements by category
+function groupAnnouncementsByCategory(announcements: EventAnnouncement[]) {
+  const map = new Map<string, EventAnnouncement[]>();
+  for (const a of announcements) {
+    const key = (a.category || 'Allgemein').toString();
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(a);
+  }
+  return map;
+}
+
+export function EventsContent({ events, competitions, eventAnnouncements = [], memberId, showUpcoming = true, showVoterNames = false }: EventsContentProps) {
   const today = new Date().toISOString().split("T")[0];
   const [isPending, startTransition] = useTransition();
   const [loadingItem, setLoadingItem] = useState<string | null>(null);
@@ -331,10 +344,37 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
       itemType: "competition" as const,
       time: "TBA",
     })),
-  ].sort((a, b) => a.date.localeCompare(b.date));
+  ];
 
-  const upcomingItems = allItems.filter((item) => item.date >= today);
-  const pastItems = allItems.filter((item) => item.date < today).reverse();
+  // Robust date parsing: prefer numeric timestamps but gracefully fall back
+  // to string comparison when parsing fails. Include items with missing
+  // or unparsable dates so they don't disappear from the list.
+  const parseTs = (d: any) => {
+    const ts = Date.parse(d as string);
+    return Number.isFinite(ts) ? ts : NaN;
+  };
+
+  allItems.sort((a, b) => {
+    const ta = parseTs(a.date);
+    const tb = parseTs(b.date);
+
+    if (!Number.isNaN(ta) && !Number.isNaN(tb)) return ta - tb;
+    if (Number.isNaN(ta) && Number.isNaN(tb)) return String(a.date).localeCompare(String(b.date));
+    // Put valid dates before invalid/unparsable ones
+    return Number.isNaN(ta) ? 1 : -1;
+  });
+
+  const todayTs = new Date(today).setHours(0, 0, 0, 0);
+
+  const upcomingItems = allItems.filter((item) => {
+    const ts = parseTs(item.date);
+    return Number.isNaN(ts) ? true : ts >= todayTs;
+  });
+
+  const pastItems = allItems.filter((item) => {
+    const ts = parseTs(item.date);
+    return Number.isNaN(ts) ? false : ts < todayTs;
+  }).reverse();
 
   // Sortiere Announcements: Angepinnte UND wichtige zuerst, dann angepinnte, dann wichtige, dann nach Datum
   const sortedAnnouncements = [...eventAnnouncements].sort((a, b) => {
@@ -395,209 +435,210 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
               </h2>
 
               <div className="space-y-5">
-                {sortedAnnouncements.map((announcement) => {
-                  const isLoading = loadingItem === `announcement-${announcement.id}`;
-                  const hasExpired = announcement.expiresAt && new Date(announcement.expiresAt) < new Date();
-                  const isExpanded = expandedAnnouncements.has(announcement.id);
+                {Array.from(groupAnnouncementsByCategory(sortedAnnouncements)).map(([category, items]) => (
+                  <div key={`cat-${category || 'uncategorized'}`} className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold">{category || "Allgemein"}</h3>
+                    </div>
+                    <div className="space-y-5">
+                      {items.map((announcement) => {
+                        const isLoading = loadingItem === `announcement-${announcement.id}`;
+                        const hasExpired = announcement.expiresAt && new Date(announcement.expiresAt) < new Date();
+                        const isExpanded = expandedAnnouncements.has(announcement.id);
 
-                  return (
-                  <article
-                    id={`announcement-${announcement.id}`}
-                    key={`announcement-${announcement.id}`}
-                    className={cn(
-                      "relative bg-card rounded-2xl border border-border overflow-hidden transition-all",
-                      announcement.priority === "high" && "border-pink-500/40 shadow-lg shadow-pink-500/5"
-                    )}
-                  >
-                    {/* Prioritäts-Indikator */}
-                    {announcement.priority === "high" && (
-                      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500" />
-                    )}
-
-                    <div className="p-5">
-                      {/* Klickbarer Header */}
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => toggleAnnouncement(announcement.id)}
-                        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") toggleAnnouncement(announcement.id); }}
-                        className="w-full text-left hover:opacity-80 transition-opacity cursor-pointer outline-none"
-                      >
-                        {/* Header mit Badges */}
-                        <div className="flex flex-wrap items-start gap-2 mb-3">
-                          {announcement.priority === "high" && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-pink-500/10 text-pink-600 text-xs font-medium">
-                              <Star className="w-3.5 h-3.5 fill-current" />
-                              Wichtig
-                            </span>
-                          )}
-                          {announcement.isPinned && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium">
-                              📌 Angepinnt
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Titel */}
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="text-xl font-bold text-foreground leading-tight flex-1">
-                            {announcement.title}
-                          </h3>
-                          <div className="flex items-center gap-2">
-                            {announcement.category?.toLowerCase() !== "news" && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  addToCalendarAllDay(announcement.title, announcement.content);
-                                }}
-                                className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary transition-colors shrink-0"
-                                title="Zum Kalender hinzufügen"
-                              >
-                                <CalendarPlus className="w-4 h-4" />
-                              </button>
+                        return (
+                          <article
+                            id={`announcement-${announcement.id}`}
+                            key={`announcement-${announcement.id}`}
+                            className={cn(
+                              "relative bg-card rounded-2xl border border-border overflow-hidden transition-all",
+                              announcement.priority === "high" && "border-pink-500/40 shadow-lg shadow-pink-500/5"
                             )}
-                            <svg
-                              className={cn(
-                                "w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200",
-                                isExpanded && "rotate-180"
-                              )}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
+                          >
+                            {announcement.priority === "high" && (
+                              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-pink-500 via-rose-500 to-pink-500" />
+                            )}
 
-                      {/* Ausklappbarer Content */}
-                      {isExpanded && (
-                        <div className="mt-4">
-                          {/* Vollständiger Inhalt */}
-                          <div className="prose prose-sm max-w-none mb-4">
-                            <p className="text-[15px] text-foreground/85 leading-[1.7] whitespace-pre-wrap m-0">
-                              {linkifyText(announcement.content)}
-                            </p>
-                          </div>
-
-                          {/* Poll (Umfrage) */}
-                          {announcement.poll && (
-                            <Poll
-                              poll={announcement.poll}
-                              memberId={memberId}
-                              onVote={handleVote}
-                            onRemoveVote={handleRemoveVote}
-                          />
-                        )}
-
-                        {/* RSVP-Sektion (Zu-/Absagen) */}
-                        {announcement.allowRsvp && (
-                          <div className="mt-5 pt-4 border-t border-border/60">
-                            <div className="flex items-center justify-between gap-3 flex-wrap">
-                              {/* RSVP-Statistik */}
-                              <div className="flex items-center gap-4 text-sm">
-                                <div className="flex items-center gap-1.5">
-                                  <Check className="w-4 h-4 text-emerald-500" />
-                                  <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                                    {announcement.rsvp.acceptedCount} Zusagen
-                                  </span>
+                            <div className="p-5">
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                onClick={() => toggleAnnouncement(announcement.id)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") toggleAnnouncement(announcement.id);
+                                }}
+                                className="w-full text-left hover:opacity-80 transition-opacity cursor-pointer outline-none"
+                              >
+                                <div className="flex flex-wrap items-start gap-2 mb-3">
+                                  {announcement.priority === "high" && (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-pink-500/10 text-pink-600 text-xs font-medium">
+                                      <Star className="w-3.5 h-3.5 fill-current" />
+                                      Wichtig
+                                    </span>
+                                  )}
+                                  {announcement.isPinned && (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium">
+                                      📌 Angepinnt
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="flex items-center gap-1.5">
-                                  <X className="w-4 h-4 text-red-500" />
-                                  <span className="font-medium text-red-600 dark:text-red-400">
-                                    {announcement.rsvp.declinedCount} Absagen
-                                  </span>
+
+                                <div className="flex items-start justify-between gap-3">
+                                  <h3 className="text-xl font-bold text-foreground leading-tight flex-1">
+                                    {announcement.title}
+                                  </h3>
+                                  <div className="flex items-center gap-2">
+                                    {announcement.category?.toLowerCase() !== "news" && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          addToCalendarAllDay(announcement.title, announcement.content);
+                                        }}
+                                        className="p-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary transition-colors shrink-0"
+                                        title="Zum Kalender hinzufügen"
+                                      >
+                                        <CalendarPlus className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                    <svg
+                                      className={cn(
+                                        "w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200",
+                                        isExpanded && "rotate-180"
+                                      )}
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </div>
                                 </div>
                               </div>
 
-                              {/* RSVP-Buttons */}
-                              {!hasExpired && (
-                                <div className="flex items-center gap-2">
-                                  {announcement.rsvp.myStatus === "accepted" ? (
-                                    <>
-                                      <Badge variant="success" size="sm" className="gap-1">
-                                        <Check className="w-3 h-3" />
-                                        Zugesagt
-                                      </Badge>
-                                      <button
-                                        onClick={() => handleRemoveAnnouncementRSVP(announcement.id)}
-                                        disabled={isLoading || isPending}
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        {isLoading ? "..." : "Zurückziehen"}
-                                      </button>
-                                    </>
-                                  ) : announcement.rsvp.myStatus === "declined" ? (
-                                    <>
-                                      <Badge variant="danger" size="sm" className="gap-1">
-                                        <X className="w-3 h-3" />
-                                        Abgesagt
-                                      </Badge>
-                                      <button
-                                        onClick={() => handleRemoveAnnouncementRSVP(announcement.id)}
-                                        disabled={isLoading || isPending}
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        {isLoading ? "..." : "Zurückziehen"}
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <button
-                                        onClick={() => handleAcceptAnnouncement(announcement.id)}
-                                        disabled={isLoading || isPending}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        <Check className="w-3.5 h-3.5" />
-                                        {isLoading ? "..." : "Zusagen"}
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeclineAnnouncement(announcement.id)}
-                                        disabled={isLoading || isPending}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        <X className="w-3.5 h-3.5" />
-                                        {isLoading ? "..." : "Absagen"}
-                                      </button>
-                                    </>
+                              {isExpanded && (
+                                <div className="mt-4">
+                                  <div className="prose prose-sm max-w-none mb-4">
+                                    <p className="text-[15px] text-foreground/85 leading-[1.7] whitespace-pre-wrap m-0">
+                                      {linkifyText(announcement.content)}
+                                    </p>
+                                  </div>
+
+                                  {announcement.poll && (
+                                    <Poll
+                                      poll={announcement.poll}
+                                      memberId={memberId}
+                                      onVote={handleVote}
+                                      onRemoveVote={handleRemoveVote}
+                                      showVoterNames={showVoterNames}
+                                    />
                                   )}
+
+                                  {announcement.allowRsvp && (
+                                    <div className="mt-5 pt-4 border-t border-border/60">
+                                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                                        <div className="flex items-center gap-4 text-sm">
+                                          <div className="flex items-center gap-1.5">
+                                            <Check className="w-4 h-4 text-emerald-500" />
+                                            <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                                              {announcement.rsvp.acceptedCount} Zusagen
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                            <X className="w-4 h-4 text-red-500" />
+                                            <span className="font-medium text-red-600 dark:text-red-400">
+                                              {announcement.rsvp.declinedCount} Absagen
+                                            </span>
+                                          </div>
+                                        </div>
+
+                                        {!hasExpired && (
+                                          <div className="flex items-center gap-2">
+                                            {announcement.rsvp.myStatus === "accepted" ? (
+                                              <>
+                                                <Badge variant="success" size="sm" className="gap-1">
+                                                  <Check className="w-3 h-3" />
+                                                  Zugesagt
+                                                </Badge>
+                                                <button
+                                                  onClick={() => handleRemoveAnnouncementRSVP(announcement.id)}
+                                                  disabled={isLoading || isPending}
+                                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                  {isLoading ? "..." : "Zurückziehen"}
+                                                </button>
+                                              </>
+                                            ) : announcement.rsvp.myStatus === "declined" ? (
+                                              <>
+                                                <Badge variant="danger" size="sm" className="gap-1">
+                                                  <X className="w-3 h-3" />
+                                                  Abgesagt
+                                                </Badge>
+                                                <button
+                                                  onClick={() => handleRemoveAnnouncementRSVP(announcement.id)}
+                                                  disabled={isLoading || isPending}
+                                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                  {isLoading ? "..." : "Zurückziehen"}
+                                                </button>
+                                              </>
+                                            ) : (
+                                              <>
+                                                <button
+                                                  onClick={() => handleAcceptAnnouncement(announcement.id)}
+                                                  disabled={isLoading || isPending}
+                                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                  <Check className="w-3.5 h-3.5" />
+                                                  {isLoading ? "..." : "Zusagen"}
+                                                </button>
+                                                <button
+                                                  onClick={() => handleDeclineAnnouncement(announcement.id)}
+                                                  disabled={isLoading || isPending}
+                                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-600 hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                  <X className="w-3.5 h-3.5" />
+                                                  {isLoading ? "..." : "Absagen"}
+                                                </button>
+                                              </>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-5 pt-4 border-t border-border/60 text-xs text-muted-foreground">
+                                    <span>
+                                      Erstellt am {new Date(announcement.createdAt).toLocaleDateString("de-DE", {
+                                        day: "numeric",
+                                        month: "long",
+                                        year: "numeric",
+                                      })}
+                                    </span>
+                                    {announcement.expiresAt && (
+                                      <span>
+                                        · Gültig bis {new Date(announcement.expiresAt).toLocaleDateString("de-DE", {
+                                          day: "numeric",
+                                          month: "long",
+                                        })}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                             </div>
-                          </div>
-                        )}
-
-                        {/* Meta-Info Footer */}
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-5 pt-4 border-t border-border/60 text-xs text-muted-foreground">
-                          <span>
-                            Erstellt am {new Date(announcement.createdAt).toLocaleDateString("de-DE", {
-                              day: "numeric",
-                              month: "long",
-                              year: "numeric",
-                            })}
-                          </span>
-                          {announcement.expiresAt && (
-                            <span>
-                              · Gültig bis {new Date(announcement.expiresAt).toLocaleDateString("de-DE", {
-                                day: "numeric",
-                                month: "long",
-                              })}
-                            </span>
-                          )}
-                        </div>
-                        </div>
-                      )}
+                          </article>
+                        );
+                      })}
                     </div>
-                  </article>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </section>
           )}
 
           {/* Anstehende Events */}
-          {upcomingItems.length > 0 && (
+          {showUpcoming && upcomingItems.length > 0 && (
             <section className="mb-10">
               <h2 className="text-lg font-semibold mb-5 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />

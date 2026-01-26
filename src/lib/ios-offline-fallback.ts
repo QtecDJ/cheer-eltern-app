@@ -173,7 +173,7 @@ function isNetworkHealthy(): boolean {
 // ============================================
 
 interface CachedResponse {
-  data: any;
+  data: unknown;
   timestamp: number;
   url: string;
   status: number;
@@ -184,7 +184,7 @@ function getCacheKey(url: string): string {
   return `${STORAGE_PREFIX}cache_${url}`;
 }
 
-function setCache(url: string, response: Response, data: any, ttl: number): void {
+function setCache(url: string, response: Response, data: unknown, ttl: number): void {
   try {
     const cached: CachedResponse = {
       data,
@@ -377,7 +377,7 @@ export async function offlineFallbackFetch(
 /**
  * Offline Fallback JSON Fetch
  */
-export async function offlineFallbackFetchJSON<T = any>(
+export async function offlineFallbackFetchJSON<T = unknown>(
   url: string,
   options?: OfflineFallbackOptions
 ): Promise<T> {

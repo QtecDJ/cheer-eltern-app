@@ -50,7 +50,7 @@ function isIOSDevice(): boolean {
 
 function isIOSPWA(): boolean {
   if (typeof navigator === 'undefined') return false;
-  return isIOSDevice() && ('standalone' in navigator) && (navigator as any).standalone === true;
+  return isIOSDevice() && ('standalone' in navigator) && (navigator as unknown as { standalone?: boolean }).standalone === true;
 }
 
 /**

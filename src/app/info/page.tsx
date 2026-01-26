@@ -12,12 +12,20 @@ export default async function InfoPage() {
     redirect("/login");
   }
 
-  // Prüfe ob User berechtigt ist (Admin, Trainer, Coach)
-  const hasAccess = isAdminOrTrainer(session.userRole);
-  
-  if (!hasAccess) {
+  // Allow admins/trainers/coaches and users with extra roles (e.g. 'orga') to access the info overview,
+  // but decide per-feature visibility (e.g. showAttendance) below.
+  const roles = session.roles && session.roles.length > 0
+    ? session.roles.map(r => r.toLowerCase())
+    : (session.userRole || "").toString().split(",").map(r => r.trim().toLowerCase()).filter(Boolean);
+
+  const isPrivileged = roles.includes("admin") || roles.includes("trainer") || roles.includes("coach");
+  if (!isPrivileged && !roles.some(r => r && r !== "member")) {
+    // no meaningful role - redirect to home
     redirect("/");
   }
 
-  return <InfoContent />;
+  // show Attendance only to true privileged users (admin/trainer/coach) or if user has a coachTeamId
+  const canSeeAttendance = isPrivileged || !!session.coachTeamId;
+
+  return <InfoContent showAttendance={canSeeAttendance} />;
 }

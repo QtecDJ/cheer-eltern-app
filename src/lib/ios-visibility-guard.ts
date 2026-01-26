@@ -87,7 +87,7 @@ function isIOSDevice(): boolean {
 
 function isIOSPWA(): boolean {
   if (typeof navigator === 'undefined') return false;
-  return isIOSDevice() && ('standalone' in navigator) && (navigator as any).standalone === true;
+  return isIOSDevice() && ('standalone' in navigator) && (navigator as unknown as { standalone?: boolean }).standalone === true;
 }
 
 // ============================================
@@ -97,7 +97,7 @@ function isIOSPWA(): boolean {
 function setLastVisibleTime(key: string, timestamp: number): void {
   try {
     localStorage.setItem(`${STORAGE_PREFIX}${key}`, timestamp.toString());
-  } catch (e) {
+  } catch {
     // Ignore storage errors
   }
 }
@@ -106,7 +106,7 @@ function getLastVisibleTime(key: string): number | null {
   try {
     const stored = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
     return stored ? parseInt(stored, 10) : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
