@@ -11,7 +11,10 @@ export default function MessageItem({ message }: { message: any }) {
     // When opening a message, attempt to mark it as read/resolved for this user.
     (async () => {
       try {
-        await fetch(`/api/messages/${message.id}/read`, { method: "POST" });
+        const res = await fetch(`/api/messages/${message.id}/read`, { method: "POST" });
+        if (res.ok && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('messages:changed'));
+        }
       } catch (e) {
         // ignore errors; server will validate permissions
       }

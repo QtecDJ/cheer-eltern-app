@@ -10,6 +10,8 @@ export default function MessageActions({ messageId, onReply }: { messageId: numb
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [staff, setStaff] = useState<any[] | null>(null);
   
 
   const post = async (path: string, body: any) => {
@@ -56,23 +58,27 @@ export default function MessageActions({ messageId, onReply }: { messageId: numb
           </button>
 
           <button
-            title="Mir zuweisen"
-            aria-label="Mir zuweisen"
-            onClick={() => post(`/api/admin/messages/${messageId}/assign-me`, {})}
+            title="Zuweisen"
+            aria-label="Zuweisen"
+            onClick={async () => {
+              setAssignOpen(true);
+              // fetch staff list
+              try {
+                const res = await fetch('/api/admin/staff');
+                if (res.ok) {
+                  const j = await res.json();
+                  setStaff(j.users || []);
+                } else {
+                  setStaff([]);
+                }
+              } catch (e) {
+                setStaff([]);
+              }
+            }}
             disabled={loading}
             className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center"
           >
             <UserPlus className="w-4 h-4" />
-          </button>
-
-          <button
-            title="Wieder öffnen"
-            aria-label="Wieder öffnen"
-            onClick={() => post(`/api/admin/messages/${messageId}/assign`, {})}
-            disabled={loading}
-            className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center"
-          >
-            <RotateCw className="w-4 h-4" />
           </button>
 
           <button
@@ -130,6 +136,52 @@ export default function MessageActions({ messageId, onReply }: { messageId: numb
                   Antwort senden
                 </button>
                 <button onClick={() => { setReplyOpen(false); setReplyText(""); }} className="py-2 px-3 rounded border">Abbrechen</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {assignOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/40" onClick={() => { setAssignOpen(false); setStaff(null); }} />
+            <div className="relative w-full max-w-md mx-4 bg-background border rounded p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-medium">Zuweisen an</div>
+                <button onClick={() => { setAssignOpen(false); setStaff(null); }} className="text-sm text-muted-foreground">Schließen</button>
+              </div>
+
+              <div className="space-y-2 max-h-64 overflow-auto">
+                {staff === null && <div className="text-sm text-muted-foreground">Lade...</div>}
+                {staff && staff.length === 0 && <div className="text-sm text-muted-foreground">Keine verfügbaren Admin-/Orga-Nutzer gefunden.</div>}
+                {staff && staff.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between p-2 border rounded">
+                    <div>{s.firstName ? `${s.firstName} ${s.lastName}` : s.name} <span className="text-xs text-muted-foreground">{(s.roles || s.userRole || []).toString()}</span></div>
+                    <button
+                      className="ml-2 px-3 py-1 bg-primary text-primary-foreground rounded"
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          const res = await fetch(`/api/admin/messages/${messageId}/assign`, { method: 'POST', body: JSON.stringify({ assigneeId: s.id }), headers: { 'Content-Type': 'application/json' } });
+                          if (res.ok) {
+                            setAssignOpen(false);
+                            setStaff(null);
+                            // notify update
+                            window.dispatchEvent(new CustomEvent('message:updated', { detail: { id: messageId } }));
+                          } else {
+                            const j = await res.json();
+                            setMsg(`Fehler: ${j?.error || 'assign failed'}`);
+                          }
+                        } catch (e: any) {
+                          setMsg(`Fehler: ${e.message || e}`);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      Zuweisen
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

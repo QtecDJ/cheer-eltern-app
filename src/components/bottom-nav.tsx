@@ -55,6 +55,19 @@ export function BottomNav({ items }: BottomNavProps) {
         // ignore
       }
     })();
+    // listen for global events to refresh counts (e.g., message read/assigned)
+    const handler = () => {
+      (async () => {
+        try {
+          const res = await fetch('/api/messages/unread-count');
+          if (!res.ok) return;
+          const json = await res.json();
+          if (mounted && typeof json.count === 'number') setUnread(json.count);
+          if (mounted && typeof json.replied === 'number') setReplied(json.replied);
+        } catch (e) {}
+      })();
+    };
+    window.addEventListener('messages:changed', handler as any);
     return () => { mounted = false; };
   }, []);
 

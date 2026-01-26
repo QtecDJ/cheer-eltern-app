@@ -25,6 +25,14 @@ export default async function MessagesAdminPage() {
     filtered = messages.filter((m: any) => (m.audience || "admins") === "orga");
   }
 
+  // If a message is assigned to a specific person, only that person (or admins) should see it
+  const isAdmin = rolesStr.toLowerCase().includes("admin");
+  filtered = filtered.filter((m: any) => {
+    if (!m.assignedTo) return true;
+    if (isAdmin) return true;
+    return m.assignedTo === session.id;
+  });
+
   return (
     <div className="py-6">
       <div className="flex items-center justify-between mb-4">
