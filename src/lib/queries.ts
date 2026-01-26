@@ -944,7 +944,7 @@ export async function getActiveTeamsWithMembers() {
   });
 
   if (specialMembers && specialMembers.length > 0) {
-    teams.unshift({ id: -1, name: "Admins & Orga", color: undefined, members: specialMembers });
+    teams.unshift({ id: -1, name: "Admins & Orga", color: null, members: specialMembers });
   }
 
   return teams;
