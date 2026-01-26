@@ -1,9 +1,12 @@
 import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getMessagesForStaff } from "@/lib/queries";
+import { getMessagesForStaff, getActiveTeamsWithMembers } from "@/lib/queries";
 import React from "react";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
+import MessageActions from "@/components/admin/MessageActions";
+import AdminMessagesList from "@/components/admin/AdminMessagesList";
+import AdminMessageModal from "@/components/admin/AdminMessageModal";
 
 export const revalidate = 60;
 
@@ -12,7 +15,9 @@ export default async function MessagesAdminPage() {
   if (!session) redirect("/login");
   if (!isAdminOrTrainer(session.roles ?? session.userRole ?? null)) redirect("/");
 
-  const messages = await getMessagesForStaff(100);
+  // Include resolved messages for admins so they can review/delete them
+  const messages = await getMessagesForStaff(100, true);
+  const teams = await getActiveTeamsWithMembers();
   // If the current session is only 'orga', show only messages targeted to Orga
   let filtered = messages;
   const rolesStr = session.roles ? (session.roles as string[]).join(",") : (session.userRole || "");
@@ -22,7 +27,13 @@ export default async function MessagesAdminPage() {
 
   return (
     <div className="py-6">
-      <h1 className="text-2xl font-semibold mb-4">Nachrichten / Tickets</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold">Tickets</h1>
+        {/* @ts-ignore */}
+        <div>
+          <AdminMessageModal teams={teams} />
+        </div>
+      </div>
       <div className="space-y-2">
         {(() => {
           // Group messages by sender team name
@@ -37,20 +48,8 @@ export default async function MessagesAdminPage() {
             <div key={team}>
               <div className="text-sm font-medium mb-1">{team} ({msgs.length})</div>
               <div className="space-y-2">
-                {msgs.map((m: any) => (
-                  <Link key={m.id} href={`/admin/messages/${m.id}`}>
-                    <Card className="p-3 hover:shadow-md cursor-pointer">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium">{m.subject}</div>
-                          <div className="text-xs text-muted-foreground">Von: {m.sender?.firstName ? `${m.sender.firstName} ${m.sender.lastName}` : m.sender?.name}</div>
-                        </div>
-                        <div className="text-xs text-muted-foreground">{new Date(m.createdAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
-                      </div>
-                      <div className="mt-2 text-sm text-muted-foreground">Status: {m.status}{m.assignedTo ? ` — Zugewiesen` : ""}</div>
-                    </Card>
-                  </Link>
-                ))}
+                {/* @ts-ignore */}
+                <AdminMessagesList messages={msgs} />
               </div>
             </div>
           ));

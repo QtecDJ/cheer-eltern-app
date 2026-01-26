@@ -817,10 +817,11 @@ export async function createMessage(data: { subject: string; body: string; sende
   });
 }
 
-export async function getMessagesForStaff(limit = 50) {
-  // Return recent open/assigned messages
+export async function getMessagesForStaff(limit = 50, includeResolved = false) {
+  // Return recent messages for staff; by default exclude resolved unless requested
+  const statusFilter = includeResolved ? undefined : { in: ["open", "assigned"] };
   const rows = await prisma.message.findMany({
-    where: { status: { in: ["open", "assigned"] } },
+    where: statusFilter ? { status: statusFilter } : {},
     orderBy: { createdAt: "desc" },
     take: limit,
     select: {
@@ -833,15 +834,25 @@ export async function getMessagesForStaff(limit = 50) {
       createdAt: true,
       body: true,
       sender: { select: { id: true, firstName: true, lastName: true, name: true, teamId: true, team: { select: { id: true, name: true } } } },
+      replies: { include: { author: { select: { id: true, firstName: true, lastName: true, name: true } } }, orderBy: { createdAt: "asc" } },
     },
   });
   // Decrypt bodies before returning
-  return rows.map((r) => ({ ...r, body: r.body ? decryptText(r.body) : r.body }));
+  return rows.map((r) => ({
+    ...r,
+    body: r.body ? decryptText(r.body) : r.body,
+    replies: r.replies?.map((rep: any) => ({ ...rep, body: rep.body ? decryptText(rep.body) : rep.body })),
+  }));
 }
 
 export async function getMessagesForMember(memberId: number, limit = 50) {
   const rows = await prisma.message.findMany({
-    where: { senderId: memberId },
+    where: {
+      OR: [
+        { senderId: memberId },
+        { assignedTo: memberId },
+      ],
+    },
     orderBy: { createdAt: "desc" },
     take: limit,
     include: {
@@ -858,6 +869,64 @@ export async function getMessagesForMember(memberId: number, limit = 50) {
     body: r.body ? decryptText(r.body as string) : r.body,
     replies: r.replies?.map((rep: { body?: string | null }) => ({ ...rep, body: rep.body ? decryptText(rep.body) : rep.body })),
   }));
+}
+
+export async function getAssignedMessageCount(memberId: number) {
+  // Count messages that are assigned to this member and not resolved
+  return await prisma.message.count({ where: { assignedTo: memberId, status: { not: "resolved" } } });
+}
+
+export async function getRepliedMessageCountForMember(memberId: number) {
+  return await prisma.message.count({
+    where: {
+      AND: [
+        {
+          OR: [
+            { senderId: memberId },
+            { assignedTo: memberId },
+          ],
+        },
+        {
+          replies: { some: {} },
+        },
+        {
+          status: { not: "resolved" },
+        },
+      ],
+    },
+  });
+}
+
+export async function createMessageForAssignees(data: { subject: string; body: string; senderId: number; assignees: number[] }) {
+  const enc = encryptText(data.body || "");
+  const created: any[] = [];
+  for (const assigneeId of data.assignees) {
+    const row = await prisma.message.create({
+      data: {
+        subject: data.subject,
+        body: enc,
+        senderId: data.senderId,
+        assignedTo: assigneeId,
+        audience: "direct",
+        status: "assigned",
+      },
+    });
+    created.push(row);
+  }
+  return created;
+}
+
+export async function getActiveTeamsWithMembers() {
+  return await prisma.team.findMany({
+    where: { status: "active" },
+    orderBy: { name: "asc" },
+    select: {
+      id: true,
+      name: true,
+      color: true,
+      members: { select: { id: true, firstName: true, lastName: true, name: true }, orderBy: { firstName: "asc" } },
+    },
+  });
 }
 
 export async function getMessageById(id: number | string) {
@@ -881,13 +950,15 @@ export async function getMessageById(id: number | string) {
 
 export async function createMessageReply(messageId: number, authorId: number, body: string) {
   const enc = encryptText(body || "");
-  return await prisma.messageReply.create({
+  const created = await prisma.messageReply.create({
     data: {
       messageId,
       authorId,
       body: enc,
     },
+    include: { author: { select: { id: true, firstName: true, lastName: true, name: true } } },
   });
+  return { ...created, body: created.body ? decryptText(created.body) : created.body };
 }
 
 export async function assignMessageTo(messageId: number, assigneeId: number | null) {
@@ -901,10 +972,22 @@ export async function assignMessageTo(messageId: number, assigneeId: number | nu
 }
 
 export async function markMessageResolved(messageId: number) {
-  return await prisma.message.update({
+  const updated = await prisma.message.update({
     where: { id: messageId },
     data: { status: "resolved", resolvedAt: new Date() },
   });
+  // Cleanup older resolved messages according to env setting (hours)
+  try {
+    const hours = process.env.DELETE_RESOLVED_HOURS ? Number(process.env.DELETE_RESOLVED_HOURS) : 48;
+    if (!Number.isNaN(hours)) {
+      const cutoff = new Date(Date.now() - hours * 3600 * 1000);
+      await prisma.message.deleteMany({ where: { status: "resolved", resolvedAt: { lt: cutoff } } });
+    }
+  } catch (e) {
+    // ignore cleanup failures
+    console.warn('Failed to cleanup resolved messages:', e);
+  }
+  return updated;
 }
 
 export async function deleteResolvedMessagesOlderThan(hours = 48) {

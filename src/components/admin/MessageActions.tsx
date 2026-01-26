@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import { Send, Check, Trash2 } from "lucide-react";
+import { UserPlus, RotateCw } from "lucide-react";
 
-export default function MessageActions({ messageId }: { messageId: number }) {
+export default function MessageActions({ messageId, onReply }: { messageId: number; onReply?: (reply: any) => void }) {
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
@@ -18,6 +19,17 @@ export default function MessageActions({ messageId }: { messageId: number }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error || "error");
       setMsg("Erfolgreich ausgeführt");
+      try {
+        const urlParts = path.split('/');
+        const idPart = urlParts.length ? urlParts[urlParts.length-2] : null;
+        const mid = Number(idPart);
+        if (!Number.isNaN(mid)) {
+          // Notify others on the page to refresh this message
+          if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('message:updated', { detail: { id: mid } }));
+        }
+      } catch (e) {
+        // ignore
+      }
       setTimeout(() => setMsg(null), 2500);
       return json;
     } catch (e: any) {
@@ -32,34 +44,57 @@ export default function MessageActions({ messageId }: { messageId: number }) {
       {/* Zuweisen-UI entfernt vorübergehend */}
 
       <div className="mt-3">
-          <div className="flex flex-row gap-2 items-center">
-            <button
-              onClick={() => setReplyOpen(true)}
-              disabled={loading}
-              className="btn flex items-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              Antworten
-            </button>
+        <div className="flex flex-row gap-2 items-center">
+          <button
+            title="Antworten"
+            aria-label="Antworten"
+            onClick={() => setReplyOpen(true)}
+            disabled={loading}
+            className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center"
+          >
+            <Send className="w-4 h-4" />
+          </button>
 
-            <button
-              onClick={() => post(`/api/admin/messages/${messageId}/resolve`, {})}
-              disabled={loading}
-              className="btn-ghost flex items-center gap-2"
-            >
-              <Check className="w-4 h-4" />
-              Als erledigt
-            </button>
+          <button
+            title="Mir zuweisen"
+            aria-label="Mir zuweisen"
+            onClick={() => post(`/api/admin/messages/${messageId}/assign-me`, {})}
+            disabled={loading}
+            className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center"
+          >
+            <UserPlus className="w-4 h-4" />
+          </button>
 
-            <button
-              onClick={() => setDeleteOpen(true)}
-              disabled={loading}
-              className="btn-danger flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Löschen
-            </button>
-          </div>
+          <button
+            title="Wieder öffnen"
+            aria-label="Wieder öffnen"
+            onClick={() => post(`/api/admin/messages/${messageId}/assign`, {})}
+            disabled={loading}
+            className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center"
+          >
+            <RotateCw className="w-4 h-4" />
+          </button>
+
+          <button
+            title="Als erledigt markieren"
+            aria-label="Als erledigt markieren"
+            onClick={() => post(`/api/admin/messages/${messageId}/resolve`, {})}
+            disabled={loading}
+            className="w-8 h-8 rounded bg-primary text-primary-foreground flex items-center justify-center"
+          >
+            <Check className="w-4 h-4" />
+          </button>
+
+          <button
+            title="Löschen"
+            aria-label="Löschen"
+            onClick={() => setDeleteOpen(true)}
+            disabled={loading}
+            className="w-8 h-8 rounded bg-destructive text-destructive-foreground flex items-center justify-center"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
         {replyOpen && (
@@ -83,9 +118,10 @@ export default function MessageActions({ messageId }: { messageId: number }) {
                 <button
                   onClick={() => {
                     if (!replyText.trim()) return setMsg("Bitte Nachricht eingeben");
-                    post(`/api/admin/messages/${messageId}/reply`, { body: replyText.trim() }).then(() => {
+                    post(`/api/admin/messages/${messageId}/reply`, { body: replyText.trim() }).then((json) => {
                       setReplyOpen(false);
                       setReplyText("");
+                      if (json?.reply && onReply) onReply(json.reply);
                     });
                   }}
                   disabled={loading}
