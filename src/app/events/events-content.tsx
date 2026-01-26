@@ -350,8 +350,33 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
   // to string comparison when parsing fails. Include items with missing
   // or unparsable dates so they don't disappear from the list.
   const parseTs = (d: any) => {
-    const ts = Date.parse(d as string);
-    return Number.isFinite(ts) ? ts : NaN;
+    if (!d && d !== 0) return NaN;
+    if (typeof d === "number") return d;
+    const s = String(d).trim();
+
+    // Try native parse first (ISO etc.)
+    const native = Date.parse(s);
+    if (!Number.isNaN(native)) return native;
+
+    // DD.MM.YYYY
+    const dmY = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (dmY) {
+      const dd = Number(dmY[1]);
+      const mm = Number(dmY[2]);
+      const yyyy = Number(dmY[3]);
+      return new Date(yyyy, mm - 1, dd).getTime();
+    }
+
+    // DD.MM (assume current year)
+    const dm = s.match(/^(\d{1,2})\.(\d{1,2})$/);
+    if (dm) {
+      const dd = Number(dm[1]);
+      const mm = Number(dm[2]);
+      const yyyy = new Date().getFullYear();
+      return new Date(yyyy, mm - 1, dd).getTime();
+    }
+
+    return NaN;
   };
 
   allItems.sort((a, b) => {
