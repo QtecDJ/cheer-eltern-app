@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Menu, X, Mail, Info } from "lucide-react";
+import { Menu, X, Mail, Info, Calendar } from "lucide-react";
 
 export default function AdminQuickButton() {
   const [open, setOpen] = useState(false);
@@ -17,9 +17,13 @@ export default function AdminQuickButton() {
                 <Mail className="w-4 h-4" />
                 <span className="text-sm">Nachrichten</span>
               </Link>
-              <Link href="/info" className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
+              <Link href="/info/anwesenheit" className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">Anwesenheit</span>
+              </Link>
+              <Link href="/info/mitglieder" className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
                 <Info className="w-4 h-4" />
-                <span className="text-sm">Info</span>
+                <span className="text-sm">Mitglieder</span>
               </Link>
               {/* 'Admin' and 'Einstellungen' removed per request */}
             </div>

@@ -126,7 +126,6 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     { href: "/messages", icon: "Mail", label: "Nachricht" },
     { href: "/events", icon: "CalendarDays", label: "Events" },
     { href: "/dokumente", icon: "File", label: "Dokumente" },
-    { href: "/berichte", icon: "BookOpen", label: "Berichte" },
   ];
   // Info nav removed for admins per request
   navItems.push({ href: "/profil", icon: "User", label: "Profil" });

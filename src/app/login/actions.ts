@@ -47,10 +47,6 @@ export async function loginAction(formData: FormData) {
 export async function logoutAction() {
   try {
     await logout();
-    // Content-Cache löschen (läuft auf Client-Side nach Redirect)
-    clearContentCache().catch(err => 
-      console.error("[ContentCache] Logout cleanup error:", err)
-    );
   } catch (error) {
     console.error("Logout error:", error);
   }

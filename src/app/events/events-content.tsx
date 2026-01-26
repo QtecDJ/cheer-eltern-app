@@ -135,6 +135,45 @@ function linkifyText(text: string) {
   });
 }
 
+// Simple address detection helpers: look for street keywords or a house number
+function looksLikeAddress(s?: string | null) {
+  if (!s) return false;
+  const str = s.toString();
+  const streetKeywords = /strasse|straße|str\.|weg|platz|allee|ring|gasse|straße|allee|ring/i;
+  return /\d/.test(str) || streetKeywords.test(str);
+}
+
+function extractAddressFromText(s?: string | null) {
+  if (!s) return null;
+  const str = s.toString();
+  // Try to capture common patterns like 'Musterstraße 12' or 'Muster Str. 12'
+  const m = str.match(/[A-Za-zÄÖÜäöüß\.\-\s]{3,60}\s\d{1,4}[a-zA-Z]?/);
+  return m ? m[0].trim() : null;
+}
+
+function mapsDirectionLink(address: string) {
+  const encoded = encodeURIComponent(address);
+  if (typeof navigator !== "undefined") {
+    const ua = (navigator.userAgent || "").toLowerCase();
+    const platform = (navigator.platform || "").toLowerCase();
+    const isAndroid = /android/.test(ua);
+    const isIOS = /iphone|ipad|ipod/.test(ua) || (/mac/.test(platform) && 'ontouchend' in window);
+
+    // iOS: open Apple Maps
+    if (isIOS) {
+      return `maps://?daddr=${encoded}`;
+    }
+
+    // Android: use geo: URI to open preferred maps/navigation app
+    if (isAndroid) {
+      return `geo:0,0?q=${encoded}`;
+    }
+  }
+
+  // Fallback: Google Maps web directions
+  return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+}
+
 interface Participant {
   id: number;
   firstName: string;
@@ -774,6 +813,27 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <MapPin className="w-4 h-4 shrink-0" />
                               <span className="truncate">{item.location}</span>
+                              {
+                                (() => {
+                                  const loc = (item.location && looksLikeAddress(item.location)) ? item.location : null;
+                                  const descAddr = !loc && (item.itemType === "event" && item.description ? extractAddressFromText(item.description) : null);
+                                  const address = (loc || descAddr) ? (loc || descAddr) : null;
+                                  if (!address) return null;
+                                  return (
+                                    <a
+                                      href={mapsDirectionLink(address)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 shrink-0"
+                                      title={`Anfahrt planen: ${address}`}
+                                    >
+                                      <MapPin className="w-3.5 h-3.5" />
+                                      Anfahrt
+                                    </a>
+                                  );
+                                })()
+                              }
                             </div>
                           </div>
 

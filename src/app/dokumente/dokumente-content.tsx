@@ -49,7 +49,7 @@ const documents: Document[] = [
   },
 ];
 
-export function DokumenteContent() {
+export function DokumenteContent({ embedded = false }: { embedded?: boolean } = {}) {
   const router = useRouter();
 
   const getDownloadUrl = (filename: string, isExternal?: boolean) => {
@@ -111,19 +111,8 @@ export function DokumenteContent() {
     return acc;
   }, {} as Record<string, Document[]>);
 
-  return (
-    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-24 md:pb-8 max-w-lg md:max-w-none mx-auto">
-      {/* Header */}
-      <header className="mb-6 md:mb-8 animate-fade-in">
-        <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline md:hidden">
-          ← Zurück
-        </button>
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Dokumente</h1>
-        <p className="text-sm md:text-base text-muted-foreground mt-1">
-          PDFs und wichtige Dokumente
-        </p>
-      </header>
-
+  const content = (
+    <>
       {/* Dokumente nach Kategorie */}
       <div className="space-y-6 md:space-y-8">
         {Object.entries(groupedDocuments).map(([category, docs]) => (
@@ -181,6 +170,25 @@ export function DokumenteContent() {
           </div>
         </Card>
       )}
+    </>
+  );
+
+  if (embedded) return content;
+
+  return (
+    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-24 md:pb-8 max-w-lg md:max-w-none mx-auto">
+      {/* Header */}
+      <header className="mb-6 md:mb-8 animate-fade-in">
+        <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline md:hidden">
+          ← Zurück
+        </button>
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Dokumente</h1>
+        <p className="text-sm md:text-base text-muted-foreground mt-1">
+          PDFs und wichtige Dokumente
+        </p>
+      </header>
+
+      {content}
     </div>
   );
 }
