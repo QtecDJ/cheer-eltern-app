@@ -1099,3 +1099,54 @@ export async function assignTodo(id: number, assigneeId: number | null) {
 export async function deleteTodo(id: number) {
   return await prisma.toDo.delete({ where: { id } });
 }
+
+// ======================
+// Training Plan (Coaches)
+// ======================
+
+export async function createTrainingPlan(data: { title: string; description?: string; date: Date; startAt?: Date | null; endAt?: Date | null; location?: string | null; objectives?: any; drills?: any; materials?: any; teamId?: number | null; creatorId: number }) {
+  return await prisma.trainingPlan.create({
+    data: {
+      title: data.title,
+      description: data.description || null,
+      date: data.date,
+      startAt: data.startAt || null,
+      endAt: data.endAt || null,
+      location: data.location || null,
+      objectives: data.objectives || null,
+      drills: data.drills || null,
+      materials: data.materials || null,
+      teamId: data.teamId || null,
+      creatorId: data.creatorId,
+      status: "planned",
+    },
+    include: { creator: { select: { id: true, firstName: true, lastName: true, name: true } }, team: { select: { id: true, name: true } } },
+  });
+}
+
+export async function getTrainingPlansForCoach(coachId: number, filters: { teamId?: number | null; dateFrom?: Date | null; dateTo?: Date | null } = {}, limit = 200) {
+  const where: any = { creatorId: coachId };
+  if (typeof filters.teamId !== 'undefined') where.teamId = filters.teamId === null ? null : filters.teamId;
+  if (filters.dateFrom || filters.dateTo) where.date = {};
+  if (filters.dateFrom) where.date.gte = filters.dateFrom;
+  if (filters.dateTo) where.date.lte = filters.dateTo;
+
+  return await prisma.trainingPlan.findMany({
+    where,
+    orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+    take: limit,
+    include: { creator: { select: { id: true, firstName: true, lastName: true, name: true } }, team: { select: { id: true, name: true } } },
+  });
+}
+
+export async function getTrainingPlanById(id: number) {
+  return await prisma.trainingPlan.findUnique({ where: { id }, include: { creator: { select: { id: true, firstName: true, lastName: true, name: true } }, team: { select: { id: true, name: true } } } });
+}
+
+export async function updateTrainingPlan(id: number, data: { title?: string; description?: string | null; date?: Date; startAt?: Date | null; endAt?: Date | null; location?: string | null; objectives?: any; drills?: any; materials?: any; teamId?: number | null; status?: string }) {
+  return await prisma.trainingPlan.update({ where: { id }, data });
+}
+
+export async function deleteTrainingPlan(id: number) {
+  return await prisma.trainingPlan.delete({ where: { id } });
+}

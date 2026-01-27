@@ -19,6 +19,7 @@ model Team {
   AnnouncementTeam AnnouncementTeam[]
   members          Member[]
   trainings        TrainingSession[]
+  trainingPlans    TrainingPlan[]
 
   @@index([status])
 }
@@ -73,6 +74,8 @@ model Member {
   pushSubscriptions PushSubscription[]
   // Neue Spalte: Rollen als Array (backwards-compatible zu `userRole` string)
   roles            String[]  @default([])
+  // Training plans created by this member (as coach)
+  createdTrainingPlans TrainingPlan[]
 
   @@index([email])
   @@index([status])
@@ -107,6 +110,31 @@ model TrainingSession {
   @@index([isArchived])
   @@index([status, isArchived])
   @@index([date, status])
+  @@index([teamId])
+}
+
+model TrainingPlan {
+  id         Int      @id @default(autoincrement())
+  title      String
+  description String?
+  date       DateTime
+  startAt    DateTime?
+  endAt      DateTime?
+  location   String?
+  objectives Json?
+  drills     Json?
+  materials  Json?
+  teamId     Int?
+  creatorId  Int
+  status     String   @default("planned")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  creator    Member   @relation(fields: [creatorId], references: [id])
+  team       Team?    @relation(fields: [teamId], references: [id])
+
+  @@index([date])
+  @@index([creatorId])
   @@index([teamId])
 }
 
