@@ -42,7 +42,15 @@ export default function AdminMessagesList({ messages }: { messages: any[] }) {
             {/* Inline action buttons removed — actions are available when message is expanded */}
           </div>
           <div className="mt-2 text-sm text-muted-foreground flex items-center justify-between">
-            <div>Status: {m.status}{m.assignedTo ? ` — Zugewiesen` : ''}</div>
+            <div>
+              Status: {m.status}
+              {m.assignee && (
+                <> — Zugewiesen an {m.assignee.firstName ? `${m.assignee.firstName} ${m.assignee.lastName}` : m.assignee.name}</>
+              )}
+              {m.viewedAt && (
+                <> — Gesehen: {new Date(m.viewedAt).toLocaleString('de-DE')}</>
+              )}
+            </div>
             <div className="text-xs text-muted-foreground">{new Date(m.createdAt).toLocaleString('de-DE')}</div>
           </div>
 

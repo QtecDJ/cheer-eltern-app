@@ -60,6 +60,10 @@ model Member {
   messagesSent      Message[]          @relation("MessageSender")
   messagesAssigned  Message[]          @relation("MessageAssignee")
   messageReplies    MessageReply[]
+  // ToDo relations
+  createdTodos      ToDo[]             @relation("ToDoCreator")
+  assignedTodos     ToDo[]             @relation("ToDoAssignee")
+  commentsAuthored  ToDoComment[]
   team              Team?              @relation(fields: [teamId], references: [id])
   notifications     Notification[]
   PollVote          PollVote[]
@@ -380,6 +384,7 @@ model Message {
   audience   String?
   senderId   Int
   assignedTo Int?
+  viewedAt   DateTime?
   status     String    @default("open") // open | assigned | resolved
   resolvedAt DateTime?
   createdAt  DateTime  @default(now())
@@ -392,6 +397,44 @@ model Message {
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@index([senderId])
+}
+
+model ToDo {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  description String?
+  status      String   @default("open") // open | in_progress | done | blocked
+  priority    String   @default("normal") // low | normal | high | urgent
+  dueDate     DateTime?
+  creatorId   Int
+  assigneeId  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator Member @relation("ToDoCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  assignee Member? @relation("ToDoAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([priority])
+  @@index([assigneeId])
+  @@index([creatorId])
+
+  // Comments (replies) relation
+  comments ToDoComment[]
+}
+
+model ToDoComment {
+  id        Int      @id @default(autoincrement())
+  todoId    Int
+  authorId  Int
+  body      String
+  createdAt DateTime @default(now())
+
+  todo   ToDo   @relation(fields: [todoId], references: [id], onDelete: Cascade)
+  author Member @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([todoId])
+  @@index([authorId])
 }
 
 model MessageReply {

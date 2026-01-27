@@ -831,6 +831,8 @@ export async function getMessagesForStaff(limit = 50, includeResolved = false) {
       senderId: true,
       status: true,
       assignedTo: true,
+      assignee: { select: { id: true, firstName: true, lastName: true, name: true } },
+      viewedAt: true,
       createdAt: true,
       body: true,
       sender: { select: { id: true, firstName: true, lastName: true, name: true, teamId: true, team: { select: { id: true, name: true } } } },
@@ -983,12 +985,15 @@ export async function createMessageReply(messageId: number, authorId: number, bo
 }
 
 export async function assignMessageTo(messageId: number, assigneeId: number | null) {
+  const data: any = {
+    assignedTo: assigneeId,
+    status: assigneeId ? "assigned" : "open",
+  };
+  // clear viewedAt when assigning to someone (they haven't seen it yet)
+  if (assigneeId) data.viewedAt = null;
   return await prisma.message.update({
     where: { id: messageId },
-    data: {
-      assignedTo: assigneeId,
-      status: assigneeId ? "assigned" : "open",
-    },
+    data,
   });
 }
 
@@ -1021,4 +1026,76 @@ export async function getResolvedMessageCount(audience?: string) {
   const where: any = { status: "resolved" };
   if (audience) where.audience = audience;
   return await prisma.message.count({ where });
+}
+
+// ======================
+// ToDo / Admin Tasks
+// ======================
+
+export async function createTodo(data: { title: string; description?: string; priority?: string; dueDate?: Date | null; creatorId: number; assigneeId?: number | null }) {
+  return await prisma.toDo.create({
+    data: {
+      title: data.title,
+      description: data.description || null,
+      priority: data.priority || "normal",
+      dueDate: data.dueDate || null,
+      creatorId: data.creatorId,
+      assigneeId: data.assigneeId || null,
+      status: "open",
+    },
+  });
+}
+
+export async function getTodosForAdmin(filters: { status?: string[]; priority?: string[]; assignedTo?: number | null; mine?: number | null } = {}, limit = 200) {
+  const where: any = {};
+  if (filters.status && filters.status.length > 0) where.status = { in: filters.status };
+  if (filters.priority && filters.priority.length > 0) where.priority = { in: filters.priority };
+  if (typeof filters.assignedTo !== "undefined") where.assigneeId = filters.assignedTo === null ? null : filters.assignedTo;
+  if (typeof filters.mine !== "undefined" && filters.mine !== null) where.assigneeId = filters.mine;
+
+  const rows = await prisma.toDo.findMany({
+    where,
+    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
+    take: limit,
+    include: {
+      creator: { select: { id: true, firstName: true, lastName: true, name: true } },
+      assignee: { select: { id: true, firstName: true, lastName: true, name: true } },
+    },
+  });
+  return rows;
+}
+
+export async function getTodoById(id: number) {
+  return await prisma.toDo.findUnique({
+    where: { id },
+    include: {
+      creator: { select: { id: true, name: true, firstName: true, lastName: true } },
+      assignee: { select: { id: true, name: true, firstName: true, lastName: true } },
+      // include comments with author info
+      comments: {
+        orderBy: { createdAt: 'asc' },
+        include: { author: { select: { id: true, firstName: true, lastName: true, name: true } } },
+      },
+    },
+  });
+}
+
+export async function createTodoComment(data: { todoId: number; authorId: number; body: string }) {
+  return await prisma.toDoComment.create({ data: { todoId: data.todoId, authorId: data.authorId, body: data.body } });
+}
+
+export async function updateTodo(id: number, data: { title?: string; description?: string | null; priority?: string; dueDate?: Date | null }) {
+  return await prisma.toDo.update({ where: { id }, data });
+}
+
+export async function changeTodoStatus(id: number, status: string) {
+  return await prisma.toDo.update({ where: { id }, data: { status } });
+}
+
+export async function assignTodo(id: number, assigneeId: number | null) {
+  return await prisma.toDo.update({ where: { id }, data: { assigneeId } });
+}
+
+export async function deleteTodo(id: number) {
+  return await prisma.toDo.delete({ where: { id } });
 }

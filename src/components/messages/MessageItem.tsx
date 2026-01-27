@@ -66,7 +66,15 @@ export default function MessageItem({ message }: { message: any }) {
           aria-expanded={open}
         >
           <div className="font-medium">{message.subject}</div>
-          <div className="text-xs text-muted-foreground">Erstellt: {new Date(message.createdAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} — Status: {message.status}</div>
+          <div className="text-xs text-muted-foreground">
+            Erstellt: {new Date(message.createdAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} — Status: {message.status}
+            {message.assignee && (
+              <> — Zu: {message.assignee.firstName ? `${message.assignee.firstName} ${message.assignee.lastName}` : message.assignee.name}</>
+            )}
+            {message.viewedAt && (
+              <> — Gesehen: {new Date(message.viewedAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</>
+            )}
+          </div>
         </button>
 
         <div className="ml-3">

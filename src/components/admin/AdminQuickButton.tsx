@@ -17,6 +17,10 @@ export default function AdminQuickButton() {
                 <Mail className="w-4 h-4" />
                 <span className="text-sm">Nachrichten</span>
               </Link>
+              <Link href="/admin/todos" className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
+                <Info className="w-4 h-4" />
+                <span className="text-sm">ToDo</span>
+              </Link>
               <Link href="/info/anwesenheit" className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">Anwesenheit</span>
