@@ -21,6 +21,10 @@ export default function AdminQuickButton() {
                 <Info className="w-4 h-4" />
                 <span className="text-sm">ToDo</span>
               </Link>
+              <Link href="/coaches/training-plans" className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">Trainingsplan</span>
+              </Link>
               <Link href="/info/anwesenheit" className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">Anwesenheit</span>
