@@ -2,6 +2,7 @@ import React from "react";
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTrainingPlanById } from "@/lib/queries";
+import ClientTrainingPlanFallback from '@/components/coaches/ClientTrainingPlanFallback';
 
 export default async function TrainingPlanDetailPage(props: any) {
   // `params` can be an unresolved Promise in Next.js — await it when present
@@ -28,7 +29,7 @@ export default async function TrainingPlanDetailPage(props: any) {
   } else if (rawId !== undefined && rawId !== null) {
     id = Number(rawId);
   }
-  if (!id || Number.isNaN(id)) return <div className="py-6">Ungültige ID: {String(rawId)}</div>;
+  if (!id || Number.isNaN(id)) return <ClientTrainingPlanFallback />;
   const plan = await getTrainingPlanById(id);
   if (!plan) return <div className="py-6">Plan nicht gefunden</div>;
 
@@ -91,47 +92,4 @@ export default async function TrainingPlanDetailPage(props: any) {
     </div>
   );
 }
-
-  // Client-side fallback when server `params` is not available for some routing setups.
-  "use client";
-  import React, { useEffect, useState } from 'react';
-
-  function ClientTrainingPlanFallback() {
-    const [plan, setPlan] = useState<any>(null);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-      // try extract id from pathname
-      try {
-        const parts = typeof window !== 'undefined' ? window.location.pathname.split('/') : [];
-        const idStr = parts[parts.length - 1];
-        const id = Number(idStr);
-        if (!id || Number.isNaN(id)) {
-          setError('Ungültige ID');
-          return;
-        }
-        fetch(`/api/coaches/training-plans/${id}`).then(async res => {
-          if (!res.ok) throw new Error('Plan nicht gefunden');
-          const j = await res.json();
-          setPlan(j);
-        }).catch(e => setError(e.message || 'Fehler'));
-      } catch (e:any) {
-        setError(String(e));
-      }
-    }, []);
-
-    if (error) return <div className="py-6">{error}</div>;
-    if (!plan) return <div className="py-6">Lade...</div>;
-
-    return (
-      <div className="py-6">
-        <div className="max-w-3xl mx-auto bg-card p-4 rounded">
-          <h2 className="text-xl font-semibold">{plan.title}</h2>
-          <div className="text-sm text-muted-foreground">{new Date(plan.date).toLocaleString()}</div>
-          {plan.team?.name && <div className="text-sm">Team: {plan.team.name}</div>}
-          {plan.description && <div className="mt-2">{plan.description}</div>}
-        </div>
-      </div>
-    );
-  }
 
