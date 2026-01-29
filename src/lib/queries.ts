@@ -243,6 +243,50 @@ export async function getTrainingsList(teamId: number, limit = 20) {
 }
 
 /**
+ * Kommende und laufende Trainings für Planner (optional teamId)
+ */
+export async function getUpcomingAndOngoingTrainings(teamId?: number, limit = 50) {
+  const today = new Date().toISOString().split('T')[0];
+  const where: any = {
+    isArchived: false,
+    type: 'training',
+    OR: [
+      { status: 'upcoming', date: { gte: today } },
+      { status: 'ongoing' },
+    ],
+  };
+  if (teamId) where.teamId = teamId;
+
+  return await prisma.trainingSession.findMany({
+    where,
+    orderBy: { date: 'asc' },
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      date: true,
+      time: true,
+      location: true,
+      trainer: true,
+      status: true,
+      team: { select: { id: true, name: true } },
+    },
+  });
+}
+
+/**
+ * Minimal team list for selects
+ */
+export async function getTeamsMinimal(limit = 50) {
+  return await prisma.team.findMany({
+    where: { },
+    orderBy: { name: 'asc' },
+    take: limit,
+    select: { id: true, name: true },
+  });
+}
+
+/**
  * Kommende Trainings für Home-Dashboard
  * Nur nächste 3, minimal
  */
@@ -369,6 +413,10 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
       OR: [
         { category: { equals: "news", mode: "insensitive" } },
         { category: { equals: "info", mode: "insensitive" } },
+        // Zeige auch dringende/hohe Priorität Ankündigungen unabhängig von Kategorie
+        { priority: { in: ["urgent", "high"], mode: "insensitive" } },
+        // Fange mögliche deutsche Kategorien wie 'dring' / 'dringend' ab
+        { category: { contains: "dring", mode: "insensitive" } },
       ],
     },
     {
@@ -433,6 +481,9 @@ export async function getEventAnnouncementsWithPolls(teamId?: number | number[] 
         { category: { equals: "event", mode: "insensitive" } },
         { category: { equals: "info", mode: "insensitive" } },
         { category: { equals: "news", mode: "insensitive" } },
+        // Auch hier dringende/hohe Priorität Ankündigungen immer anzeigen
+        { priority: { in: ["urgent", "high"], mode: "insensitive" } },
+        { category: { contains: "dring", mode: "insensitive" } },
       ],
     },
     {
