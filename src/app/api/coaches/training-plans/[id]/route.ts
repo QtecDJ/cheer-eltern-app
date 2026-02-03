@@ -24,9 +24,11 @@ export async function PATCH(req: Request, context: any) {
     const id = Number((context?.params && (await context.params).id) ?? context?.params?.id ?? context?.params);
     const plan = await getTrainingPlanById(id);
     if (!plan) return NextResponse.json({ error: "not_found" }, { status: 404 });
-    // allow only creator or admin to update
+    // allow only creator, admin or the team's coach (coachTeamId matches plan.teamId) to update
     const roles = (session.roles || []).map((r: any) => (r || "").toString().toLowerCase());
-    if (!(roles.includes("admin") || roles.includes("coach") || (session.id && Number(session.id) === Number(plan.creatorId)))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    const isAdmin = roles.includes("admin");
+    const canUpdate = isAdmin || (plan.creatorId === session.id) || (plan.teamId && session.coachTeamId === plan.teamId);
+    if (!canUpdate) return NextResponse.json({ error: "forbidden" }, { status: 403 });
     const body = await req.json();
     const updated = await updateTrainingPlan(id, body);
     return NextResponse.json({ success: true, trainingPlan: updated });
@@ -44,7 +46,9 @@ export async function DELETE(req: Request, context: any) {
     const plan = await getTrainingPlanById(id);
     if (!plan) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const roles = (session.roles || []).map((r: any) => (r || "").toString().toLowerCase());
-    if (!(roles.includes("admin") || roles.includes("coach") || (session.id && Number(session.id) === Number(plan.creatorId)))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    const isAdmin = roles.includes("admin");
+    const canDelete = isAdmin || (plan.creatorId === session.id) || (plan.teamId && session.coachTeamId === plan.teamId);
+    if (!canDelete) return NextResponse.json({ error: "forbidden" }, { status: 403 });
     await deleteTrainingPlan(id);
     return NextResponse.json({ success: true });
   } catch (e) {

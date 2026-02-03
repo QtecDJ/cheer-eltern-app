@@ -33,6 +33,10 @@ export default async function TrainingPlanDetailPage(props: any) {
   const plan = await getTrainingPlanById(id);
   if (!plan) return <div className="py-6">Plan nicht gefunden</div>;
 
+  const isAdmin = roles.includes('admin');
+  const canAccess = isAdmin || plan.creatorId === session.id || (plan.teamId && (session.coachTeamId === plan.teamId || session.teamId === plan.teamId));
+  if (!canAccess) return <div className="py-6">Zugriff verweigert</div>;
+
   return (
     <div className="py-6">
       <div className="max-w-3xl mx-auto bg-card p-4 rounded">

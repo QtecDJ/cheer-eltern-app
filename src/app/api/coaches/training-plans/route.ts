@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     if (teamId) filters.teamId = Number(teamId);
     if (from) filters.dateFrom = new Date(from);
     if (to) filters.dateTo = new Date(to);
-    const rows = await getTrainingPlansForCoach(session.id, filters, 500);
+    const rows = await getTrainingPlansForCoach(session.id, filters, 500, session.coachTeamId || null);
     return NextResponse.json({ trainingPlans: rows });
   } catch (e) {
     console.error(e);

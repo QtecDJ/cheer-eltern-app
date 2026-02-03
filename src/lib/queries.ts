@@ -1175,12 +1175,23 @@ export async function createTrainingPlan(data: { title: string; description?: st
   });
 }
 
-export async function getTrainingPlansForCoach(coachId: number, filters: { teamId?: number | null; dateFrom?: Date | null; dateTo?: Date | null } = {}, limit = 200) {
-  const where: any = { creatorId: coachId };
-  if (typeof filters.teamId !== 'undefined') where.teamId = filters.teamId === null ? null : filters.teamId;
-  if (filters.dateFrom || filters.dateTo) where.date = {};
-  if (filters.dateFrom) where.date.gte = filters.dateFrom;
-  if (filters.dateTo) where.date.lte = filters.dateTo;
+export async function getTrainingPlansForCoach(coachId: number, filters: { teamId?: number | null; dateFrom?: Date | null; dateTo?: Date | null } = {}, limit = 200, coachTeamId: number | null = null) {
+  // Accessible plans: created by the coach OR assigned to the coach's team (if set)
+  const baseOr: any[] = [{ creatorId: coachId }];
+  if (coachTeamId) baseOr.push({ teamId: coachTeamId });
+  if (typeof filters.teamId !== 'undefined') {
+    // If a specific team filter is requested, include it in the OR-list
+    baseOr.push(filters.teamId === null ? { teamId: null } : { teamId: filters.teamId });
+  }
+
+  let where: any = { OR: baseOr };
+
+  if (filters.dateFrom || filters.dateTo) {
+    const dateWhere: any = {};
+    if (filters.dateFrom) dateWhere.gte = filters.dateFrom;
+    if (filters.dateTo) dateWhere.lte = filters.dateTo;
+    where = { AND: [where, { date: dateWhere }] };
+  }
 
   return await prisma.trainingPlan.findMany({
     where,

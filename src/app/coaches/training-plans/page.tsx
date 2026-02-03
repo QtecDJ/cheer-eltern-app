@@ -10,7 +10,7 @@ export default async function TrainingPlansPage() {
   const roles = (session.roles || []).map((r:any) => (r||'').toString().toLowerCase());
   if (!roles.includes('coach') && !roles.includes('admin')) redirect('/');
 
-  const plans = await getTrainingPlansForCoach(session.id, {}, 200);
+  const plans = await getTrainingPlansForCoach(session.id, {}, 200, session.coachTeamId || null);
   return (
     <div className="py-6">
       <div className="flex items-center justify-between mb-4">
@@ -21,7 +21,7 @@ export default async function TrainingPlansPage() {
       </div>
       <div>
         {/* @ts-ignore */}
-        <PlannerList plans={plans} currentUserId={session.id} />
+        <PlannerList plans={plans} currentUserId={session.id} roles={roles} coachTeamId={session.coachTeamId || null} />
       </div>
     </div>
   );
