@@ -7,16 +7,18 @@ import TodoDetailClientFallback from "@/components/admin/TodoDetailClient";
 
 export const revalidate = 60;
 
-export default async function TodoDetailPage({ params }: { params?: { id?: string } }) {
+export default async function TodoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) redirect('/login');
   const roles = (session.roles || []).map((r: any) => (r || '').toString().toLowerCase());
   if (!roles.includes('admin') && !roles.includes('orga')) redirect('/');
-  if (!params || !params.id) {
+  
+  const resolvedParams = await params;
+  if (!resolvedParams || !resolvedParams.id) {
     // Server didn't provide params (edge cases). Fallback to client fetch.
     return (
-      <div className="py-6">
-        <h1 className="text-2xl font-semibold mb-4">Aufgabe</h1>
+      <div className="px-4 md:px-6 lg:px-8 pt-6 pb-24 md:pb-8 max-w-4xl mx-auto">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6">Aufgabe wird geladen...</h1>
         {/* client fallback will read URL and fetch the todo */}
         {/* @ts-ignore */}
         <TodoDetailClientFallback currentUserId={session.id} roles={roles} />
@@ -24,17 +26,18 @@ export default async function TodoDetailPage({ params }: { params?: { id?: strin
     );
   }
 
-  const id = Number(params.id);
+  const id = Number(resolvedParams.id);
   if (!Number.isFinite(id) || id <= 0) return redirect('/admin/todos');
   const todo = await getTodoById(id);
-  if (!todo) return <div className="py-6">Aufgabe nicht gefunden.</div>;
+  if (!todo) {
+    return (
+      <div className="px-4 md:px-6 lg:px-8 pt-6 pb-24 md:pb-8 max-w-4xl mx-auto">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6">Aufgabe nicht gefunden</h1>
+        <p className="text-muted-foreground">Die gesuchte Aufgabe existiert nicht oder wurde gelöscht.</p>
+      </div>
+    );
+  }
 
   // @ts-ignore
-  return (
-    <div className="py-6">
-      <h1 className="text-2xl font-semibold mb-4">Aufgabe</h1>
-      {/* @ts-ignore */}
-      <TodoDetail todo={todo} currentUserId={session.id} roles={roles} />
-    </div>
-  );
+  return <TodoDetail todo={todo} currentUserId={session.id} roles={roles} />;
 }

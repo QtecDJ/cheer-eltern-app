@@ -1,13 +1,47 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  CheckCircle2, Clock, AlertTriangle, Flag, User, Calendar, 
+  ArrowLeft, Trash2, Send, MessageSquare
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+function getPriorityBadge(priority: string) {
+  switch (priority?.toLowerCase()) {
+    case 'high':
+      return <Badge variant="danger" className="flex items-center gap-1"><Flag className="w-3 h-3" />Hoch</Badge>;
+    case 'medium':
+      return <Badge variant="warning" className="flex items-center gap-1"><Flag className="w-3 h-3" />Mittel</Badge>;
+    case 'low':
+      return <Badge variant="info" className="flex items-center gap-1"><Flag className="w-3 h-3" />Niedrig</Badge>;
+    default:
+      return <Badge variant="outline">{priority}</Badge>;
+  }
+}
+
+function getStatusBadge(status: string) {
+  switch (status?.toLowerCase()) {
+    case 'done':
+      return <Badge variant="success" className="flex items-center gap-1"><CheckCircle2 className="w-3 h-3" />Erledigt</Badge>;
+    case 'in_progress':
+      return <Badge variant="info" className="flex items-center gap-1"><Clock className="w-3 h-3" />In Arbeit</Badge>;
+    case 'pending':
+      return <Badge variant="warning" className="flex items-center gap-1"><AlertTriangle className="w-3 h-3" />Ausstehend</Badge>;
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+}
 
 export default function TodoDetail({ todo, currentUserId, roles }: { todo: any; currentUserId: number; roles?: string[] }) {
   const router = useRouter();
   const [item, setItem] = useState<any>(todo);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const descriptionRef = React.useRef<HTMLDivElement>(null);
 
   async function saveChanges(changes: any) {
     setSaving(true);
@@ -50,46 +84,204 @@ export default function TodoDetail({ todo, currentUserId, roles }: { todo: any; 
     finally { setPosting(false); }
   }
 
+  // Handle checkbox changes in the description
+  useEffect(() => {
+    if (!descriptionRef.current) return;
+    
+    const checkboxes = descriptionRef.current.querySelectorAll('input[type="checkbox"]');
+    const handleCheckboxChange = async (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      // Update the HTML content
+      if (descriptionRef.current) {
+        await saveChanges({ description: descriptionRef.current.innerHTML });
+      }
+    };
+    
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', handleCheckboxChange);
+    });
+    
+    return () => {
+      checkboxes.forEach(cb => {
+        cb.removeEventListener('change', handleCheckboxChange);
+      });
+    };
+  }, [item.description]);
+
+  const isOverdue = item.dueDate && new Date(item.dueDate) < new Date() && item.status !== 'done';
+
   return (
-    <div className="space-y-4 max-w-2xl mx-auto px-4 sm:px-0">
-      <div className="p-3 bg-card rounded border">
-        <h2 className="text-xl font-semibold">{item.title}</h2>
-        <div className="text-sm text-muted-foreground">{item.description}</div>
-        <div className="text-xs mt-2">Status: {item.status} — Priorität: {item.priority} {item.dueDate && <>— Fällig: {new Date(item.dueDate).toLocaleDateString()}</>}</div>
-        <div className="text-xs text-muted-foreground">Erstellt: {new Date(item.createdAt).toLocaleString()} von {item.creator?.firstName || item.creator?.name}</div>
-        <div className="text-xs text-muted-foreground">Zugewiesen an: {item.assignee ? (item.assignee.firstName || item.assignee.name) : '—'}</div>
-      </div>
+    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-24 md:pb-8 max-w-4xl mx-auto">
+      {/* Header */}
+      <header className="mb-6 animate-fade-in">
+        <button 
+          onClick={() => router.push('/admin/todos')} 
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Zurück zur Übersicht
+        </button>
+        <h1 className="text-2xl md:text-3xl font-bold">Aufgaben-Details</h1>
+      </header>
 
-      {error && <div className="text-sm text-red-600">{error}</div>}
-
-      <div className="flex flex-col sm:flex-row gap-2">
-        {((item.creator?.id === currentUserId) || isAdmin) && item.status !== 'done' && <button onClick={markDone} className="w-full sm:w-auto py-2 px-3 bg-green-600 rounded text-white">Als erledigt</button>}
-        {/* assign removed per requirements */}
-        {((item.creator?.id === currentUserId) || isAdmin) && <button onClick={handleDelete} className="w-full sm:w-auto py-2 px-3 bg-red-600 rounded text-white">Löschen</button>}
-        <button onClick={() => router.push('/admin/todos')} className="w-full sm:w-auto py-2 px-3 bg-muted/30 rounded">Zurück</button>
-      </div>
-
-      <div className="pt-4">
-        <h3 className="text-lg font-medium">Diskussion</h3>
-        <div className="mt-2 space-y-2">
-          {comments.length === 0 && <div className="text-sm text-muted-foreground">Keine Antworten.</div>}
-          {comments.map((c, i) => (
-            <div key={c.id ?? i} className="p-2 bg-card rounded">
-              <div className="text-sm font-medium">{c.author?.firstName ? `${c.author.firstName} ${c.author.lastName || ''}` : c.author?.name || 'Mitglied'}</div>
-              <div className="text-sm text-muted-foreground">{c.body}</div>
-              <div className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</div>
+      {/* Main Card */}
+      <Card padding="lg" className={cn(
+        "mb-4",
+        isOverdue && "border-red-500/30 bg-red-500/5"
+      )}>
+        <div className="space-y-4">
+          {/* Title & Status */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <h2 className="text-2xl font-bold flex-1">{item.title}</h2>
+            <div className="flex gap-2">
+              {getStatusBadge(item.status)}
+              {getPriorityBadge(item.priority)}
             </div>
-          ))}
-        </div>
+          </div>
 
-        <div className="mt-3">
-          <textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Antwort schreiben..." className="w-full p-2 border rounded" rows={3} />
-          <div className="flex gap-2 mt-2">
-            <button onClick={postReply} disabled={posting} className="py-1 px-3 bg-primary text-white rounded">{posting ? 'Senden...' : 'Antworten'}</button>
-            <button onClick={() => setReply('')} className="py-1 px-3 bg-muted/30 rounded">Abbrechen</button>
+          {/* Description */}
+          {item.description && (
+            <div 
+              ref={descriptionRef}
+              className="prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: item.description }}
+            />
+          )}
+
+          {/* Meta Information Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-border/50">
+            <div className="flex items-center gap-2 text-sm">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Erstellt von:</span>
+              <span className="font-medium">{item.creator?.firstName ? `${item.creator.firstName} ${item.creator.lastName}` : item.creator?.name}</span>
+            </div>
+            
+            {item.assignee && (
+              <div className="flex items-center gap-2 text-sm">
+                <User className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Zugewiesen an:</span>
+                <span className="font-medium">{item.assignee.firstName || item.assignee.name}</span>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Erstellt am:</span>
+              <span className="font-medium">{new Date(item.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            
+            {item.dueDate && (
+              <div className={cn(
+                "flex items-center gap-2 text-sm",
+                isOverdue && "text-red-500 font-semibold"
+              )}>
+                <Calendar className="w-4 h-4" />
+                <span className={isOverdue ? "" : "text-muted-foreground"}>Fällig am:</span>
+                <span className="font-medium">{new Date(item.dueDate).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                {isOverdue && <Badge variant="danger" size="sm">Überfällig</Badge>}
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      </Card>
+
+      {/* Error Message */}
+      {error && (
+        <Card padding="sm" className="mb-4 bg-red-500/10 border-red-500/30">
+          <p className="text-sm text-red-600">{error}</p>
+        </Card>
+      )}
+
+      {/* Action Buttons */}
+      <Card padding="sm" className="mb-6">
+        <div className="flex flex-wrap gap-2">
+          {((item.creator?.id === currentUserId) || isAdmin) && item.status !== 'done' && (
+            <button 
+              onClick={markDone} 
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 rounded-lg text-white font-medium transition-colors disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              Als erledigt markieren
+            </button>
+          )}
+          {((item.creator?.id === currentUserId) || isAdmin) && (
+            <button 
+              onClick={handleDelete} 
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg text-white font-medium transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Löschen
+            </button>
+          )}
+        </div>
+      </Card>
+
+      {/* Comments Section */}
+      <Card padding="lg">
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            Diskussion ({comments.length})
+          </h3>
+          
+          {/* Comments List */}
+          <div className="space-y-3">
+            {comments.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">Noch keine Kommentare vorhanden.</p>
+            )}
+            {comments.map((c, i) => (
+              <Card key={c.id ?? i} padding="sm" variant="outline">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium">
+                        {c.author?.firstName ? `${c.author.firstName} ${c.author.lastName || ''}` : c.author?.name || 'Mitglied'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(c.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap">{c.body}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Reply Form */}
+          <div className="pt-4 border-t border-border/50">
+            <textarea 
+              value={reply} 
+              onChange={(e) => setReply(e.target.value)} 
+              placeholder="Schreibe einen Kommentar..." 
+              className="w-full p-3 border border-border rounded-lg bg-background focus:ring-2 focus:ring-primary focus:border-transparent resize-none transition-all" 
+              rows={3} 
+            />
+            <div className="flex gap-2 mt-3">
+              <button 
+                onClick={postReply} 
+                disabled={posting || !reply.trim()}
+                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 rounded-lg text-primary-foreground font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send className="w-4 h-4" />
+                {posting ? 'Wird gesendet...' : 'Kommentar senden'}
+              </button>
+              {reply && (
+                <button 
+                  onClick={() => setReply('')}
+                  className="px-4 py-2 bg-muted/30 hover:bg-muted/50 rounded-lg font-medium transition-colors"
+                >
+                  Abbrechen
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

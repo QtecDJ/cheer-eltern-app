@@ -1,10 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import { CheckSquare } from "lucide-react";
 
 export default function MessageItem({ message }: { message: any }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+  const descriptionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -53,6 +57,111 @@ export default function MessageItem({ message }: { message: any }) {
     }
   }
 
+  // Check if this is a todo assignment message
+  const todoLinkMatch = message.body?.match(/\[Zur Aufgabe\]\((\/admin\/todos\/(\d+))\)/);
+  const todoLink = todoLinkMatch ? todoLinkMatch[1] : null;
+  const todoId = todoLinkMatch ? todoLinkMatch[2] : null;
+
+  // Load current todo description if this is a todo message
+  const [todoDescription, setTodoDescription] = useState<string | null>(null);
+  const [fullMessageBody, setFullMessageBody] = useState<string>(message.body || '');
+  
+  useEffect(() => {
+    if (!open || !todoId) return;
+    
+    // Fetch the current todo to get the latest description
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/todos/${todoId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.todo?.description) {
+            setTodoDescription(data.todo.description);
+            
+            // Replace the description part in the message body
+            // The message format is: "... \n\n{description}\n\nPriorität ..."
+            const originalBody = message.body || '';
+            const descriptionMatch = originalBody.match(/(.*?\*\*\n\n)([\s\S]*?)(\n\nPriorität.*)/);
+            if (descriptionMatch) {
+              const newBody = descriptionMatch[1] + data.todo.description + descriptionMatch[3];
+              setFullMessageBody(newBody);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load todo description:', err);
+      }
+    })();
+  }, [open, todoId, message.body]);
+
+  // Handle checkbox changes
+  useEffect(() => {
+    if (!open || !descriptionRef.current) return;
+
+    const handleCheckboxChange = async (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      if (target.type === 'checkbox' && todoId) {
+        // Get the full HTML
+        const fullHtml = descriptionRef.current?.innerHTML || '';
+        
+        console.log('💾 Saving checkbox state for todo', todoId);
+        console.log('HTML:', fullHtml.substring(0, 200));
+        
+        // Update local state immediately
+        setTodoDescription(fullHtml);
+        
+        // Also update the full message body with new description
+        const originalBody = message.body || '';
+        const descriptionMatch = originalBody.match(/(.*?\*\*\n\n)([\s\S]*?)(\n\nPriorität.*)/);
+        if (descriptionMatch) {
+          const newBody = descriptionMatch[1] + fullHtml + descriptionMatch[3];
+          setFullMessageBody(newBody);
+        }
+        
+        // Update todo description
+        try {
+          const res = await fetch(`/api/admin/todos/${todoId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: fullHtml }),
+          });
+          const data = await res.json();
+          console.log('✅ Saved:', data);
+        } catch (err) {
+          console.error('❌ Failed to save checkbox state:', err);
+        }
+      }
+    };
+
+    const checkboxes = descriptionRef.current?.querySelectorAll('input[type="checkbox"]');
+    checkboxes?.forEach(cb => cb.addEventListener('change', handleCheckboxChange));
+
+    return () => {
+      checkboxes?.forEach(cb => cb.removeEventListener('change', handleCheckboxChange));
+    };
+  }, [open, todoId, todoDescription]);
+
+  // Mark todo as done
+  const [marking, setMarking] = useState(false);
+  async function markAsDone() {
+    if (!todoId) return;
+    setMarking(true);
+    try {
+      const res = await fetch(`/api/admin/todos/${todoId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'done' }),
+      });
+      if (res.ok) {
+        alert('Aufgabe als erledigt markiert!');
+      }
+    } catch (err) {
+      console.error('Failed to mark as done:', err);
+    } finally {
+      setMarking(false);
+    }
+  }
+
   const hasReplies = (replies?.length || 0) > 0;
   // subtle left accent only when there are replies (orange)
   const highlightClass = hasReplies && message.status !== 'resolved' ? 'border-l-4 border-orange-400' : '';
@@ -65,7 +174,10 @@ export default function MessageItem({ message }: { message: any }) {
           className="text-left flex-1"
           aria-expanded={open}
         >
-          <div className="font-medium">{message.subject}</div>
+          <div className="font-medium flex items-center gap-2">
+            {todoLink && <CheckSquare className="h-4 w-4 text-blue-500" />}
+            {message.subject}
+          </div>
           <div className="text-xs text-muted-foreground">
             Erstellt: {new Date(message.createdAt).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} — Status: {message.status}
             {message.assignee && (
@@ -86,7 +198,25 @@ export default function MessageItem({ message }: { message: any }) {
 
       {open && (
         <div className="mt-3">
-          <div className="whitespace-pre-wrap text-sm">{message.body}</div>
+          <div 
+            ref={descriptionRef}
+            className="prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ __html: fullMessageBody }}
+          />
+          
+          {todoId && (
+            <div className="mt-3">
+              <button 
+                onClick={markAsDone}
+                disabled={marking}
+                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50"
+              >
+                <CheckSquare className="h-4 w-4" />
+                {marking ? 'Wird markiert...' : 'Als erledigt markieren'}
+              </button>
+            </div>
+          )}
+          
           {replies && replies.length > 0 && (
             <div className="mt-3 border-t pt-3 space-y-2">
               {replies.map((r: any) => (

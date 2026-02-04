@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { createTodo, getTodosForAdmin } from "@/lib/queries";
+import { prisma } from "@/lib/db";
+import { encryptText } from "@/lib/crypto";
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -35,6 +37,27 @@ export async function POST(req: Request) {
     const body = await req.json();
     if (!body?.title) return NextResponse.json({ error: "missing_title" }, { status: 400 });
     const created = await createTodo({ title: body.title, description: body.description, priority: body.priority, dueDate: body.dueDate ? new Date(body.dueDate) : null, creatorId: session.id, assigneeId: body.assigneeId ?? null });
+    
+    // Wenn jemand zugewiesen wurde, erstelle eine Nachricht
+    if (body.assigneeId) {
+      try {
+        const messageBody = `Dir wurde eine neue Aufgabe zugewiesen:\n\n**${body.title}**\n\n${body.description || 'Keine Beschreibung'}\n\nPriorität ${body.priority || 'normal'}\nFällig: ${body.dueDate ? new Date(body.dueDate).toLocaleDateString('de-DE') : 'Nicht festgelegt'}\n\n[Zur Aufgabe](/admin/todos/${created.id})`;
+        const message = await prisma.message.create({
+          data: {
+            subject: `Neue Aufgabe: ${body.title}`,
+            body: encryptText(messageBody),
+            senderId: session.id,
+            assignedTo: Number(body.assigneeId),
+            status: 'open',
+          }
+        });
+        console.log('✅ Assignment message created:', { messageId: message.id, assignedTo: body.assigneeId, todoId: created.id });
+      } catch (msgErr) {
+        console.error('❌ Failed to create assignment message:', msgErr);
+        // Don't fail the todo creation if message fails
+      }
+    }
+    
     return NextResponse.json({ success: true, todo: created });
   } catch (e) {
     console.error(e);
