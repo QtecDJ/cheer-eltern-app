@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, Save, Bold, Italic, List, Link as LinkIcon, 
   Image as ImageIcon, BarChart3, Plus, X, Trash2, Calendar,
-  Pin, Users, Bell, CheckSquare, Maximize2
+  Pin, Users, Bell, CheckSquare, Maximize2, Palette
 } from "lucide-react";
 
 type PollOption = { id: number; text: string };
@@ -51,6 +51,7 @@ export default function AnnouncementEditor({
   const [teams, setTeams] = useState<any[]>([]);
   const [showPollModal, setShowPollModal] = useState(false);
   const [showImageLightbox, setShowImageLightbox] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   // Load existing announcement
   useEffect(() => {
@@ -318,6 +319,44 @@ export default function AnnouncementEditor({
             >
               <List className="w-4 h-4" />
             </button>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowColorPicker(!showColorPicker)}
+                className="p-2 hover:bg-muted/50 rounded"
+                title="Textfarbe"
+              >
+                <Palette className="w-4 h-4" />
+              </button>
+              {showColorPicker && (
+                <div className="absolute top-full left-0 mt-1 p-2 bg-card border-2 border-border rounded-lg shadow-xl z-10 grid grid-cols-5 gap-1">
+                  {[
+                    { color: '#000000', name: 'Schwarz' },
+                    { color: '#ef4444', name: 'Rot' },
+                    { color: '#f97316', name: 'Orange' },
+                    { color: '#eab308', name: 'Gelb' },
+                    { color: '#22c55e', name: 'Grün' },
+                    { color: '#3b82f6', name: 'Blau' },
+                    { color: '#a855f7', name: 'Lila' },
+                    { color: '#ec4899', name: 'Pink' },
+                    { color: '#64748b', name: 'Grau' },
+                    { color: '#ffffff', name: 'Weiß' },
+                  ].map(({ color, name }) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => {
+                        formatText('foreColor', color);
+                        setShowColorPicker(false);
+                      }}
+                      className="w-8 h-8 rounded border-2 border-border hover:scale-110 transition-transform"
+                      style={{ backgroundColor: color }}
+                      title={name}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="w-px bg-border mx-1" />
             <button
               type="button"

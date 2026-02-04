@@ -82,6 +82,7 @@ function transformAnnouncements(announcements: any[], memberId: number) {
       allowRsvp: announcement.allowRsvp,
       createdAt: announcement.createdAt,
       expiresAt: announcement.expiresAt,
+      imageUrl: announcement.imageUrl,
       poll: pollData,
       rsvp: {
         acceptedCount,

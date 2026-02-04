@@ -215,6 +215,7 @@ interface EventAnnouncement {
   allowRsvp: boolean | null;
   createdAt: Date;
   expiresAt: Date | null;
+  imageUrl?: string | null;
   poll: PollData | null;
   rsvp: {
     acceptedCount: number;
@@ -602,6 +603,19 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
 
                               {isExpanded && (
                                 <div className="mt-4">
+                                  {announcement.imageUrl && (
+                                    <div className="mb-4 rounded-lg overflow-hidden border-2 border-border">
+                                      <img 
+                                        src={announcement.imageUrl}
+                                        alt={announcement.title}
+                                        className="w-full h-auto object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+
                                   <div className="prose prose-sm max-w-none mb-4">
                                     <div 
                                       className="text-[15px] text-foreground/85 leading-[1.7] whitespace-pre-wrap"

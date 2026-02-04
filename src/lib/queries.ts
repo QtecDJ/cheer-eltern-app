@@ -453,6 +453,7 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
       createdAt: true,
       expiresAt: true,
       category: true,
+      imageUrl: true,
       // Teams minimal
       AnnouncementTeam: {
         select: {
@@ -537,6 +538,7 @@ export async function getEventAnnouncementsWithPolls(teamId?: number | number[] 
       createdAt: true,
       expiresAt: true,
       category: true,
+      imageUrl: true,
       AnnouncementTeam: {
         select: {
           Team: {
