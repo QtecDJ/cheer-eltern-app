@@ -92,6 +92,7 @@ export async function POST(req: Request) {
         isPinned: body.isPinned || false,
         expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
         allowRsvp: body.allowRsvp || false,
+        imageUrl: body.imageUrl || null,
       },
     });
 

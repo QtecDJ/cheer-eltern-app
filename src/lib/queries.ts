@@ -436,7 +436,7 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
   } else {
     andConditions.push({ AnnouncementTeam: { none: {} } });
   }
-  return await prisma.announcement.findMany({
+  const announcements = await prisma.announcement.findMany({
     where: { AND: andConditions },
     orderBy: [
       { isPinned: "desc" },
@@ -466,6 +466,12 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
       },
     },
   });
+
+  // Decrypt content for all announcements
+  return announcements.map(a => ({
+    ...a,
+    content: a.content ? decryptText(a.content) : a.content
+  }));
 }
 
 /**
@@ -517,7 +523,7 @@ export async function getEventAnnouncementsWithPolls(teamId?: number | number[] 
   } else {
     andConditions.push({ AnnouncementTeam: { none: {} } });
   }
-  return await prisma.announcement.findMany({
+  const announcements = await prisma.announcement.findMany({
     where: { AND: andConditions },
     orderBy: { createdAt: "desc" },
     take: limit,
@@ -596,6 +602,12 @@ export async function getEventAnnouncementsWithPolls(teamId?: number | number[] 
       },
     },
   });
+
+  // Decrypt content for all announcements
+  return announcements.map(a => ({
+    ...a,
+    content: a.content ? decryptText(a.content) : a.content
+  }));
 }
 
 /**

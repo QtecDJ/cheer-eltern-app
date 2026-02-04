@@ -73,6 +73,7 @@ export async function PATCH(req: Request, context: any) {
     if (body.expiresAt !== undefined) updateData.expiresAt = body.expiresAt ? new Date(body.expiresAt) : null;
     if (body.allowRsvp !== undefined) updateData.allowRsvp = body.allowRsvp;
     if (body.teamId !== undefined) updateData.teamId = body.teamId;
+    if (body.imageUrl !== undefined) updateData.imageUrl = body.imageUrl;
 
     const announcement = await prisma.announcement.update({
       where: { id },

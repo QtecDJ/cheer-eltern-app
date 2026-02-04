@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Bell, Pin, Calendar, Users, BarChart3, Edit, Trash2, Eye, TrendingUp, ChevronRight, Sparkles, ChevronDown } from "lucide-react";
+import { Plus, Bell, Pin, Calendar, Users, BarChart3, Edit, Trash2, Eye, TrendingUp, ChevronRight, Sparkles, ChevronDown, X, Maximize2 } from "lucide-react";
 import AnnouncementResultsModal from "@/components/admin/AnnouncementResultsModal";
 
 type Team = {
@@ -23,6 +23,7 @@ type Announcement = {
   createdAt: string;
   expiresAt: string | null;
   allowRsvp: boolean;
+  imageUrl?: string | null;
   Member: { firstName?: string; lastName?: string; name?: string };
   Poll: any[];
   rsvps: any[];
@@ -37,6 +38,7 @@ export default function AnnouncementsList({ currentUserId }: { currentUserId: nu
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<number | null>(null);
   const [selectedAnnouncementTitle, setSelectedAnnouncementTitle] = useState<string>("");
   const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set());
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -336,6 +338,31 @@ export default function AnnouncementsList({ currentUserId }: { currentUserId: nu
                   )}
                 </div>
 
+                {/* Image Preview */}
+                {announcement.imageUrl && (
+                  <div 
+                    className="mt-4 rounded-lg overflow-hidden border-2 border-border bg-muted/20 cursor-pointer group/image relative"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLightboxImage({ url: announcement.imageUrl!, title: announcement.title });
+                    }}
+                  >
+                    <img 
+                      src={announcement.imageUrl} 
+                      alt={announcement.title}
+                      className="w-full h-48 object-cover transition-transform duration-300 group-hover/image:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover/image:bg-black/30 transition-colors duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-3">
+                        <Maximize2 className="w-6 h-6 text-gray-900" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Meta Info */}
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1">
@@ -404,6 +431,32 @@ export default function AnnouncementsList({ currentUserId }: { currentUserId: nu
           announcementTitle={selectedAnnouncementTitle}
           onClose={closeResults}
         />
+      )}
+
+      {/* Image Lightbox */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            onClick={() => setLightboxImage(null)}
+            className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors z-10"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+          <div className="relative max-w-7xl max-h-[90vh] w-full">
+            <img 
+              src={lightboxImage.url}
+              alt={lightboxImage.title}
+              className="w-full h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-lg">
+              <h3 className="text-white font-bold text-xl">{lightboxImage.title}</h3>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

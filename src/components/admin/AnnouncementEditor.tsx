@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, Save, Bold, Italic, List, Link as LinkIcon, 
   Image as ImageIcon, BarChart3, Plus, X, Trash2, Calendar,
-  Pin, Users, Bell, CheckSquare
+  Pin, Users, Bell, CheckSquare, Maximize2
 } from "lucide-react";
 
 type PollOption = { id: number; text: string };
@@ -31,6 +31,7 @@ export default function AnnouncementEditor({
   const [allowRsvp, setAllowRsvp] = useState(false);
   const [expiresAt, setExpiresAt] = useState("");
   const [teamIds, setTeamIds] = useState<number[]>([]);
+  const [imageUrl, setImageUrl] = useState("");
   
   // Poll fields
   const [hasPoll, setHasPoll] = useState(false);
@@ -49,6 +50,7 @@ export default function AnnouncementEditor({
   const [loadingData, setLoadingData] = useState(!!announcementId);
   const [teams, setTeams] = useState<any[]>([]);
   const [showPollModal, setShowPollModal] = useState(false);
+  const [showImageLightbox, setShowImageLightbox] = useState(false);
 
   // Load existing announcement
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function AnnouncementEditor({
         setAllowRsvp(a.allowRsvp);
         setExpiresAt(a.expiresAt ? a.expiresAt.split('T')[0] : '');
         setTeamIds(a.AnnouncementTeam?.map((at: any) => at.teamId) || []);
+        setImageUrl(a.imageUrl || '');
         
         // Load poll if exists
         if (a.Poll && a.Poll.length > 0) {
@@ -172,6 +175,7 @@ export default function AnnouncementEditor({
         allowRsvp,
         expiresAt: expiresAt || null,
         teamIds,
+        imageUrl: imageUrl.trim() || null,
       };
 
       if (hasPoll && pollQuestion.trim()) {
@@ -347,6 +351,58 @@ export default function AnnouncementEditor({
             </select>
           </Card>
         </div>
+
+        {/* Image URL */}
+        <Card padding="md">
+          <label className="block text-sm font-semibold mb-3 flex items-center gap-2">
+            <ImageIcon className="w-4 h-4" />
+            Bild hinzufügen (optional)
+          </label>
+          <p className="text-xs text-muted-foreground mb-3">
+            Füge einen Google Drive Link oder andere Bild-URL ein. Das Bild wird in der Ankündigung angezeigt.
+          </p>
+          <input
+            type="url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="https://drive.google.com/... oder andere Bild-URL"
+            className="w-full p-3 border border-border rounded-xl bg-background focus:ring-2 focus:ring-primary focus:border-transparent mb-3"
+          />
+          {imageUrl && (
+            <div className="relative rounded-xl overflow-hidden border-2 border-border bg-muted/20 group/preview cursor-pointer"
+                 onClick={() => setShowImageLightbox(true)}>
+              <div className="aspect-video w-full flex items-center justify-center bg-muted/40">
+                <img 
+                  src={imageUrl} 
+                  alt="Vorschau" 
+                  className="max-w-full max-h-full object-contain transition-transform duration-300 group-hover/preview:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    const parent = (e.target as HTMLImageElement).parentElement;
+                    if (parent) {
+                      parent.innerHTML = '<div class="text-center p-8"><ImageIcon class="w-12 h-12 mx-auto mb-2 text-muted-foreground" /><p class="text-sm text-muted-foreground">Bild konnte nicht geladen werden</p></div>';
+                    }
+                  }}
+                />
+              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover/preview:bg-black/30 transition-colors duration-300 flex items-center justify-center">
+                <div className="opacity-0 group-hover/preview:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-3">
+                  <Maximize2 className="w-6 h-6 text-gray-900" />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImageUrl('');
+                }}
+                className="absolute top-2 right-2 p-2 bg-red-500/90 hover:bg-red-500 text-white rounded-lg transition-colors z-10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </Card>
 
         {/* Teams */}
         <Card padding="md">
@@ -585,6 +641,32 @@ export default function AnnouncementEditor({
               >
                 {hasPoll ? 'Aktualisieren' : 'Hinzufügen'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Lightbox */}
+      {showImageLightbox && imageUrl && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setShowImageLightbox(false)}
+        >
+          <button
+            onClick={() => setShowImageLightbox(false)}
+            className="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors z-10"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+          <div className="relative max-w-7xl max-h-[90vh] w-full">
+            <img 
+              src={imageUrl}
+              alt="Vorschau"
+              className="w-full h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 rounded-b-lg">
+              <h3 className="text-white font-bold text-xl">Vorschau: {title || 'Bild'}</h3>
             </div>
           </div>
         </div>

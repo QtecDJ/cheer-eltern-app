@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { decryptText } from '@/lib/crypto';
 
 export async function GET(request: NextRequest, context: any) {
   const params = context?.params ?? {};
@@ -16,7 +17,10 @@ export async function GET(request: NextRequest, context: any) {
 
     const version = a.updatedAt ? a.updatedAt.toISOString() : new Date().toISOString();
 
-    return NextResponse.json({ id: a.id, title: a.title, content: a.content, version }, {
+    // Decrypt content before sending to user
+    const decryptedContent = a.content ? decryptText(a.content) : a.content;
+
+    return NextResponse.json({ id: a.id, title: a.title, content: decryptedContent, version }, {
       headers: { 'x-content-version': version, 'Cache-Control': 'public, max-age=60' },
     });
   } catch (err) {
