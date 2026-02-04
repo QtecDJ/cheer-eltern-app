@@ -603,9 +603,10 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                               {isExpanded && (
                                 <div className="mt-4">
                                   <div className="prose prose-sm max-w-none mb-4">
-                                    <p className="text-[15px] text-foreground/85 leading-[1.7] whitespace-pre-wrap m-0">
-                                      {linkifyText(announcement.content)}
-                                    </p>
+                                    <div 
+                                      className="text-[15px] text-foreground/85 leading-[1.7] whitespace-pre-wrap"
+                                      dangerouslySetInnerHTML={{ __html: announcement.content }}
+                                    />
                                   </div>
 
                                   {announcement.poll && (

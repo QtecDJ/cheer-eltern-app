@@ -500,5 +500,7 @@ function AnnouncementContent({ announcementId, content }: { announcementId: numb
     ttl: 1000 * 60 * 60 * 12, // 12h Cache (Announcements ändern sich öfter)
   });
 
-  return <>{cachedContent || content}</>;
+  // Strip HTML tags for preview (line-clamp-2 works better with plain text)
+  const displayContent = (cachedContent || content).replace(/<[^>]*>/g, '');
+  return <>{displayContent}</>;
 }
