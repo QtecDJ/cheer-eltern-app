@@ -37,7 +37,7 @@ export default function AnnouncementsList({ currentUserId }: { currentUserId: nu
   const [filter, setFilter] = useState<string>("all");
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<number | null>(null);
   const [selectedAnnouncementTitle, setSelectedAnnouncementTitle] = useState<string>("");
-  const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set());
+  const [expandedTeams, setExpandedTeams] = useState<Set<number>>(new Set([-1])); // -1 für Allgemein standardmäßig ausgeklappt
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -103,8 +103,27 @@ export default function AnnouncementsList({ currentUserId }: { currentUserId: nu
   const groupedByTeam = useMemo(() => {
     const groups: Record<string, { team: Team | null; announcements: Announcement[] }> = {};
     
+    // Sammle alle einzigartigen Team-IDs aus allen Ankündigungen
+    const allTeamIds = new Set<number>();
+    announcements.forEach(a => {
+      a.AnnouncementTeam?.forEach(at => allTeamIds.add(at.teamId));
+    });
+    const totalTeams = allTeamIds.size;
+    
     filteredAnnouncements.forEach(announcement => {
-      if (announcement.AnnouncementTeam && announcement.AnnouncementTeam.length > 0) {
+      const assignedTeamCount = announcement.AnnouncementTeam?.length || 0;
+      
+      // Wenn keine Teams oder alle Teams zugewiesen sind -> Allgemein
+      if (assignedTeamCount === 0 || (totalTeams > 0 && assignedTeamCount === totalTeams)) {
+        const generalKey = 'general';
+        if (!groups[generalKey]) {
+          groups[generalKey] = {
+            team: null,
+            announcements: []
+          };
+        }
+        groups[generalKey].announcements.push(announcement);
+      } else {
         // Ankündigung für spezifische Teams
         announcement.AnnouncementTeam.forEach(at => {
           const teamId = `team-${at.teamId}`;
@@ -116,26 +135,24 @@ export default function AnnouncementsList({ currentUserId }: { currentUserId: nu
           }
           groups[teamId].announcements.push(announcement);
         });
-      } else {
-        // Allgemeine Ankündigung (alle Teams)
-        const generalKey = 'general';
-        if (!groups[generalKey]) {
-          groups[generalKey] = {
-            team: null,
-            announcements: []
-          };
-        }
-        groups[generalKey].announcements.push(announcement);
       }
     });
     
-    return groups;
-  }, [filteredAnnouncements]);
+    // Sortiere so dass "general" immer zuerst kommt
+    const sortedEntries = Object.entries(groups).sort(([keyA], [keyB]) => {
+      if (keyA === 'general') return -1;
+      if (keyB === 'general') return 1;
+      return 0;
+    });
+    
+    return Object.fromEntries(sortedEntries);
+  }, [filteredAnnouncements, announcements]);
 
   const toggleTeam = (teamKey: string) => {
     setExpandedTeams(prev => {
       const newSet = new Set(prev);
-      const numKey = parseInt(teamKey.replace('team-', '')) || 0;
+      const isGeneral = teamKey === 'general';
+      const numKey = isGeneral ? -1 : (parseInt(teamKey.replace('team-', '')) || 0);
       if (newSet.has(numKey)) {
         newSet.delete(numKey);
       } else {
@@ -240,19 +257,19 @@ export default function AnnouncementsList({ currentUserId }: { currentUserId: nu
         ) : (
           Object.entries(groupedByTeam).map(([teamKey, group]) => {
             const isGeneral = teamKey === 'general';
-            const teamId = isGeneral ? 0 : parseInt(teamKey.replace('team-', ''));
-            const isExpanded = isGeneral || expandedTeams.has(teamId);
-            const teamName = isGeneral ? 'Allgemeine Ankündigungen' : group.team?.name || 'Unbekanntes Team';
+            const teamId = isGeneral ? -1 : parseInt(teamKey.replace('team-', ''));
+            const isExpanded = expandedTeams.has(teamId);
+            const teamName = isGeneral ? 'Allgemein (Alle Teams)' : group.team?.name || 'Unbekanntes Team';
             const teamColor = group.team?.color || '#64748b';
 
             return (
               <div key={teamKey} className="space-y-2">
                 {/* Team Header - Klickbar */}
                 <button
-                  onClick={() => !isGeneral && toggleTeam(teamKey)}
+                  onClick={() => toggleTeam(teamKey)}
                   className={`w-full flex items-center justify-between p-4 rounded-xl transition-all duration-200 ${
                     isGeneral 
-                      ? 'bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20' 
+                      ? 'bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20 hover:border-primary/30 active:scale-[0.99]' 
                       : 'bg-card hover:bg-muted/50 border-2 border-border hover:border-primary/30 active:scale-[0.99]'
                   }`}
                 >
@@ -273,11 +290,9 @@ export default function AnnouncementsList({ currentUserId }: { currentUserId: nu
                     <div className="text-left">
                       <h3 className="font-bold text-lg flex items-center gap-2">
                         {teamName}
-                        {!isGeneral && (
-                          <ChevronDown 
-                            className={`w-5 h-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                          />
-                        )}
+                        <ChevronDown 
+                          className={`w-5 h-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        />
                       </h3>
                       <p className="text-sm text-muted-foreground">
                         {group.announcements.length} {group.announcements.length === 1 ? 'Ankündigung' : 'Ankündigungen'}

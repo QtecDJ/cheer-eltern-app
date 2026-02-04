@@ -60,6 +60,33 @@ export default function AnnouncementEditor({
     loadTeams();
   }, [announcementId]);
 
+  // Set editor content when it changes
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== content) {
+      const selection = window.getSelection();
+      const range = selection?.getRangeAt(0);
+      const offset = range?.startOffset;
+      
+      editorRef.current.innerHTML = content;
+      
+      // Restore cursor position
+      if (selection && range && offset !== undefined) {
+        try {
+          const newRange = document.createRange();
+          const textNode = editorRef.current.firstChild;
+          if (textNode) {
+            newRange.setStart(textNode, Math.min(offset, textNode.textContent?.length || 0));
+            newRange.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+          }
+        } catch (e) {
+          // Ignore cursor position errors
+        }
+      }
+    }
+  }, [content]);
+
   async function loadAnnouncement() {
     try {
       const res = await fetch(`/api/admin/announcements/${announcementId}`);
@@ -316,7 +343,6 @@ export default function AnnouncementEditor({
             className="min-h-[300px] p-4 border border-border rounded-xl bg-background focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/50"
             data-placeholder="Schreibe hier den Inhalt der Ankündigung..."
             suppressContentEditableWarning
-            dangerouslySetInnerHTML={{ __html: content }}
           />
         </Card>
 
