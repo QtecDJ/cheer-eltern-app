@@ -2,14 +2,15 @@
 
 import React, { useState } from "react";
 import AdminMessageComposer from "./AdminMessageComposer";
+import { Plus } from "lucide-react";
 
 export default function AdminMessageModal({ teams }: { teams: any[] }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="py-2 px-3 bg-primary text-primary-foreground rounded shadow text-sm">
-        Nachricht senden
+      <button onClick={() => setOpen(true)} className="p-2 bg-primary text-primary-foreground rounded-lg shadow hover:bg-primary/90 transition-colors">
+        <Plus className="w-4 h-4" />
       </button>
 
       {open && (

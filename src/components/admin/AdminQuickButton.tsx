@@ -12,7 +12,7 @@ export default function AdminQuickButton() {
   };
 
   return (
-    <div style={{ position: "fixed", right: 14, bottom: 90, zIndex: 99999 }}>
+    <div className="fixed right-[14px] bottom-[90px] z-[99999] lg:right-8 lg:bottom-8">
       <div className="flex flex-col items-end gap-2">
         {open && (
           <div className="mb-2 p-2 w-48 bg-card/90 backdrop-blur rounded-lg shadow-lg border border-border">

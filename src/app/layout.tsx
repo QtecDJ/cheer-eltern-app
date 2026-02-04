@@ -1,14 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { BottomNav, type NavItem } from "@/components/bottom-nav";
+import { TopNav, type NavItem } from "@/components/top-nav";
 import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { ServiceWorkerRegistration } from "@/components/service-worker";
 import { InstallPrompt } from "@/components/install-prompt";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { ContentCacheInit } from "@/components/content-cache-init";
 import { OfflineIndicator } from "@/components/offline-indicator";
-import { cn } from "@/lib/utils";
 import AdminQuickButton from "@/components/admin/AdminQuickButton";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Member App",
@@ -121,14 +121,13 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const userRole = session?.userRole || null;
   const hasAdminAccess = isAdminOrTrainer(session?.roles ?? userRole ?? null);
   const navItems: NavItem[] = [
-    { href: "/", icon: "Home", label: "Home" },
-    { href: "/training", icon: "Calendar", label: "Training" },
-    { href: "/messages", icon: "Mail", label: "Nachricht" },
-    { href: "/events", icon: "CalendarDays", label: "Events" },
-    { href: "/dokumente", icon: "File", label: "Dokumente" },
+    { href: "/", icon: "home", label: "Home" },
+    { href: "/training", icon: "calendar", label: "Training" },
+    { href: "/messages", icon: "mail", label: "Nachricht" },
+    { href: "/events", icon: "calendarDays", label: "Events" },
+    { href: "/dokumente", icon: "fileText", label: "Dokumente" },
+    { href: "/profil", icon: "user", label: "Profil" },
   ];
-  // Info nav removed for admins per request
-  navItems.push({ href: "/profil", icon: "User", label: "Profil" });
 
   return (
     <html lang="de">
@@ -140,16 +139,16 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         {session && <InstallPrompt />}
         {session && <ContentCacheInit />}
         {session && <OfflineIndicator />}
-          {hasAdminAccess && <AdminQuickButton />}
-        {session && <BottomNav items={navItems} />}
+        {session && <TopNav items={navItems} userName={session.firstName || undefined} userRole={userRole || undefined} isAdmin={hasAdminAccess} />}
+        {session && hasAdminAccess && (
+          <AdminQuickButton />
+        )}
         <PullToRefresh>
           <main className={cn(
-            "min-h-screen safe-area-inset",
+            "min-h-screen safe-area-inset w-full",
             session ? "pb-20" : ""
           )}>
-            <div className="w-full md:max-w-4xl lg:max-w-5xl xl:max-w-7xl md:mx-auto md:px-6 lg:px-8">
-              {children}
-            </div>
+            {children}
           </main>
         </PullToRefresh>
       </body>

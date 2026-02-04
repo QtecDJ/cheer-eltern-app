@@ -12,23 +12,35 @@ export function PullToRefresh({ children, onRefresh }: PullToRefreshProps) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPulling, setIsPulling] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const startY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const PULL_THRESHOLD = 80; // Mindestabstand zum Triggern
   const MAX_PULL = 120; // Maximale Pull-Distanz
 
+  // Desktop Detection
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+
   const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (isDesktop) return; // Deaktiviert auf Desktop
     // Nur starten wenn am oberen Rand
     const scrollTop = window.scrollY || document.documentElement.scrollTop;
     if (scrollTop <= 0 && !isRefreshing) {
       startY.current = e.touches[0].clientY;
       setIsPulling(true);
     }
-  }, [isRefreshing]);
+  }, [isRefreshing, isDesktop]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!isPulling || isRefreshing) return;
+    if (isDesktop || !isPulling || isRefreshing) return; // Deaktiviert auf Desktop
 
     const currentY = e.touches[0].clientY;
     const diff = currentY - startY.current;
@@ -44,10 +56,10 @@ export function PullToRefresh({ children, onRefresh }: PullToRefreshProps) {
         e.preventDefault();
       }
     }
-  }, [isPulling, isRefreshing]);
+  }, [isPulling, isRefreshing, isDesktop]);
 
   const handleTouchEnd = useCallback(async () => {
-    if (!isPulling) return;
+    if (isDesktop || !isPulling) return; // Deaktiviert auf Desktop
 
     if (pullDistance >= PULL_THRESHOLD && !isRefreshing) {
       setIsRefreshing(true);

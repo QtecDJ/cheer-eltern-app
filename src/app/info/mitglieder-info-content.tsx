@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
+import { SendMessageToMember } from "@/components/SendMessageToMember";
 import {
   AlertTriangle,
   ChevronDown,
@@ -222,6 +223,7 @@ export function InfoContent({ members, teams, isAdmin, currentUserTeamId }: Info
                   onToggle={() => setExpandedMemberId(
                     expandedMemberId === member.id ? null : member.id
                   )}
+                  isAdmin={isAdmin}
                 />
               ))}
             </div>
@@ -245,11 +247,13 @@ export function InfoContent({ members, teams, isAdmin, currentUserTeamId }: Info
 function MemberCard({ 
   member, 
   expanded, 
-  onToggle 
+  onToggle,
+  isAdmin
 }: { 
   member: MemberInfo; 
   expanded: boolean; 
   onToggle: () => void;
+  isAdmin: boolean;
 }) {
   const hasAllergies = !!member.allergies;
   const hasDiseases = !!member.diseases;
@@ -409,6 +413,16 @@ function MemberCard({
                     {member.emergencyContact2?.split(" ")[0] || "Anrufen"}
                   </a>
                 )}
+              </div>
+            )}
+
+            {/* Nachricht-Button (nur für Admins) */}
+            {isAdmin && (
+              <div className="pt-2 border-t border-border">
+                <SendMessageToMember 
+                  memberId={member.id} 
+                  memberName={member.name} 
+                />
               </div>
             )}
           </CardContent>

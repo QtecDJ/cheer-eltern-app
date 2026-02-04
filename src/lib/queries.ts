@@ -692,7 +692,7 @@ export async function getMemberSettings(memberId: number) {
 
 /**
  * Members mit Notfall-Infos für Trainer/Admin
- * Optimiert für Info-Seite: nur Mitglieder mit mindestens einer Info
+ * Optimiert für Info-Seite: alle aktiven Mitglieder
  */
 export async function getMembersWithEmergencyInfo(
   isAdmin: boolean,
@@ -701,14 +701,7 @@ export async function getMembersWithEmergencyInfo(
   return await prisma.member.findMany({
     where: {
       status: "active",
-      // Nur Mitglieder die mindestens eine Info haben
-      OR: [
-        { emergencyContact: { not: null } },
-        { emergencyContact2: { not: null } },
-        { allergies: { not: null } },
-        { diseases: { not: null } },
-        { medications: { not: null } },
-      ],
+      teamId: { not: null }, // Nur Mitglieder mit Team
       // Team-Filter für Trainer (nur anwenden, wenn trainerTeamId gesetzt ist)
       ...(isAdmin ? {} : (trainerTeamId != null ? { teamId: trainerTeamId } : {})),
     },
@@ -739,7 +732,6 @@ export async function getMembersWithEmergencyInfo(
       { team: { name: "asc" } },
       { firstName: "asc" },
     ],
-    take: 100, // Limit für Performance
   });
 }
 

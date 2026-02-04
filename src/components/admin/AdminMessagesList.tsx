@@ -26,8 +26,11 @@ export default function AdminMessagesList({ messages }: { messages: any[] }) {
 
   return (
     <div className="space-y-2">
-      {items.map((m) => (
-        <Card key={m.id} className="p-3 relative">
+      {items.map((m) => {
+        const isViewed = m.viewedAt != null;
+        
+        return (
+        <Card key={m.id} className={`p-3 relative transition-colors ${isViewed ? 'bg-green-500/10 border-green-500/30' : ''}`}>
           <div className="flex items-start">
             <div
               className="flex-1 cursor-pointer"
@@ -36,7 +39,14 @@ export default function AdminMessagesList({ messages }: { messages: any[] }) {
               tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setExpandedId(expandedId === m.id ? null : m.id); }}
             >
-              <div className="font-medium">{m.subject}</div>
+              <div className="font-medium flex items-center gap-2">
+                {m.subject}
+                {isViewed && (
+                  <span className="text-xs bg-green-500/20 text-green-600 px-2 py-0.5 rounded-full border border-green-500/30">
+                    Gelesen
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-muted-foreground">Von: {m.sender?.firstName ? `${m.sender.firstName} ${m.sender.lastName}` : m.sender?.name} — {new Date(m.createdAt).toLocaleString('de-DE')}</div>
             </div>
             {/* Inline action buttons removed — actions are available when message is expanded */}
@@ -95,7 +105,8 @@ export default function AdminMessagesList({ messages }: { messages: any[] }) {
             </div>
           )}
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }
