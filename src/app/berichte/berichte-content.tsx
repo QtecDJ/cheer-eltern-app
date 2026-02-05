@@ -11,6 +11,13 @@ const reports = [
     filename: "https://web.icacheer.space/documents/cmtb.pdf",
     isExternal: true
   },
+  {
+    id: "fasching26",
+    title: "Fasching 26 Bericht",
+    description: "Bericht vom Fasching 2026 – Peewees/Kiwis",
+    filename: "https://web.icacheer.space/documents/fasching26.pdf",
+    isExternal: true
+  },
 ];
 
 export function BerichteContent() {

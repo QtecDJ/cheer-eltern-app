@@ -65,8 +65,18 @@ export default function AnnouncementEditor({
   useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== content) {
       const selection = window.getSelection();
-      const range = selection?.getRangeAt(0);
-      const offset = range?.startOffset;
+      let range = null;
+      let offset = undefined;
+      
+      // Safely get range only if selection has ranges
+      if (selection && selection.rangeCount > 0) {
+        try {
+          range = selection.getRangeAt(0);
+          offset = range.startOffset;
+        } catch (e) {
+          // Ignore range errors
+        }
+      }
       
       editorRef.current.innerHTML = content;
       

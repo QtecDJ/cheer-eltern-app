@@ -29,6 +29,9 @@ import {
   X,
   Users,
   CalendarPlus,
+  AlertCircle,
+  Megaphone,
+  Info,
 } from "lucide-react";
 import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -249,15 +252,31 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
   const [isPending, startTransition] = useTransition();
   const [loadingItem, setLoadingItem] = useState<string | null>(null);
   const [expandedAnnouncements, setExpandedAnnouncements] = useState<Set<number>>(new Set());
+  const [activeTab, setActiveTab] = useState<'wichtig' | 'events' | 'news' | 'info'>('wichtig');
   const searchParams = useSearchParams();
 
-  // Auto-expand announcement from URL parameter
+  // Auto-expand announcement from URL parameter and select correct tab
   useEffect(() => {
     const announcementId = searchParams.get('announcement');
     if (announcementId) {
       const id = parseInt(announcementId);
       if (!isNaN(id)) {
         setExpandedAnnouncements(new Set([id]));
+        
+        // Find announcement and set correct tab
+        const announcement = eventAnnouncements.find(a => a.id === id);
+        if (announcement) {
+          if (announcement.priority === 'urgent' || announcement.priority === 'high' || announcement.isPinned) {
+            setActiveTab('wichtig');
+          } else if (announcement.category === 'event' || announcement.category === 'training') {
+            setActiveTab('events');
+          } else if (announcement.category === 'news') {
+            setActiveTab('news');
+          } else {
+            setActiveTab('info');
+          }
+        }
+        
         // Scroll to announcement after a short delay
         setTimeout(() => {
           const element = document.getElementById(`announcement-${id}`);
@@ -267,7 +286,7 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
         }, 100);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, eventAnnouncements]);
 
   // Toggle Announcement Expand/Collapse
   const toggleAnnouncement = (id: number) => {
@@ -462,8 +481,26 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
     return tb - ta;
   });
 
+  // Filter Announcements nach aktivem Tab
+  const filteredAnnouncements = eventAnnouncements.filter(a => {
+    switch (activeTab) {
+      case 'wichtig':
+        return a.priority === 'urgent' || a.priority === 'high' || a.isPinned;
+      case 'events':
+        return a.category === 'event' || a.category === 'training';
+      case 'news':
+        return a.category === 'news';
+      case 'info':
+        return !['urgent', 'high'].includes(a.priority) &&
+               !a.isPinned &&
+               !['event', 'training', 'news'].includes(a.category);
+      default:
+        return true;
+    }
+  });
+
   // Sortiere Announcements: Angepinnte UND wichtige zuerst, dann angepinnte, dann wichtige, dann nach Datum
-  const sortedAnnouncements = [...eventAnnouncements].sort((a, b) => {
+  const sortedAnnouncements = [...filteredAnnouncements].sort((a, b) => {
     const aIsPinnedAndImportant = a.isPinned && a.priority === "high";
     const bIsPinnedAndImportant = b.isPinned && b.priority === "high";
     
@@ -494,14 +531,11 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
   return (
     <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header */}
-      <header className="mb-6 md:mb-8 animate-fade-in">
+      <header className="mb-6 animate-fade-in">
         <button onClick={() => router.back()} className="text-primary text-sm mb-2 hover:underline md:hidden">
           ← Zurück
         </button>
-        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Events & Wettkämpfe</h1>
-        <p className="text-sm md:text-base text-muted-foreground mt-1">
-          Alle wichtigen Termine im Überblick
-        </p>
+        <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">Ankündigungen</h1>
       </header>
 
       {hasNoItems ? (
@@ -512,15 +546,102 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
         />
       ) : (
         <>
-          {/* Event-Ankündigungen */}
+          {/* Event-Ankündigungen mit Tabs */}
           {eventAnnouncements.length > 0 && (
             <section className="mb-10">
-              <h2 className="text-lg font-semibold mb-5 flex items-center gap-2">
-                <Bell className="w-5 h-5 text-pink-500" />
-                Ankündigungen
-              </h2>
+              {/* Tab Navigation */}
+              <div className="grid grid-cols-4 gap-1.5 pb-2 mb-6">
+                  {[
+                    { 
+                      id: 'wichtig' as const, 
+                      label: 'Wichtig', 
+                      icon: AlertCircle, 
+                      color: 'red',
+                      count: eventAnnouncements.filter(a => 
+                        a.priority === 'urgent' || a.priority === 'high' || a.isPinned
+                      ).length
+                    },
+                    { 
+                      id: 'events' as const, 
+                      label: 'Events', 
+                      icon: PartyPopper, 
+                      color: 'purple',
+                      count: eventAnnouncements.filter(a => 
+                        a.category === 'event' || a.category === 'training'
+                      ).length
+                    },
+                    { 
+                      id: 'news' as const, 
+                      label: 'News', 
+                      icon: Megaphone, 
+                      color: 'blue',
+                      count: eventAnnouncements.filter(a => a.category === 'news').length
+                    },
+                    { 
+                      id: 'info' as const, 
+                      label: 'Info', 
+                      icon: Info, 
+                      color: 'gray',
+                      count: eventAnnouncements.filter(a => 
+                        !['urgent', 'high'].includes(a.priority) &&
+                        !a.isPinned &&
+                        !['event', 'training', 'news'].includes(a.category)
+                      ).length
+                    },
+                  ].map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    
+                    const colorClasses = {
+                      red: isActive 
+                        ? 'bg-red-100 text-red-700 border-red-200' 
+                        : 'bg-card text-muted-foreground hover:bg-red-50 hover:text-red-600 border-border',
+                      purple: isActive 
+                        ? 'bg-purple-100 text-purple-700 border-purple-200' 
+                        : 'bg-card text-muted-foreground hover:bg-purple-50 hover:text-purple-600 border-border',
+                      blue: isActive 
+                        ? 'bg-blue-100 text-blue-700 border-blue-200' 
+                        : 'bg-card text-muted-foreground hover:bg-blue-50 hover:text-blue-600 border-border',
+                      gray: isActive 
+                        ? 'bg-muted text-foreground border-border' 
+                        : 'bg-card text-muted-foreground hover:bg-muted/50 border-border',
+                    };
+                    
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex flex-col items-center justify-center gap-0.5 py-1.5 rounded text-[11px] font-medium transition-colors border ${
+                          colorClasses[tab.color as keyof typeof colorClasses]
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        <span className="leading-tight">{tab.label}</span>
+                        {tab.count > 0 && (
+                          <span className="opacity-60 text-[10px]">
+                            ({tab.count})
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
 
-              <div className="space-y-5">
+              {filteredAnnouncements.length === 0 ? (
+                <div className="text-center py-8 bg-muted/30 rounded-lg border border-border">
+                  <div className="w-12 h-12 mx-auto mb-3 bg-muted rounded-lg flex items-center justify-center">
+                    {activeTab === 'wichtig' && <AlertCircle className="w-6 h-6 text-muted-foreground/50" />}
+                    {activeTab === 'events' && <PartyPopper className="w-6 h-6 text-muted-foreground/50" />}
+                    {activeTab === 'news' && <Megaphone className="w-6 h-6 text-muted-foreground/50" />}
+                    {activeTab === 'info' && <Info className="w-6 h-6 text-muted-foreground/50" />}
+                  </div>
+                  <p className="text-sm font-semibold mb-1">Keine Ankündigungen</p>
+                  <p className="text-xs text-muted-foreground">
+                    In dieser Kategorie gibt es derzeit keine Ankündigungen
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-5">
                 {Array.from(groupAnnouncementsByCategory(sortedAnnouncements)).map(([category, items]) => (
                   <div key={`cat-${category || 'uncategorized'}`} className="mb-4">
                     <div className="flex items-center justify-between mb-2">
@@ -733,7 +854,8 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              )}
             </section>
           )}
 
