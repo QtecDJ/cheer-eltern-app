@@ -39,6 +39,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                     firstName: true,
                     lastName: true,
                     name: true,
+                    team: {
+                      select: {
+                        id: true,
+                        name: true,
+                        color: true,
+                      },
+                    },
                   },
                 },
               },
@@ -61,6 +68,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             firstName: true,
             lastName: true,
             name: true,
+            team: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
           },
         },
       },

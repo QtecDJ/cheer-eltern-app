@@ -11,6 +11,11 @@ type Member = {
   firstName?: string;
   lastName?: string;
   name?: string;
+  team?: {
+    id: number;
+    name: string;
+    color: string;
+  } | null;
 };
 
 type PollVote = {
@@ -99,28 +104,34 @@ export default function AnnouncementResultsModal({
 
   const getRsvpStatusColor = (status: string) => {
     switch (status) {
-      case 'yes': return 'text-green-600';
-      case 'no': return 'text-red-600';
-      case 'maybe': return 'text-orange-600';
-      default: return 'text-gray-600';
+      case 'accepted':
+        return 'text-green-600';
+      case 'declined':
+        return 'text-red-600';
+      default: 
+        return 'text-gray-600';
     }
   };
 
   const getRsvpStatusIcon = (status: string) => {
     switch (status) {
-      case 'yes': return <CheckCircle className="w-4 h-4" />;
-      case 'no': return <XCircle className="w-4 h-4" />;
-      case 'maybe': return <Clock className="w-4 h-4" />;
-      default: return null;
+      case 'accepted':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'declined':
+        return <XCircle className="w-4 h-4" />;
+      default: 
+        return null;
     }
   };
 
   const getRsvpStatusLabel = (status: string) => {
     switch (status) {
-      case 'yes': return 'Nimmt teil';
-      case 'no': return 'Nimmt nicht teil';
-      case 'maybe': return 'Vielleicht';
-      default: return status;
+      case 'accepted':
+        return 'Nimmt teil';
+      case 'declined':
+        return 'Nimmt nicht teil';
+      default: 
+        return status;
     }
   };
 
@@ -228,7 +239,20 @@ export default function AnnouncementResultsModal({
                           <div className="pl-3 md:pl-4 space-y-2 border-l-2 border-muted">
                             {option.PollVote.map(vote => (
                               <div key={vote.id} className="flex items-center justify-between py-1.5 text-sm">
-                                <span className="font-medium">{getMemberName(vote.Member)}</span>
+                                <div className="flex items-center gap-2 flex-1">
+                                  <span className="font-medium">{getMemberName(vote.Member)}</span>
+                                  {vote.Member.team && (
+                                    <span
+                                      className="text-[10px] px-1.5 py-0.5 rounded border font-medium"
+                                      style={{
+                                        borderColor: vote.Member.team.color || '#64748b',
+                                        color: vote.Member.team.color || '#64748b',
+                                      }}
+                                    >
+                                      {vote.Member.team.name}
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
                                   {new Date(vote.votedAt).toLocaleDateString('de-DE', {
                                     day: '2-digit',
@@ -260,27 +284,20 @@ export default function AnnouncementResultsModal({
               </div>
 
               {/* Summary Cards - Mobile Optimized */}
-              <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4">
+              <div className="grid grid-cols-2 gap-2 md:gap-3 mb-4">
                 <Card padding="sm" className="text-center border-2 border-green-500/20 bg-green-500/5">
                   <CheckCircle className="w-6 h-6 md:w-7 md:h-7 text-green-600 mx-auto mb-2" />
                   <div className="text-2xl md:text-3xl font-bold text-green-600 mb-1">
-                    {rsvpResults.filter(r => r.status === 'yes').length}
+                    {rsvpResults.filter(r => r.status === 'accepted').length}
                   </div>
                   <p className="text-xs text-muted-foreground font-medium">Nimmt teil</p>
                 </Card>
                 <Card padding="sm" className="text-center border-2 border-red-500/20 bg-red-500/5">
                   <XCircle className="w-6 h-6 md:w-7 md:h-7 text-red-600 mx-auto mb-2" />
                   <div className="text-2xl md:text-3xl font-bold text-red-600 mb-1">
-                    {rsvpResults.filter(r => r.status === 'no').length}
+                    {rsvpResults.filter(r => r.status === 'declined').length}
                   </div>
                   <p className="text-xs text-muted-foreground font-medium">Nimmt nicht teil</p>
-                </Card>
-                <Card padding="sm" className="text-center border-2 border-orange-500/20 bg-orange-500/5">
-                  <Clock className="w-6 h-6 md:w-7 md:h-7 text-orange-600 mx-auto mb-2" />
-                  <div className="text-2xl md:text-3xl font-bold text-orange-600 mb-1">
-                    {rsvpResults.filter(r => r.status === 'maybe').length}
-                  </div>
-                  <p className="text-xs text-muted-foreground font-medium">Vielleicht</p>
                 </Card>
               </div>
 
@@ -290,16 +307,14 @@ export default function AnnouncementResultsModal({
                     <div 
                       key={rsvp.id}
                       className={`p-3 md:p-4 flex items-center justify-between gap-3 transition-colors ${
-                        rsvp.status === 'yes' ? 'bg-green-500/5 hover:bg-green-500/10' :
-                        rsvp.status === 'no' ? 'bg-red-500/5 hover:bg-red-500/10' :
-                        'bg-orange-500/5 hover:bg-orange-500/10'
+                        rsvp.status === 'accepted' ? 'bg-green-500/5 hover:bg-green-500/10' :
+                        'bg-red-500/5 hover:bg-red-500/10'
                       }`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
-                          rsvp.status === 'yes' ? 'bg-green-500/20' :
-                          rsvp.status === 'no' ? 'bg-red-500/20' :
-                          'bg-orange-500/20'
+                          rsvp.status === 'accepted' ? 'bg-green-500/20' :
+                          'bg-red-500/20'
                         }`}>
                           <div className={getRsvpStatusColor(rsvp.status)}>
                             {getRsvpStatusIcon(rsvp.status)}
@@ -309,9 +324,22 @@ export default function AnnouncementResultsModal({
                           <p className="font-semibold text-sm md:text-base truncate">
                             {getMemberName(rsvp.Member)}
                           </p>
-                          <p className={`text-xs md:text-sm font-medium ${getRsvpStatusColor(rsvp.status)}`}>
-                            {getRsvpStatusLabel(rsvp.status)}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className={`text-xs md:text-sm font-medium ${getRsvpStatusColor(rsvp.status)}`}>
+                              {getRsvpStatusLabel(rsvp.status)}
+                            </p>
+                            {rsvp.Member.team && (
+                              <span
+                                className="text-[10px] px-1.5 py-0.5 rounded border font-medium"
+                                style={{
+                                  borderColor: rsvp.Member.team.color || '#64748b',
+                                  color: rsvp.Member.team.color || '#64748b',
+                                }}
+                              >
+                                {rsvp.Member.team.name}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
