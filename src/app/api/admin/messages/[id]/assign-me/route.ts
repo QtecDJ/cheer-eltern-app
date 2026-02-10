@@ -14,8 +14,8 @@ export async function POST(req: Request, context: any) {
     const msg = await getMessageById(id);
     if (msg) {
       sendPushToUser(session.id, {
-        title: 'Nachricht zugewiesen',
-        body: `${msg.subject}`,
+        title: 'Infinity Cheer Allstars',
+        body: `Nachricht zugewiesen: ${msg.subject}`,
         url: `/messages/${id}`,
         icon: '/icons/icon-192x192.png',
       }).catch(error => {

@@ -20,8 +20,8 @@ export async function POST(req: Request, context: any) {
     const recipientId = session.id === msg.senderId ? msg.assignedTo : msg.senderId;
     if (recipientId) {
       sendPushToUser(recipientId, {
-        title: `Neue Antwort auf: ${msg.subject}`,
-        body: (body.body || "").slice(0, 100) + ((body.body || "").length > 100 ? '...' : ''),
+        title: `Infinity Cheer Allstars`,
+        body: `Neue Antwort: ${msg.subject}`,
         url: `/messages/${messageId}`,
         icon: '/icons/icon-192x192.png',
       }).catch(error => {

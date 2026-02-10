@@ -18,8 +18,8 @@ export async function POST(req: Request, context: any) {
     // Send push notification to sender
     if (msg && msg.senderId) {
       sendPushToUser(msg.senderId, {
-        title: `Antwort auf: ${msg.subject}`,
-        body: (body.body || "").slice(0, 100) + ((body.body || "").length > 100 ? '...' : ''),
+        title: `Infinity Cheer Allstars`,
+        body: `Antwort: ${msg.subject}`,
         url: `/messages/${messageId}`,
         icon: '/icons/icon-192x192.png',
       }).catch(error => {

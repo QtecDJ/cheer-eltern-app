@@ -16,8 +16,8 @@ export async function POST(req: Request) {
     
     // Send push notification to all recipients
     sendPushToMultipleUsers(assignees, {
-      title: `Neue Nachricht: ${subject}`,
-      body: message.slice(0, 100) + (message.length > 100 ? '...' : ''),
+      title: `Infinity Cheer Allstars`,
+      body: `Neue Nachricht: ${subject}`,
       url: `/messages`,
       icon: '/icons/icon-192x192.png',
     }).catch(error => {

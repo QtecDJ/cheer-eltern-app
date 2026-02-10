@@ -133,8 +133,8 @@ export async function POST(req: Request) {
       sendPushToTeam(
         body.teamIds,
         {
-          title: body.title,
-          body: body.content.slice(0, 100) + (body.content.length > 100 ? '...' : ''),
+          title: 'Infinity Cheer Allstars',
+          body: `${body.title}: ${body.content.slice(0, 80)}${body.content.length > 80 ? '...' : ''}`,
           url: `/events?announcement=${announcement.id}`,
           icon: body.imageUrl || '/icons/icon-192x192.png',
         }
