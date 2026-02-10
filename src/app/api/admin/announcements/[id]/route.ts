@@ -37,9 +37,10 @@ export async function GET(req: Request, context: any) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
-    // Decrypt content
+    // Decrypt content (and title as safety net)
     const decryptedAnnouncement = {
       ...announcement,
+      title: announcement.title ? decryptText(announcement.title) : announcement.title,
       content: announcement.content ? decryptText(announcement.content) : announcement.content,
     };
 

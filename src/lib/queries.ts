@@ -468,9 +468,10 @@ export async function getAnnouncementsMinimal(teamId?: number, limit = 20) {
     },
   });
 
-  // Decrypt content for all announcements
+  // Decrypt content (and title as safety net) for all announcements
   return announcements.map(a => ({
     ...a,
+    title: a.title ? decryptText(a.title) : a.title,
     content: a.content ? decryptText(a.content) : a.content
   }));
 }
@@ -605,9 +606,10 @@ export async function getEventAnnouncementsWithPolls(teamId?: number | number[] 
     },
   });
 
-  // Decrypt content for all announcements
+  // Decrypt content (and title as safety net) for all announcements
   return announcements.map(a => ({
     ...a,
+    title: a.title ? decryptText(a.title) : a.title,
     content: a.content ? decryptText(a.content) : a.content
   }));
 }

@@ -17,10 +17,11 @@ export async function GET(request: NextRequest, context: any) {
 
     const version = a.updatedAt ? a.updatedAt.toISOString() : new Date().toISOString();
 
-    // Decrypt content before sending to user
+    // Decrypt content (and title as safety net) before sending to user
+    const decryptedTitle = a.title ? decryptText(a.title) : a.title;
     const decryptedContent = a.content ? decryptText(a.content) : a.content;
 
-    return NextResponse.json({ id: a.id, title: a.title, content: decryptedContent, version }, {
+    return NextResponse.json({ id: a.id, title: decryptedTitle, content: decryptedContent, version }, {
       headers: { 'x-content-version': version, 'Cache-Control': 'public, max-age=60' },
     });
   } catch (err) {

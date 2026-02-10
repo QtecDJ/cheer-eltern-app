@@ -416,3 +416,64 @@ body.pull-active {
   animation-name: fade-in;
 }
 
+/* ============================================ */
+/* ANNOUNCEMENT CONTENT STYLES                  */
+/* ============================================ */
+
+/* Links in Announcement Content */
+[data-announcement-content] a,
+.announcement-content a,
+.prose a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-color: rgba(236, 72, 153, 0.3);
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  word-break: break-word;
+}
+
+[data-announcement-content] a:hover,
+.announcement-content a:hover,
+.prose a:hover {
+  color: var(--accent);
+  text-decoration-color: rgba(168, 85, 247, 0.5);
+  text-underline-offset: 3px;
+}
+
+[data-announcement-content] a:active,
+.announcement-content a:active,
+.prose a:active {
+  opacity: 0.7;
+}
+
+/* Lists in Announcement Content */
+[data-announcement-content] ul,
+[data-announcement-content] ol,
+.announcement-content ul,
+.announcement-content ol {
+  padding-left: 1.5rem;
+  margin: 0.75rem 0;
+}
+
+[data-announcement-content] li,
+.announcement-content li {
+  margin: 0.5rem 0;
+}
+
+/* Bold and Italic */
+[data-announcement-content] strong,
+[data-announcement-content] b,
+.announcement-content strong,
+.announcement-content b {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+[data-announcement-content] em,
+[data-announcement-content] i,
+.announcement-content em,
+.announcement-content i {
+  font-style: italic;
+}
+

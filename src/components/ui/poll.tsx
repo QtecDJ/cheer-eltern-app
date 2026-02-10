@@ -38,12 +38,12 @@ interface PollProps {
   onVote: (pollId: number, optionIds: number[]) => Promise<void>;
   onRemoveVote?: (pollId: number) => Promise<void>;
   showVoterNames?: boolean;
+  readOnly?: boolean;
 }
 
 // memberId wird für zukünftige Erweiterungen und externe Abfragen benötigt
-export function Poll({ poll, memberId: _memberId, onVote, onRemoveVote, showVoterNames = false }: PollProps) {
+export function Poll({ poll, memberId: _memberId, onVote, onRemoveVote, showVoterNames = false, readOnly = false }: PollProps) {
   const [expandedOptions, setExpandedOptions] = useState<Set<number>>(new Set());
-  const readOnly = !!showVoterNames; // orga view-only mode
   const options = poll.options ?? [];
   const [expanded, setExpanded] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<number[]>(

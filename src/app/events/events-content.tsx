@@ -37,6 +37,48 @@ import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useVersionedContent } from "@/lib/use-versioned-content";
 
+// Convert Markdown links to HTML links
+function convertMarkdownLinks(html: string): string {
+  // Don't process if there are already HTML links
+  if (html.includes('<a href=')) {
+    return html;
+  }
+  
+  let result = html;
+  
+  // Match markdown links: [text](url)
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  result = result.replace(markdownLinkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline; cursor: pointer;">$1</a>');
+  
+  // Also convert plain URLs to clickable links (but not inside already created <a> tags)
+  // Match http:// or https:// followed by non-whitespace characters
+  const urlRegex = /(?<!href=["'])(https?:\/\/[^\s<]+)/g;
+  result = result.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: var(--primary); text-decoration: underline; cursor: pointer;">$1</a>');
+  
+  return result;
+}
+
+// Process HTML content to make links clickable and safe
+function processAnnouncementHTML(html: string): string {
+  if (typeof window === 'undefined') return html;
+  
+  // First convert any markdown links
+  let processedHtml = convertMarkdownLinks(html);
+  
+  const div = document.createElement('div');
+  div.innerHTML = processedHtml;
+  
+  // Find all links and add target="_blank" and rel attributes
+  const links = div.querySelectorAll('a');
+  links.forEach(link => {
+    link.setAttribute('target', '_blank');
+    link.setAttribute('rel', 'noopener noreferrer');
+    link.style.pointerEvents = 'auto'; // Ensure links are clickable
+  });
+  
+  return div.innerHTML;
+}
+
 // Funktion zum Hinzufügen zum Kalender (iOS und Android)
 function addToCalendar(title: string, date: string, time: string, location: string) {
   // Erstelle ICS-Datei für Kalender
@@ -287,6 +329,31 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
       }
     }
   }, [searchParams, eventAnnouncements]);
+
+  // Convert Markdown links and make all links clickable
+  useEffect(() => {
+    const announcementContents = document.querySelectorAll('[data-announcement-content]');
+    announcementContents.forEach((content) => {
+      // First, convert any markdown links in the text content
+      const htmlContent = content.innerHTML;
+      const convertedHtml = convertMarkdownLinks(htmlContent);
+      if (htmlContent !== convertedHtml) {
+        content.innerHTML = convertedHtml;
+      }
+      
+      // Then process all links
+      const links = content.querySelectorAll('a');
+      links.forEach((link) => {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+        link.style.cursor = 'pointer';
+        // Prevent parent click handler from being triggered
+        link.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      });
+    });
+  }, [eventAnnouncements, expandedAnnouncements]);
 
   // Toggle Announcement Expand/Collapse
   const toggleAnnouncement = (id: number) => {
@@ -737,9 +804,18 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                                     </div>
                                   )}
 
-                                  <div className="prose prose-sm max-w-none mb-4">
+                                  <div 
+                                    className="prose prose-sm max-w-none mb-4 announcement-content"
+                                    onClick={(e) => {
+                                      // Allow links to be clicked without toggling the announcement
+                                      if ((e.target as HTMLElement).tagName === 'A') {
+                                        e.stopPropagation();
+                                      }
+                                    }}
+                                  >
                                     <div 
-                                      className="text-[15px] text-foreground/85 leading-[1.7] whitespace-pre-wrap"
+                                      data-announcement-content
+                                      className="text-[15px] text-foreground/85 leading-[1.7]"
                                       dangerouslySetInnerHTML={{ __html: announcement.content }}
                                     />
                                   </div>
