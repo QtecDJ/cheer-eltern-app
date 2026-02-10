@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, isAdminOrTrainer } from "@/lib/auth";
-import { assignMessageTo } from "@/lib/queries";
+import { assignMessageTo, getMessageById } from "@/lib/queries";
+import { sendPushToUser } from "@/lib/send-push";
 
 export async function POST(req: Request, context: any) {
   const session = await getSession();
@@ -10,6 +11,22 @@ export async function POST(req: Request, context: any) {
     const assigneeId = body.assigneeId ?? null;
     const id = Number((context?.params && (await context.params).id) ?? context?.params?.id ?? context?.params);
     await assignMessageTo(id, assigneeId);
+    
+    // Send push notification to assigned user
+    if (assigneeId) {
+      const msg = await getMessageById(id);
+      if (msg) {
+        sendPushToUser(assigneeId, {
+          title: 'Nachricht zugewiesen',
+          body: `${msg.subject}`,
+          url: `/messages/${id}`,
+          icon: '/icons/icon-192x192.png',
+        }).catch(error => {
+          console.error('Failed to send assignment push:', error);
+        });
+      }
+    }
+    
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

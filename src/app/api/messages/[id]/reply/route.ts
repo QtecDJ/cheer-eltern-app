@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { createMessageReply, getMessageById } from "@/lib/queries";
 import { decryptText } from "@/lib/crypto";
+import { sendPushToUser } from "@/lib/send-push";
 
 export async function POST(req: Request, context: any) {
   const session = await getSession();
@@ -14,6 +15,20 @@ export async function POST(req: Request, context: any) {
     // Only allow sender or assignee to reply
     if (msg.senderId !== session.id && msg.assignedTo !== session.id) return NextResponse.json({ error: "forbidden" }, { status: 403 });
     const created = await createMessageReply(messageId, session.id, (body.body || "").toString());
+    
+    // Send push notification to the other party
+    const recipientId = session.id === msg.senderId ? msg.assignedTo : msg.senderId;
+    if (recipientId) {
+      sendPushToUser(recipientId, {
+        title: `Neue Antwort auf: ${msg.subject}`,
+        body: (body.body || "").slice(0, 100) + ((body.body || "").length > 100 ? '...' : ''),
+        url: `/messages/${messageId}`,
+        icon: '/icons/icon-192x192.png',
+      }).catch(error => {
+        console.error('Failed to send push notification:', error);
+      });
+    }
+    
     // decrypt body for immediate client use
     const replyBody = created.body ? decryptText(created.body) : created.body;
     return NextResponse.json({ success: true, reply: { id: created.id, body: replyBody, createdAt: created.createdAt, authorId: created.authorId } });

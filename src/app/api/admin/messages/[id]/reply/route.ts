@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, isAdminOrTrainer } from "@/lib/auth";
-import { createMessageReply } from "@/lib/queries";
+import { createMessageReply, getMessageById } from "@/lib/queries";
+import { sendPushToUser } from "@/lib/send-push";
 
 export async function POST(req: Request, context: any) {
   const session = await getSession();
@@ -8,7 +9,24 @@ export async function POST(req: Request, context: any) {
   try {
     const body = await req.json();
     const messageId = Number((context?.params && (await context.params).id) ?? context?.params?.id ?? context?.params);
+    
+    // Get message to find sender
+    const msg = await getMessageById(messageId);
+    
     const created = await createMessageReply(messageId, session.id, (body.body || "").toString());
+    
+    // Send push notification to sender
+    if (msg && msg.senderId) {
+      sendPushToUser(msg.senderId, {
+        title: `Antwort auf: ${msg.subject}`,
+        body: (body.body || "").slice(0, 100) + ((body.body || "").length > 100 ? '...' : ''),
+        url: `/messages/${messageId}`,
+        icon: '/icons/icon-192x192.png',
+      }).catch(error => {
+        console.error('Failed to send push notification:', error);
+      });
+    }
+    
     return NextResponse.json({ success: true, reply: { id: created.id, body: created.body, createdAt: created.createdAt, author: created.author } });
   } catch (e) {
     console.error(e);

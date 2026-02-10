@@ -219,13 +219,17 @@ self.addEventListener('message', (event) => {
 
 // ============= PUSH NOTIFICATION HANDLING =============
 self.addEventListener('push', (event) => {
+  console.log('[SW] Push event received:', event);
+  
   let payload = { title: 'Neue Benachrichtigung', body: '', url: '/' };
   
   if (event.data) {
     try {
       payload = event.data.json();
+      console.log('[SW] Push payload:', payload);
     } catch (e) {
       payload.body = event.data.text();
+      console.log('[SW] Push text:', payload.body);
     }
   }
 
@@ -236,10 +240,16 @@ self.addEventListener('push', (event) => {
     data: { url: payload.url || '/' },
     vibrate: [200, 100, 200],
     tag: 'notification-' + Date.now(),
+    requireInteraction: false,
+    silent: false,
   };
+
+  console.log('[SW] Showing notification with options:', options);
 
   event.waitUntil(
     self.registration.showNotification(payload.title, options)
+      .then(() => console.log('[SW] Notification shown successfully'))
+      .catch(err => console.error('[SW] Error showing notification:', err))
   );
 });
 
