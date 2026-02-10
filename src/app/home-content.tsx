@@ -7,6 +7,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { calculateAge, calculateAttendanceRate, getRelativeDate } from "@/lib/utils";
 import {
   Bell,
+  BellOff,
   Calendar,
   CheckCircle2,
   Clock,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import { ResponseButtons } from "@/components/training/ResponseButtons";
 import { useVersionedContent } from "@/lib/use-versioned-content";
+import { usePushNotification } from "@/hooks/use-push-notification";
 import React, { useEffect, useState } from "react";
 
 interface HomeContentProps {
@@ -101,16 +103,35 @@ export function HomeContent({
     attendanceStats.total
   );
 
+  const { enabled: pushEnabled, loading: pushLoading, supported: pushSupported, toggle: togglePush } = usePushNotification();
 
   return (
     <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header mit Begrüßung */}
       <header className="mb-6 md:mb-8 animate-fade-in">
-        <div>
-          <p className="text-sm md:text-base text-muted-foreground">Willkommen zurück 👋</p>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mt-0.5">
-            {child.firstName}&apos;s Übersicht
-          </h1>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm md:text-base text-muted-foreground">Willkommen zurück 👋</p>
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mt-0.5">
+              {child.firstName}&apos;s Übersicht
+            </h1>
+          </div>
+          {pushSupported && (
+            <button
+              onClick={togglePush}
+              disabled={pushLoading}
+              className="p-2 rounded-full hover:bg-accent transition-colors disabled:opacity-50"
+              title={pushEnabled ? "Push-Benachrichtigungen deaktivieren" : "Push-Benachrichtigungen aktivieren"}
+            >
+              {pushLoading ? (
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              ) : pushEnabled ? (
+                <Bell className="w-6 h-6 text-primary" />
+              ) : (
+                <BellOff className="w-6 h-6 text-muted-foreground" />
+              )}
+            </button>
+          )}
         </div>
       </header>
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { encryptText } from "@/lib/crypto";
+import { sendPushToTeam } from "@/lib/send-push";
 
 // GET all announcements
 export async function GET(req: Request) {
@@ -124,6 +125,22 @@ export async function POST(req: Request) {
           text: option,
           order: index,
         })),
+      });
+    }
+
+    // Send push notifications to team members
+    if (body.teamIds && Array.isArray(body.teamIds) && body.teamIds.length > 0) {
+      sendPushToTeam(
+        body.teamIds,
+        {
+          title: body.title,
+          body: body.content.slice(0, 100) + (body.content.length > 100 ? '...' : ''),
+          url: `/events?announcement=${announcement.id}`,
+          icon: body.imageUrl || '/icons/icon-192x192.png',
+        }
+      ).catch(error => {
+        console.error('Failed to send push notifications:', error);
+        // Don't fail the request if push fails
       });
     }
 
