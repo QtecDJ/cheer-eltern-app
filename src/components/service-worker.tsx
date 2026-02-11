@@ -101,26 +101,26 @@ export function ServiceWorkerRegistration() {
           // Initial query
           queryContentCacheSize();
 
-          // Update-Check alle 30 Minuten
-          updateIntervalRef.current = window.setInterval(() => {
-            reg.update();
-          }, 30 * 60 * 1000) as unknown as number;
+          // Hinweis: Automatische Update-Checks deaktiviert um ständiges Neuladen zu vermeiden
+          // Update-Check kann manuell ausgelöst werden falls benötigt
 
-          // Update gefunden
+          // Update gefunden - nur loggen, nicht automatisch anzeigen
           reg.addEventListener("updatefound", () => {
             const newWorker = reg.installing;
             if (newWorker) {
               newWorker.addEventListener("statechange", () => {
-                  if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                  setUpdateAvailable(true);
+                if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                  logger.info("[PWA] Update verfügbar (nicht automatisch installiert)");
+                  // setUpdateAvailable(true); // Deaktiviert
                 }
               });
             }
           });
 
-          // Prüfe ob bereits ein Update wartet
+          // Prüfe ob bereits ein Update wartet - aber nicht automatisch anzeigen
           if (reg.waiting) {
-            setUpdateAvailable(true);
+            logger.info("[PWA] Update wartet (nicht automatisch installiert)");
+            // setUpdateAvailable(true); // Deaktiviert
           }
 
         } catch (error) {
@@ -135,9 +135,10 @@ export function ServiceWorkerRegistration() {
         window.addEventListener("load", registerSW);
       }
 
-      // Controller-Wechsel behandeln
+      // Controller-Wechsel behandeln - nur loggen, nicht automatisch neu laden
       controllerChangeHandler = () => {
-        window.location.reload();
+        logger.info("[PWA] Service Worker Controller gewechselt");
+        // window.location.reload(); // Deaktiviert um ständiges Neuladen zu vermeiden
       };
       navigator.serviceWorker.addEventListener("controllerchange", controllerChangeHandler);
 
