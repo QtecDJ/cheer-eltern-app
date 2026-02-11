@@ -25,7 +25,7 @@ export function useOneSignalPush() {
         const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
         
         // Only show as enabled if BOTH permission is granted AND user is opted in
-        setEnabled(permission === "granted" && isOptedIn);
+        setEnabled(permission === "granted" && (isOptedIn ?? false));
         setLoading(false);
       } catch (error) {
         console.error("[OneSignal] Status check error:", error);
@@ -36,9 +36,15 @@ export function useOneSignalPush() {
     checkStatus();
 
     // Listen for subscription changes
-    const handleSubscriptionChange = (isSubscribed: boolean) => {
-      console.log('[OneSignal] Subscription changed:', isSubscribed);
-      setEnabled(isSubscribed);
+    const handleSubscriptionChange = async () => {
+      try {
+        const permission = await OneSignal.Notifications.permissionNative;
+        const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+        console.log('[OneSignal] Subscription changed - Permission:', permission, 'OptedIn:', isOptedIn);
+        setEnabled(permission === "granted" && (isOptedIn ?? false));
+      } catch (error) {
+        console.error('[OneSignal] Subscription change error:', error);
+      }
     };
 
     OneSignal.User.PushSubscription.addEventListener('change', handleSubscriptionChange);
@@ -67,7 +73,7 @@ export function useOneSignalPush() {
             // Already granted, just opt in
             await OneSignal.User.PushSubscription.optIn();
             const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
-            setEnabled(isOptedIn);
+            setEnabled(isOptedIn ?? false);
           } else if (currentPermission === "denied") {
             // User previously denied, can't do anything
             console.warn('[OneSignal] Push notifications were denied. User must enable them in browser settings.');
@@ -81,7 +87,7 @@ export function useOneSignalPush() {
               // Permission granted, now opt in to create subscription
               await OneSignal.User.PushSubscription.optIn();
               const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
-              setEnabled(isOptedIn);
+              setEnabled(isOptedIn ?? false);
             } else {
               setEnabled(false);
             }
