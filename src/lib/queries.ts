@@ -907,37 +907,14 @@ export async function getMessagesForStaff(limit = 50, includeResolved = false) {
 }
 
 export async function getMessagesForMember(memberId: number, limit = 50) {
-  // Get member to check roles
-  const member = await prisma.member.findUnique({
-    where: { id: memberId },
-    select: { roles: true }
-  });
-
-  const roles = member?.roles || [];
-  const isAdmin = roles.includes('admin');
-  const isOrga = roles.includes('orga');
-
-  // Build where clause
+  // Only show messages where the member is sender or assignee
+  // Ticket system (unassigned messages) should only appear in admin area
   const whereClause: any = {
     OR: [
       { senderId: memberId },
       { assignedTo: memberId },
     ],
   };
-
-  // If admin or orga, also show unassigned messages for their audience
-  if (isAdmin || isOrga) {
-    const audienceFilter: string[] = [];
-    if (isAdmin) audienceFilter.push('admins');
-    if (isOrga || isAdmin) audienceFilter.push('orga');
-    
-    whereClause.OR.push({
-      AND: [
-        { assignedTo: null },
-        { audience: { in: audienceFilter } }
-      ]
-    });
-  }
 
   const rows = await prisma.message.findMany({
     where: whereClause,
@@ -960,37 +937,12 @@ export async function getMessagesForMember(memberId: number, limit = 50) {
 }
 
 export async function getAssignedMessageCount(memberId: number) {
-  // Get member to check roles
-  const member = await prisma.member.findUnique({
-    where: { id: memberId },
-    select: { roles: true }
-  });
-
-  const roles = member?.roles || [];
-  const isAdmin = roles.includes('admin');
-  const isOrga = roles.includes('orga');
-
-  // Build where clause
+  // Only count messages where member is assignee
+  // Unassigned tickets are only shown in admin area
   const whereClause: any = {
     status: { not: "resolved" },
-    OR: [
-      { assignedTo: memberId },
-    ],
+    assignedTo: memberId,
   };
-
-  // If admin or orga, also count unassigned messages for their audience
-  if (isAdmin || isOrga) {
-    const audienceFilter: string[] = [];
-    if (isAdmin) audienceFilter.push('admins');
-    if (isOrga || isAdmin) audienceFilter.push('orga');
-    
-    whereClause.OR.push({
-      AND: [
-        { assignedTo: null },
-        { audience: { in: audienceFilter } }
-      ]
-    });
-  }
 
   return await prisma.message.count({ where: whereClause });
 }
