@@ -228,48 +228,91 @@ self.addEventListener('push', (event) => {
       payload = event.data.json();
       console.log('[SW] Push payload:', payload);
     } catch (e) {
-      payload.body = event.data.text();
-      console.log('[SW] Push text:', payload.body);
+      try {
+        payload.body = event.data.text();
+        console.log('[SW] Push text:', payload.body);
+      } catch (err) {
+        console.error('[SW] Failed to parse push data:', err);
+      }
     }
   }
 
   const options = {
-    body: payload.body,
+    body: payload.body || 'Sie haben eine neue Benachrichtigung',
     icon: payload.icon || '/icons/icon-192x192.png',
     badge: payload.badge || '/icons/icon-96x96.png',
-    data: { url: payload.url || '/' },
+    data: { 
+      url: payload.url || '/',
+      timestamp: Date.now()
+    },
     vibrate: [200, 100, 200],
-    tag: 'notification-' + Date.now(),
+    tag: 'push-' + Date.now(),
     requireInteraction: false,
     silent: false,
+    // iOS specific: ensure notification is shown
+    renotify: true,
   };
 
-  console.log('[SW] Showing notification with options:', options);
+  console.log('[SW] Showing notification:', payload.title);
 
+  // Use event.waitUntil to ensure notification is shown before SW is killed
   event.waitUntil(
-    self.registration.showNotification(payload.title, options)
-      .then(() => console.log('[SW] Notification shown successfully'))
-      .catch(err => console.error('[SW] Error showing notification:', err))
+    self.registration.showNotification(payload.title || 'Neue Nachricht', options)
+      .then(() => {
+        console.log('[SW] Notification shown successfully');
+        return Promise.resolve();
+      })
+      .catch(err => {
+        console.error('[SW] Error showing notification:', err);
+        // Fallback: Try with minimal options
+        return self.registration.showNotification(payload.title || 'Neue Nachricht', {
+          body: payload.body || 'Sie haben eine neue Benachrichtigung',
+          icon: '/icons/icon-192x192.png',
+          tag: 'push-fallback'
+        });
+      })
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked');
   event.notification.close();
   
   const url = event.notification.data?.url || '/';
+  const fullUrl = self.location.origin + url;
   
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
-      // Check if there's already a window open
+      console.log('[SW] Found', windowClients.length, 'windows');
+      
+      // Check if there's already a window open with this URL
       for (const client of windowClients) {
-        if (client.url === url && 'focus' in client) {
+        if (client.url === fullUrl && 'focus' in client) {
+          console.log('[SW] Focusing existing window');
           return client.focus();
         }
       }
+      
+      // Check if any window is open at all
+      for (const client of windowClients) {
+        if ('focus' in client) {
+          console.log('[SW] Focusing window and navigating');
+          return client.focus().then(() => {
+            if ('navigate' in client) {
+              return client.navigate(fullUrl);
+            }
+            return client;
+          });
+        }
+      }
+      
       // Open new window
       if (clients.openWindow) {
-        return clients.openWindow(url);
+        console.log('[SW] Opening new window');
+        return clients.openWindow(fullUrl);
       }
+    }).catch(err => {
+      console.error('[SW] Error handling notification click:', err);
     })
   );
 });

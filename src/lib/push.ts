@@ -1,13 +1,32 @@
 // Web Push Utility - VAPID
 import webpush from 'web-push';
 
-// VAPID keys from env
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
-const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@example.com';
+// VAPID keys configuration - must be set at runtime
+function getVapidConfig() {
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+  const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || '';
+  const vapidSubject = process.env.VAPID_SUBJECT || 'mailto:admin@example.com';
+  
+  return { vapidPublicKey, vapidPrivateKey, vapidSubject };
+}
 
-if (vapidPublicKey && vapidPrivateKey) {
-  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+// Initialize VAPID details
+function initVapidDetails() {
+  const { vapidPublicKey, vapidPrivateKey, vapidSubject } = getVapidConfig();
+  
+  if (!vapidPublicKey || !vapidPrivateKey) {
+    console.warn('[PUSH] VAPID keys not configured - push notifications will not work');
+    return false;
+  }
+  
+  try {
+    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+    console.log('[PUSH] VAPID details initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('[PUSH] Failed to set VAPID details:', error);
+    return false;
+  }
 }
 
 export interface PushPayload {
@@ -22,7 +41,18 @@ export async function sendPushNotification(
   subscription: { endpoint: string; p256dh: string; auth: string },
   payload: PushPayload
 ) {
+  // Ensure VAPID is initialized
+  if (!initVapidDetails()) {
+    console.error('[PUSH] Cannot send notification - VAPID not configured');
+    return { success: false, error: 'VAPID not configured' };
+  }
+  
   try {
+    console.log('[PUSH] Sending notification:', { 
+      title: payload.title, 
+      endpoint: subscription.endpoint.substring(0, 50) + '...' 
+    });
+    
     await webpush.sendNotification(
       {
         endpoint: subscription.endpoint,
@@ -33,6 +63,8 @@ export async function sendPushNotification(
       },
       JSON.stringify(payload)
     );
+    
+    console.log('[PUSH] Notification sent successfully');
     return { success: true };
   } catch (error: any) {
     // Handle different types of errors
@@ -64,5 +96,6 @@ export async function sendPushNotification(
 }
 
 export function getVapidPublicKey() {
+  const { vapidPublicKey } = getVapidConfig();
   return vapidPublicKey;
 }

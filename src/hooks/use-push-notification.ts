@@ -34,12 +34,16 @@ export function usePushNotification() {
     try {
       const registration = await navigator.serviceWorker.ready;
       
-      // Get VAPID public key
-      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+      // Get VAPID public key from API
+      const keyResponse = await fetch('/api/push/vapid-public-key');
+      if (!keyResponse.ok) {
+        throw new Error('Failed to get VAPID public key');
+      }
+      const { publicKey } = await keyResponse.json();
       
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
       });
 
       const { endpoint } = subscription;
