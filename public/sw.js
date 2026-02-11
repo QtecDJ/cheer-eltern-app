@@ -1,3 +1,6 @@
+// Import OneSignal SDK for push notifications
+importScripts('https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js');
+
 // Clean, compact Service Worker with IndexedDB-backed content cache
 const SW_VERSION = '1.0.0';
 const STATIC_CACHE = `static-v${SW_VERSION}`;
