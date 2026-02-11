@@ -18,15 +18,9 @@ export function OneSignalInit() {
           appId,
           safari_web_id: "web.onesignal.auto.1fe1b6c7-0a56-4e4e-8f4d-90df2b33bc74",
           allowLocalhostAsSecureOrigin: true,
-          // Prevent automatic prompts
+          // Prevent automatic prompts - user clicks bell icon to subscribe
           autoRegister: false,
           autoResubscribe: true,
-          // Disable automatic slidedown prompt
-          promptOptions: {
-            slidedown: {
-              autoPrompt: false,
-            },
-          },
         });
 
         console.log('[OneSignal] Initialisiert');
