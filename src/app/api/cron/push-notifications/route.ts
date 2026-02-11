@@ -34,9 +34,6 @@ export async function GET(req: Request) {
         // Check if there are any replies (if yes, don't send notification)
         replies: {
           select: { id: true },
-          where: {
-            authorId: { not: null }
-          },
           take: 1,
         },
         // Get the last time a notification was sent (we'll track this)
