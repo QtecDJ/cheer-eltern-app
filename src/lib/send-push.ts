@@ -32,6 +32,8 @@ export async function sendPushToUser(memberId: number, payload: { title: string;
       return true;
     });
 
+    console.log(`Sending push to member ${memberId}: ${validSubscriptions.length} valid subscriptions`);
+
     const results = await Promise.allSettled(
       validSubscriptions.map(async (sub: any) => {
         const result = await sendPushNotification(
@@ -43,16 +45,28 @@ export async function sendPushToUser(memberId: number, payload: { title: string;
           payload
         );
 
-        // Remove expired subscriptions (410/404 status)
+        // Remove expired subscriptions (410/404/401 status)
         if (result.expired) {
+          console.log(`Removing expired subscription ${sub.id} for member ${memberId}`);
           await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
             console.error(`Failed to delete expired subscription ${sub.id}:`, e)
           );
+        } else if (result.success) {
+          console.log(`✅ Push sent successfully to member ${memberId} (${sub.endpoint.substring(0, 40)}...)`);
+        } else if (result.temporary) {
+          console.log(`⚠️ Temporary error sending to member ${memberId}: ${result.error}`);
+        } else {
+          console.log(`❌ Failed to send push to member ${memberId}: ${result.error}`);
         }
 
         return result;
       })
     );
+
+    // Log summary
+    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
+    console.log(`Push summary for member ${memberId}: ${successful} successful, ${failed} failed out of ${results.length} total`);
 
     return results;
   } catch (error) {

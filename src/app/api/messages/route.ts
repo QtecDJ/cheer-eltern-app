@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { createMessage } from "@/lib/queries";
-import { sendPushToStaff, sendPushToRole } from "@/lib/send-push";
+import { sendPushToStaff, sendPushToRole, sendPushToMultipleUsers } from "@/lib/send-push";
+import { prisma } from "@/lib/db";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -20,26 +21,36 @@ export async function POST(req: Request) {
     const pushPayload = {
       title: `Infinity Cheer Allstars`,
       body: `Neue Nachricht: ${subject}`,
-      url: `/admin/messages/${created.id}`,
+      url: `/messages/${created.id}`,
       icon: '/icons/icon-192x192.png',
     };
     
+    // Get all members with the target roles and send individual notifications
+    let targetRoles: string[] = [];
     if (target === "admins") {
-      // Only ICA Leitung (admins)
-      sendPushToRole(["admin"], pushPayload).catch(error => {
-        console.error('Failed to send push to admins:', error);
-      });
+      targetRoles = ["admin"];
     } else if (target === "orga") {
-      // Orga team (admins + orga)
-      sendPushToRole(["admin", "orga"], pushPayload).catch(error => {
-        console.error('Failed to send push to orga:', error);
-      });
+      targetRoles = ["admin", "orga"];
     } else {
-      // All staff (empty target or default)
-      sendPushToStaff(pushPayload).catch(error => {
-        console.error('Failed to send push to staff:', error);
-      });
+      targetRoles = ["admin", "orga"];
     }
+    
+    // Fetch all members with target roles
+    const members = await prisma.member.findMany({
+      where: {
+        roles: {
+          hasSome: targetRoles,
+        },
+      },
+      select: { id: true },
+    });
+    
+    const memberIds = members.map(m => m.id);
+    
+    // Send individual push notification to each member
+    sendPushToMultipleUsers(memberIds, pushPayload).catch(error => {
+      console.error('Failed to send push notifications:', error);
+    });
     
     // Return the created message so the client can navigate to it
     return NextResponse.json({ success: true, message: created });
