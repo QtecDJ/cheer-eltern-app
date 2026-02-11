@@ -32,6 +32,18 @@ export function OneSignalInit() {
             const { memberId } = await response.json();
             await OneSignal.login(`member_${memberId}`);
             console.log('[OneSignal] External user ID gesetzt:', `member_${memberId}`);
+            
+            // Check if user already granted permission but is not opted in
+            const permission = await OneSignal.Notifications.permissionNative;
+            const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+            
+            console.log('[OneSignal] Permission:', permission, 'OptedIn:', isOptedIn);
+            
+            // If permission is granted but not opted in, opt in automatically (iOS PWA fix)
+            if (permission === 'granted' && !isOptedIn) {
+              console.log('[OneSignal] Auto opt-in for existing permission');
+              await OneSignal.User.PushSubscription.optIn();
+            }
           }
         } catch (error) {
           console.error('[OneSignal] Fehler beim Setzen der External User ID:', error);

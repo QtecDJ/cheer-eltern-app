@@ -20,9 +20,12 @@ export function useOneSignalPush() {
           return;
         }
 
-        // Check permission status
+        // Check both permission AND subscription status (important for iOS)
         const permission = await OneSignal.Notifications.permissionNative;
-        setEnabled(permission === "granted");
+        const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+        
+        // Only show as enabled if BOTH permission is granted AND user is opted in
+        setEnabled(permission === "granted" && isOptedIn);
         setLoading(false);
       } catch (error) {
         console.error("[OneSignal] Status check error:", error);
@@ -31,6 +34,18 @@ export function useOneSignalPush() {
     };
 
     checkStatus();
+
+    // Listen for subscription changes
+    const handleSubscriptionChange = (isSubscribed: boolean) => {
+      console.log('[OneSignal] Subscription changed:', isSubscribed);
+      setEnabled(isSubscribed);
+    };
+
+    OneSignal.User.PushSubscription.addEventListener('change', handleSubscriptionChange);
+
+    return () => {
+      OneSignal.User.PushSubscription.removeEventListener('change', handleSubscriptionChange);
+    };
   }, []);
 
   const toggle = async () => {
@@ -43,7 +58,7 @@ export function useOneSignalPush() {
         await OneSignal.User.PushSubscription.optOut();
         setEnabled(false);
       } else {
-        // Opt-in (subscribe) - use direct permission request to avoid slidedown errors
+        // Opt-in (subscribe)
         try {
           // Check if permission is already granted
           const currentPermission = await OneSignal.Notifications.permissionNative;
@@ -51,16 +66,25 @@ export function useOneSignalPush() {
           if (currentPermission === "granted") {
             // Already granted, just opt in
             await OneSignal.User.PushSubscription.optIn();
-            setEnabled(true);
+            const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+            setEnabled(isOptedIn);
           } else if (currentPermission === "denied") {
             // User previously denied, can't do anything
             console.warn('[OneSignal] Push notifications were denied. User must enable them in browser settings.');
             setEnabled(false);
           } else {
-            // Request permission
+            // Request permission first
             await OneSignal.Notifications.requestPermission();
             const newPermission = await OneSignal.Notifications.permissionNative;
-            setEnabled(newPermission === "granted");
+            
+            if (newPermission === "granted") {
+              // Permission granted, now opt in to create subscription
+              await OneSignal.User.PushSubscription.optIn();
+              const isOptedIn = await OneSignal.User.PushSubscription.optedIn;
+              setEnabled(isOptedIn);
+            } else {
+              setEnabled(false);
+            }
           }
         } catch (permError: any) {
           // Silently handle slidedown errors
