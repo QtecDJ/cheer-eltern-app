@@ -59,112 +59,12 @@ export function ServiceWorkerRegistration() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Service Worker nur in Production oder wenn explizit aktiviert
-    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      // store interval id and handlers for cleanup
-      const updateIntervalRef = { current: null as number | null };
-      let loadHandler: (() => void) | null = null;
-      let controllerChangeHandler: (() => void) | null = null;
-
-      // Warte bis die Seite geladen ist
-      const registerSW = async () => {
-        try {
-          const reg = await navigator.serviceWorker.register("/sw.js", { 
-            scope: "/",
-            updateViaCache: "none", // Immer frischen SW laden
-          });
-          
-          setRegistration(reg);
-
-          // Query SW for content cache size (if controller present)
-          const queryContentCacheSize = async () => {
-            try {
-              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                const mc = new MessageChannel();
-                const promise = new Promise((resolve) => {
-                  mc.port1.onmessage = (ev) => resolve(ev.data);
-                  const t = setTimeout(() => resolve({ success: false }), 1500);
-                  // best-effort: clean this timeout if needed when unmounting is handled below
-                });
-
-                navigator.serviceWorker.controller.postMessage({ type: 'GET_CONTENT_CACHE_SIZE' }, [mc.port2]);
-                const res: any = await promise;
-                if (res?.success) {
-                  setContentCacheSize(res.size ?? 0);
-                }
-              }
-            } catch (err) {
-              logger.warn('[PWA] Query content cache size failed', err);
-            }
-          };
-
-          // Initial query
-          queryContentCacheSize();
-
-          // Hinweis: Automatische Update-Checks deaktiviert um ständiges Neuladen zu vermeiden
-          // Update-Check kann manuell ausgelöst werden falls benötigt
-
-          // Update gefunden - nur loggen, nicht automatisch anzeigen
-          reg.addEventListener("updatefound", () => {
-            const newWorker = reg.installing;
-            if (newWorker) {
-              newWorker.addEventListener("statechange", () => {
-                if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                  logger.info("[PWA] Update verfügbar (nicht automatisch installiert)");
-                  // setUpdateAvailable(true); // Deaktiviert
-                }
-              });
-            }
-          });
-
-          // Prüfe ob bereits ein Update wartet - aber nicht automatisch anzeigen
-          if (reg.waiting) {
-            logger.info("[PWA] Update wartet (nicht automatisch installiert)");
-            // setUpdateAvailable(true); // Deaktiviert
-          }
-
-        } catch (error) {
-          logger.error("[PWA] Service Worker Registrierung fehlgeschlagen:", error);
-        }
-      };
-
-      if (document.readyState === "complete") {
-        registerSW();
-      } else {
-        loadHandler = registerSW;
-        window.addEventListener("load", registerSW);
-      }
-
-      // Controller-Wechsel behandeln - nur loggen, nicht automatisch neu laden
-      controllerChangeHandler = () => {
-        logger.info("[PWA] Service Worker Controller gewechselt");
-        // window.location.reload(); // Deaktiviert um ständiges Neuladen zu vermeiden
-      };
-      navigator.serviceWorker.addEventListener("controllerchange", controllerChangeHandler);
-
-      // Cleanup for SW related handlers/intervals
-      return () => {
-        if (updateIntervalRef.current) {
-          clearInterval(updateIntervalRef.current);
-        }
-        if (loadHandler) {
-          window.removeEventListener("load", loadHandler);
-        }
-        if (controllerChangeHandler) {
-          navigator.serviceWorker.removeEventListener("controllerchange", controllerChangeHandler);
-        }
-        window.removeEventListener("online", handleOnline);
-        window.removeEventListener("offline", handleOffline);
-        if (offlineToastTimeoutRef.current) {
-          clearTimeout(offlineToastTimeoutRef.current);
-        }
-      };
-    }
+    // Service Worker wird von OneSignal verwaltet - keine manuelle Registrierung nötig
+    // OneSignal registriert OneSignalSDKWorker.js automatisch mit allen Cache-Optimierungen
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      // if service worker branch didn't attach listeners we still clear toast timer
       if ((offlineToastTimeoutRef as any).current) {
         clearTimeout((offlineToastTimeoutRef as any).current);
       }

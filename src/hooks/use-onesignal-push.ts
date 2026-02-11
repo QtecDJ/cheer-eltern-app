@@ -43,24 +43,29 @@ export function useOneSignalPush() {
         await OneSignal.User.PushSubscription.optOut();
         setEnabled(false);
       } else {
-        // Opt-in (subscribe) - use native browser API to avoid OneSignal slidedown errors
+        // Opt-in (subscribe) - use direct permission request to avoid slidedown errors
         try {
-          await OneSignal.Notifications.requestPermission();
-          const permission = await OneSignal.Notifications.permissionNative;
-          setEnabled(permission === "granted");
-        } catch (permError: any) {
-          // Handle "push was previously dismissed" and other slidedown errors
-          if (permError?.message?.includes('dismissed') || permError?.message?.includes('slidedown')) {
-            console.warn('[OneSignal] Push prompt was previously dismissed, using direct permission request');
-            // Fallback: Try direct permission request without slidedown
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-              await OneSignal.User.PushSubscription.optIn();
-              setEnabled(true);
-            }
+          // Check if permission is already granted
+          const currentPermission = await OneSignal.Notifications.permissionNative;
+          
+          if (currentPermission === "granted") {
+            // Already granted, just opt in
+            await OneSignal.User.PushSubscription.optIn();
+            setEnabled(true);
+          } else if (currentPermission === "denied") {
+            // User previously denied, can't do anything
+            console.warn('[OneSignal] Push notifications were denied. User must enable them in browser settings.');
+            setEnabled(false);
           } else {
-            throw permError;
+            // Request permission
+            await OneSignal.Notifications.requestPermission();
+            const newPermission = await OneSignal.Notifications.permissionNative;
+            setEnabled(newPermission === "granted");
           }
+        } catch (permError: any) {
+          // Silently handle slidedown errors
+          console.warn('[OneSignal] Permission request error (expected if dismissed):', permError.message);
+          setEnabled(false);
         }
       }
     } catch (error) {
