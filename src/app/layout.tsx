@@ -7,6 +7,7 @@ import { InstallPrompt } from "@/components/install-prompt";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { ContentCacheInit } from "@/components/content-cache-init";
 import { OfflineIndicator } from "@/components/offline-indicator";
+import { OneSignalInit } from "@/components/OneSignalInit";
 import AdminQuickButton from "@/components/admin/AdminQuickButton";
 import { cn } from "@/lib/utils";
 
@@ -139,6 +140,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         {session && <InstallPrompt />}
         {session && <ContentCacheInit />}
         {session && <OfflineIndicator />}
+        {session && <OneSignalInit />}
         {session && <TopNav items={navItems} userName={session.firstName || undefined} userRole={userRole || undefined} isAdmin={hasAdminAccess} />}
         {session && hasAdminAccess && (
           <AdminQuickButton />

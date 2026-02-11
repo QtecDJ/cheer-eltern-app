@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { ResponseButtons } from "@/components/training/ResponseButtons";
 import { useVersionedContent } from "@/lib/use-versioned-content";
-import { usePushNotification } from "@/hooks/use-push-notification";
+import { useOneSignalPush } from "@/hooks/use-onesignal-push";
 import React, { useEffect, useState } from "react";
 
 interface HomeContentProps {
@@ -103,7 +103,7 @@ export function HomeContent({
     attendanceStats.total
   );
 
-  const { enabled: pushEnabled, loading: pushLoading, supported: pushSupported, toggle: togglePush } = usePushNotification();
+  const { enabled: pushEnabled, loading: pushLoading, supported: pushSupported, toggle: togglePush } = useOneSignalPush();
 
   return (
     <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">

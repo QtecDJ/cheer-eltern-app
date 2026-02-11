@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { assignMessageTo, getMessageById } from "@/lib/queries";
-import { sendPushToUser } from "@/lib/send-push";
+import { sendOneSignalPushByExternalUserId } from "@/lib/onesignal-push";
 
 export async function POST(req: Request, context: any) {
   const session = await getSession();
@@ -10,16 +10,16 @@ export async function POST(req: Request, context: any) {
     const id = Number((context?.params && (await context.params).id) ?? context?.params?.id ?? context?.params);
     await assignMessageTo(id, session.id);
     
-    // Send push notification to assigned user (self)
+    // Send OneSignal push notification to assigned user (self)
     const msg = await getMessageById(id);
     if (msg) {
-      sendPushToUser(session.id, {
+      sendOneSignalPushByExternalUserId(`member_${session.id}`, {
         title: 'Infinity Cheer Allstars',
         body: `Nachricht zugewiesen: ${msg.subject}`,
         url: `/messages/${id}`,
         icon: '/icons/icon-192x192.png',
       }).catch(error => {
-        console.error('Failed to send assignment push:', error);
+        console.error('Failed to send OneSignal assignment push:', error);
       });
     }
     
