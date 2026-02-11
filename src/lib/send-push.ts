@@ -5,7 +5,9 @@ import { sendPushNotification } from "@/lib/push";
  * Helper function to validate that a subscription has required keys
  */
 function isValidSubscription(sub: any): boolean {
-  return !!sub.endpoint && !!sub.auth && !!sub.p256dh;
+  return !!sub.endpoint && 
+         !!sub.auth && sub.auth.length > 0 && 
+         !!sub.p256dh && sub.p256dh.length > 0;
 }
 
 /**
@@ -35,11 +37,9 @@ export async function sendPushToUser(memberId: number, payload: { title: string;
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth,
-            },
-          } as any,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+          },
           payload
         );
 
@@ -96,11 +96,9 @@ export async function sendPushToTeam(teamIds: number[], payload: { title: string
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth,
-            },
-          } as any,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+          },
           payload
         );
 
@@ -159,11 +157,9 @@ export async function sendPushToStaff(payload: { title: string; body: string; ur
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth,
-            },
-          } as any,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+          },
           payload
         );
 
@@ -223,11 +219,9 @@ export async function sendPushToRole(roles: string[], payload: { title: string; 
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth,
-            },
-          } as any,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+          },
           payload
         );
 
@@ -275,11 +269,9 @@ export async function sendPushToMultipleUsers(memberIds: number[], payload: { ti
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
-            keys: {
-              p256dh: sub.p256dh,
-              auth: sub.auth,
-            },
-          } as any,
+            p256dh: sub.p256dh,
+            auth: sub.auth,
+          },
           payload
         );
 
