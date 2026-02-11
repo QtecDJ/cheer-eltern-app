@@ -43,10 +43,25 @@ export function useOneSignalPush() {
         await OneSignal.User.PushSubscription.optOut();
         setEnabled(false);
       } else {
-        // Opt-in (subscribe)
-        await OneSignal.Notifications.requestPermission();
-        const permission = await OneSignal.Notifications.permissionNative;
-        setEnabled(permission === "granted");
+        // Opt-in (subscribe) - use native browser API to avoid OneSignal slidedown errors
+        try {
+          await OneSignal.Notifications.requestPermission();
+          const permission = await OneSignal.Notifications.permissionNative;
+          setEnabled(permission === "granted");
+        } catch (permError: any) {
+          // Handle "push was previously dismissed" and other slidedown errors
+          if (permError?.message?.includes('dismissed') || permError?.message?.includes('slidedown')) {
+            console.warn('[OneSignal] Push prompt was previously dismissed, using direct permission request');
+            // Fallback: Try direct permission request without slidedown
+            const permission = await Notification.requestPermission();
+            if (permission === "granted") {
+              await OneSignal.User.PushSubscription.optIn();
+              setEnabled(true);
+            }
+          } else {
+            throw permError;
+          }
+        }
       }
     } catch (error) {
       console.error("[OneSignal] Toggle error:", error);
