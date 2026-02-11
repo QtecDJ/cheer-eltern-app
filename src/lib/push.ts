@@ -35,11 +35,26 @@ export async function sendPushNotification(
     );
     return { success: true };
   } catch (error: any) {
-    console.error('Push send error:', error);
-    // 410 = subscription expired
-    if (error.statusCode === 410) {
+    // Handle different types of errors
+    const errorCode = error.code || error.statusCode;
+    
+    // 410 = subscription expired, should be removed
+    if (error.statusCode === 410 || error.statusCode === 404) {
       return { success: false, expired: true };
     }
+    
+    // Temporary network errors - log as warning, not error
+    if (errorCode === 'ECONNRESET' || errorCode === 'ETIMEDOUT' || errorCode === 'ECONNREFUSED') {
+      console.warn(`Push notification temporary network error (${errorCode}):`, {
+        host: error.host,
+        code: errorCode,
+        endpoint: subscription.endpoint.substring(0, 50) + '...'
+      });
+      return { success: false, temporary: true, error: error.message };
+    }
+    
+    // Other errors - log as error
+    console.error('Push send error:', error);
     return { success: false, error: error.message };
   }
 }

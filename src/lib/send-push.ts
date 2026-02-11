@@ -43,9 +43,11 @@ export async function sendPushToUser(memberId: number, payload: { title: string;
           payload
         );
 
-        // Remove expired subscriptions
+        // Remove expired subscriptions (410/404 status)
         if (result.expired) {
-          await prisma.pushSubscription.delete({ where: { id: sub.id } });
+          await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+            console.error(`Failed to delete expired subscription ${sub.id}:`, e)
+          );
         }
 
         return result;
@@ -102,9 +104,11 @@ export async function sendPushToTeam(teamIds: number[], payload: { title: string
           payload
         );
 
-        // Remove expired subscriptions
+        // Remove expired subscriptions (410/404 status)
         if (result.expired) {
-          await prisma.pushSubscription.delete({ where: { id: sub.id } });
+          await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+            console.error(`Failed to delete expired subscription ${sub.id}:`, e)
+          );
         }
 
         return result;
@@ -163,9 +167,11 @@ export async function sendPushToStaff(payload: { title: string; body: string; ur
           payload
         );
 
-        // Remove expired subscriptions
+        // Remove expired subscriptions (410/404 status)
         if (result.expired) {
-          await prisma.pushSubscription.delete({ where: { id: sub.id } });
+          await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+            console.error(`Failed to delete expired subscription ${sub.id}:`, e)
+          );
         }
 
         return result;
@@ -225,9 +231,11 @@ export async function sendPushToRole(roles: string[], payload: { title: string; 
           payload
         );
 
-        // Remove expired subscriptions
+        // Remove expired subscriptions (410/404 status)
         if (result.expired) {
-          await prisma.pushSubscription.delete({ where: { id: sub.id } });
+          await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+            console.error(`Failed to delete expired subscription ${sub.id}:`, e)
+          );
         }
 
         return result;
@@ -275,9 +283,11 @@ export async function sendPushToMultipleUsers(memberIds: number[], payload: { ti
           payload
         );
 
-        // Remove expired subscriptions
+        // Remove expired subscriptions (410/404 status)
         if (result.expired) {
-          await prisma.pushSubscription.delete({ where: { id: sub.id } });
+          await prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+            console.error(`Failed to delete expired subscription ${sub.id}:`, e)
+          );
         }
 
         return result;
