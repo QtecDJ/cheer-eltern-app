@@ -21,6 +21,12 @@ export function OneSignalInit() {
           // Prevent automatic prompts
           autoRegister: false,
           autoResubscribe: true,
+          // Disable automatic slidedown prompt
+          promptOptions: {
+            slidedown: {
+              autoPrompt: false,
+            },
+          },
         });
 
         console.log('[OneSignal] Initialisiert');
