@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { createMessage } from "@/lib/queries";
-import { sendPushToStaff, sendPushToRole, sendPushToMultipleUsers } from "@/lib/send-push";
+import { sendOneSignalPushToMultipleUsers } from "@/lib/onesignal-push";
 import { prisma } from "@/lib/db";
 
 export async function POST(req: Request) {
@@ -47,9 +47,9 @@ export async function POST(req: Request) {
     
     const memberIds = members.map(m => m.id);
     
-    // Send individual push notification to each member
-    sendPushToMultipleUsers(memberIds, pushPayload).catch(error => {
-      console.error('Failed to send push notifications:', error);
+    // Send individual push notification to each member via OneSignal
+    sendOneSignalPushToMultipleUsers(memberIds, pushPayload).catch(error => {
+      console.error('Failed to send OneSignal push notifications:', error);
     });
     
     // Return the created message so the client can navigate to it

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { encryptText } from "@/lib/crypto";
-import { sendPushToTeam } from "@/lib/send-push";
+import { sendOneSignalPushToMultipleUsers } from "@/lib/onesignal-push";
 
 // GET all announcements
 export async function GET(req: Request) {
@@ -128,20 +128,34 @@ export async function POST(req: Request) {
       });
     }
 
-    // Send push notifications to team members
+    // Send push notifications to team members via OneSignal
     if (body.teamIds && Array.isArray(body.teamIds) && body.teamIds.length > 0) {
-      sendPushToTeam(
-        body.teamIds,
-        {
-          title: 'Infinity Cheer Allstars',
-          body: `${body.title}: ${body.content.slice(0, 80)}${body.content.length > 80 ? '...' : ''}`,
-          url: `/events?announcement=${announcement.id}`,
-          icon: body.imageUrl || '/icons/icon-192x192.png',
-        }
-      ).catch(error => {
-        console.error('Failed to send push notifications:', error);
-        // Don't fail the request if push fails
+      // Get all members from the specified teams
+      const teamMembers = await prisma.member.findMany({
+        where: {
+          teamId: {
+            in: body.teamIds,
+          },
+        },
+        select: { id: true },
       });
+
+      const memberIds = teamMembers.map(m => m.id);
+
+      if (memberIds.length > 0) {
+        sendOneSignalPushToMultipleUsers(
+          memberIds,
+          {
+            title: 'Infinity Cheer Allstars',
+            body: `${body.title}: ${body.content.slice(0, 80)}${body.content.length > 80 ? '...' : ''}`,
+            url: `/events?announcement=${announcement.id}`,
+            icon: body.imageUrl || '/icons/icon-192x192.png',
+          }
+        ).catch(error => {
+          console.error('Failed to send OneSignal push notifications:', error);
+          // Don't fail the request if push fails
+        });
+      }
     }
 
     return NextResponse.json({ success: true, announcement });

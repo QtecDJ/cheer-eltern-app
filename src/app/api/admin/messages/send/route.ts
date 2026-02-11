@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { createMessageForAssignees } from "@/lib/queries";
-import { sendPushToMultipleUsers } from "@/lib/send-push";
+import { sendOneSignalPushToMultipleUsers } from "@/lib/onesignal-push";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -14,14 +14,14 @@ export async function POST(req: Request) {
     const message: string = (body.body || "").toString();
     const created = await createMessageForAssignees({ subject, body: message, senderId: session.id, assignees });
     
-    // Send push notification to all recipients
-    sendPushToMultipleUsers(assignees, {
+    // Send push notification to all recipients via OneSignal
+    sendOneSignalPushToMultipleUsers(assignees, {
       title: `Infinity Cheer Allstars`,
       body: `Neue Nachricht: ${subject}`,
       url: `/messages`,
       icon: '/icons/icon-192x192.png',
     }).catch(error => {
-      console.error('Failed to send push to recipients:', error);
+      console.error('Failed to send OneSignal push to recipients:', error);
     });
     
     return NextResponse.json({ success: true, createdCount: created.length });
