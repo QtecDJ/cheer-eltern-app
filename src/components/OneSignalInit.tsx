@@ -16,7 +16,7 @@ export function OneSignalInit() {
       try {
         await OneSignal.init({
           appId,
-          safari_web_id: "web.onesignal.auto.1fe1b6c7-0a56-4e4e-8f4d-90df2b33bc74",
+          safari_web_id: "web.onesignal.auto.25811132-3882-4d1b-a1e7-3632ed052841",
           allowLocalhostAsSecureOrigin: true,
           // Prevent automatic prompts - user clicks bell icon to subscribe
           autoRegister: false,
