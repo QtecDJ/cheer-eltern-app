@@ -2,6 +2,13 @@ import { prisma } from "@/lib/db";
 import { sendPushNotification } from "@/lib/push";
 
 /**
+ * Helper function to validate that a subscription has required keys
+ */
+function isValidSubscription(sub: any): boolean {
+  return !!sub.endpoint && !!sub.auth && !!sub.p256dh;
+}
+
+/**
  * Send push notification to a specific user (for messages)
  */
 export async function sendPushToUser(memberId: number, payload: { title: string; body: string; url: string; icon?: string }) {
@@ -10,8 +17,21 @@ export async function sendPushToUser(memberId: number, payload: { title: string;
       where: { memberId },
     });
 
+    // Filter out invalid subscriptions and log them
+    const validSubscriptions = subscriptions.filter(sub => {
+      if (!isValidSubscription(sub)) {
+        console.warn(`Removing invalid subscription ${sub.id} for member ${memberId}: missing required keys`);
+        // Delete the invalid subscription
+        prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+          console.error(`Failed to delete invalid subscription ${sub.id}:`, e)
+        );
+        return false;
+      }
+      return true;
+    });
+
     const results = await Promise.allSettled(
-      subscriptions.map(async (sub: any) => {
+      validSubscriptions.map(async (sub: any) => {
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
@@ -59,8 +79,20 @@ export async function sendPushToTeam(teamIds: number[], payload: { title: string
       },
     });
 
+    // Filter out invalid subscriptions
+    const validSubscriptions = subscriptions.filter(sub => {
+      if (!isValidSubscription(sub)) {
+        console.warn(`Removing invalid subscription ${sub.id}: missing required keys`);
+        prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+          console.error(`Failed to delete invalid subscription ${sub.id}:`, e)
+        );
+        return false;
+      }
+      return true;
+    });
+
     const results = await Promise.allSettled(
-      subscriptions.map(async (sub: any) => {
+      validSubscriptions.map(async (sub: any) => {
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
@@ -110,8 +142,20 @@ export async function sendPushToStaff(payload: { title: string; body: string; ur
       },
     });
 
+    // Filter out invalid subscriptions
+    const validSubscriptions = subscriptions.filter(sub => {
+      if (!isValidSubscription(sub)) {
+        console.warn(`Removing invalid subscription ${sub.id}: missing required keys`);
+        prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+          console.error(`Failed to delete invalid subscription ${sub.id}:`, e)
+        );
+        return false;
+      }
+      return true;
+    });
+
     const results = await Promise.allSettled(
-      subscriptions.map(async (sub: any) => {
+      validSubscriptions.map(async (sub: any) => {
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
@@ -162,8 +206,20 @@ export async function sendPushToRole(roles: string[], payload: { title: string; 
       },
     });
 
+    // Filter out invalid subscriptions
+    const validSubscriptions = subscriptions.filter(sub => {
+      if (!isValidSubscription(sub)) {
+        console.warn(`Removing invalid subscription ${sub.id}: missing required keys`);
+        prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+          console.error(`Failed to delete invalid subscription ${sub.id}:`, e)
+        );
+        return false;
+      }
+      return true;
+    });
+
     const results = await Promise.allSettled(
-      subscriptions.map(async (sub: any) => {
+      validSubscriptions.map(async (sub: any) => {
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
@@ -202,8 +258,20 @@ export async function sendPushToMultipleUsers(memberIds: number[], payload: { ti
       },
     });
 
+    // Filter out invalid subscriptions
+    const validSubscriptions = subscriptions.filter(sub => {
+      if (!isValidSubscription(sub)) {
+        console.warn(`Removing invalid subscription ${sub.id}: missing required keys`);
+        prisma.pushSubscription.delete({ where: { id: sub.id } }).catch(e => 
+          console.error(`Failed to delete invalid subscription ${sub.id}:`, e)
+        );
+        return false;
+      }
+      return true;
+    });
+
     const results = await Promise.allSettled(
-      subscriptions.map(async (sub: any) => {
+      validSubscriptions.map(async (sub: any) => {
         const result = await sendPushNotification(
           {
             endpoint: sub.endpoint,
