@@ -38,8 +38,12 @@ export async function sendPushNotification(
     // Handle different types of errors
     const errorCode = error.code || error.statusCode;
     
-    // 410 = subscription expired, should be removed
-    if (error.statusCode === 410 || error.statusCode === 404) {
+    // 410 = subscription expired, 404 = not found, 401 = unauthorized (expired token)
+    // These should be removed from the database
+    if (error.statusCode === 410 || error.statusCode === 404 || error.statusCode === 401) {
+      console.warn(`Push subscription expired/invalid (${error.statusCode}):`, {
+        endpoint: subscription.endpoint.substring(0, 60) + '...'
+      });
       return { success: false, expired: true };
     }
     
