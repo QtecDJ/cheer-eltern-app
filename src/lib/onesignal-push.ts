@@ -1,6 +1,6 @@
 // OneSignal Push Notification Utility - Server Side
 
-const ONESIGNAL_API_URL = "https://api.onesignal.com";
+const ONESIGNAL_API_URL = "https://onesignal.com/api/v1";
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
