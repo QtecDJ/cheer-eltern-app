@@ -26,6 +26,8 @@ export async function GET() {
         lastName: true,
         teamId: true,
         photoUrl: true,
+        userRole: true,
+        roles: true,
         team: {
           select: {
             name: true,
@@ -35,8 +37,25 @@ export async function GET() {
     });
 
     const profiles = [];
-
-    // Add self profile
+    
+    // Check if user has parent role (even if they have other roles too)
+    // Check both roles array AND userRole for comprehensive detection
+    const rolesFromArray = selfProfile?.roles || [];
+    const rolesFromString = selfProfile?.userRole?.split(',').map(r => r.trim()) || [];
+    const allRoles = [...new Set([...rolesFromArray, ...rolesFromString])];
+    const hasParentRole = allRoles.includes('parent');
+    
+    // If user has parent role, don't show profile switcher at all
+    // They should see their child's data directly without switching
+    if (hasParentRole) {
+      // Return empty profiles array - no profile switching for parents
+      return NextResponse.json({
+        profiles: [],
+        activeProfileId: session.activeProfileId || userId,
+      });
+    }
+    
+    // Only add self profile for non-parents
     if (selfProfile) {
       profiles.push({
         id: selfProfile.id,
@@ -51,7 +70,7 @@ export async function GET() {
       });
     }
 
-    // Find children via ParentChildRelation
+    // Find children via ParentChildRelation (only for non-parents)
     const parentRelations = await prisma.parentChildRelation.findMany({
       where: {
         parentId: userId,

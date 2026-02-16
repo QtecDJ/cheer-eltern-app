@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getSession, hashPassword, updateSession } from "@/lib/auth";
-import { getActiveProfile } from "@/modules/profile-switcher";
+import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 import { revalidatePath } from "next/cache";
 
 export async function updateEmail(formData: FormData) {
@@ -11,7 +11,7 @@ export async function updateEmail(formData: FormData) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
-  const activeProfileId = getActiveProfile(session);
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
 
   const email = formData.get("email") as string;
   
@@ -65,7 +65,7 @@ export async function updatePassword(formData: FormData) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
-  const activeProfileId = getActiveProfile(session);
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
 
   const currentPassword = formData.get("currentPassword") as string;
   const newPassword = formData.get("newPassword") as string;
@@ -128,7 +128,7 @@ export async function updateEmergencyContact(formData: FormData) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
-  const activeProfileId = getActiveProfile(session);
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
 
   const emergencyContact = formData.get("emergencyContact") as string;
   const emergencyPhone = formData.get("emergencyPhone") as string;
@@ -160,7 +160,7 @@ export async function updateHealthInfo(formData: FormData) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
-  const activeProfileId = getActiveProfile(session);
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
 
   const allergies = formData.get("allergies") as string;
   const diseases = formData.get("diseases") as string;
@@ -190,7 +190,7 @@ export async function updateProfilePhoto(photoUrl: string) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
-  const activeProfileId = getActiveProfile(session);
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
 
   if (!photoUrl || !photoUrl.startsWith("https://")) {
     return { success: false, error: "Ungültige Bild-URL" };
@@ -216,7 +216,7 @@ export async function deleteProfilePhoto() {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
-  const activeProfileId = getActiveProfile(session);
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
 
   try {
     await prisma.member.update({

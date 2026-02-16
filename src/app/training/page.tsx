@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { TrainingContent } from "./training-content";
-import { getActiveProfile } from "@/modules/profile-switcher";
+import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 import {
   getTrainingsList,
   getAttendanceMap,
@@ -18,7 +18,7 @@ export default async function TrainingPage() {
     redirect("/login");
   }
 
-  const activeProfileId = getActiveProfile(session);
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
   const member = await getMemberForHome(activeProfileId);
 
   if (!member || !member.teamId) {

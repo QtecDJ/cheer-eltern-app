@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getActiveProfile } from "@/modules/profile-switcher";
+import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 import { prisma } from "@/lib/db";
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const memberId = getActiveProfile(session);
+    const memberId = await getActiveProfileWithParentMapping(session);
 
     // Lade neueste Attendances (updatedAt) zuerst und nimm für jede trainingId den aktuellsten Eintrag
     const attendances = await prisma.attendance.findMany({
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const activeProfileId = getActiveProfile(session);
+    const activeProfileId = await getActiveProfileWithParentMapping(session);
     
     // Authorization: User kann nur eigene Attendance ändern, außer er ist Trainer/Admin
     const isOwnAttendance = Number(memberId) === activeProfileId;

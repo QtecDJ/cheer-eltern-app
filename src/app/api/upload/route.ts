@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getActiveProfile } from "@/modules/profile-switcher";
+import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 import { v2 as cloudinary } from "cloudinary";
 
 // Cloudinary Konfiguration
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const activeProfileId = getActiveProfile(session);
+    const activeProfileId = await getActiveProfileWithParentMapping(session);
 
     const formData = await request.formData();
     const file = formData.get("file") as File;

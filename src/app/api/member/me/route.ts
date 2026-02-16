@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { getActiveProfile } from "@/modules/profile-switcher";
+import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 
 export async function GET() {
   const session = await getSession();
@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const activeProfileId = getActiveProfile(session);
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
 
   return NextResponse.json({ memberId: activeProfileId });
 }

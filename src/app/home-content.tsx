@@ -84,7 +84,13 @@ interface HomeContentProps {
   openMessages?: any[];
   resolvedMessageCount?: number;
   isOrga?: boolean;
-  // entfernt: profileSwitchInfo
+  parentInfo?: {
+    id: number;
+    name: string;
+    firstName: string;
+    lastName: string;
+    photoUrl: string | null;
+  } | null;
 }
 
 export function HomeContent({
@@ -99,6 +105,7 @@ export function HomeContent({
   openMessages = [],
   resolvedMessageCount = 0,
   isOrga = false,
+  parentInfo = null,
 }: HomeContentProps) {
   const age = calculateAge(child.birthDate);
   const attendanceRate = calculateAttendanceRate(
@@ -178,7 +185,9 @@ export function HomeContent({
       <header className="mb-6 md:mb-8 animate-fade-in">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm md:text-base text-muted-foreground">Willkommen zurück 👋</p>
+            <p className="text-sm md:text-base text-muted-foreground">
+              {parentInfo ? `Hallo ${parentInfo.firstName} 👋` : 'Willkommen zurück 👋'}
+            </p>
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mt-0.5">
               {child.firstName}&apos;s Übersicht
             </h1>
@@ -205,66 +214,123 @@ export function HomeContent({
 
       {/* Kind Profil Card mit Profile Switcher */}
       <Card variant="gradient" className="mb-6 animate-slide-up relative overflow-visible">
-        <div className="flex items-center gap-4">
-          {/* Clickable Avatar with Profile Switcher */}
-          <div className="relative z-[100]">
-            <button
-              ref={buttonRef}
-              onClick={() => availableProfiles.length > 1 && setIsProfileMenuOpen(!isProfileMenuOpen)}
-              disabled={profileSwitchLoading || availableProfiles.length <= 1}
-              className={`relative group ${availableProfiles.length > 1 ? 'cursor-pointer' : 'cursor-default'}`}
-              title={availableProfiles.length > 1 ? "Profil wechseln" : undefined}
-            >
-              <div className={`transition-all duration-500 ease-out ${
-                isAnimating 
-                  ? 'animate-profile-switch-out' 
-                  : 'scale-100 opacity-100'
-              }`}>
-                <Avatar 
-                  name={child.name} 
-                  src={child.photoUrl} 
-                  size="lg"
-                  className={`${
-                    availableProfiles.length > 1 
-                      ? 'ring-2 ring-primary/20 group-hover:ring-primary/50 group-hover:animate-profile-glow transition-all duration-300' 
-                      : ''
-                  }`}
-                />
-              </div>
-              
-              {/* Dropdown Indicator */}
-              {availableProfiles.length > 1 && (
-                <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1 shadow-lg group-hover:scale-110 transition-transform">
-                  <ChevronDown className="w-3 h-3" />
-                </div>
-              )}
-              
-              {/* Loading Spinner */}
-              {profileSwitchLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
-                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-            </button>
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-lg truncate">{child.name}</h2>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="default">{child.role}</Badge>
-              <span className="text-sm text-muted-foreground">{age} Jahre</span>
+        {parentInfo ? (
+          /* Parent-Child-Ansicht - kompakt in einer Reihe */
+          <div className="flex items-center gap-3">
+            {/* Parent Avatar links */}
+            <div className="flex-shrink-0">
+              <Avatar 
+                name={parentInfo.name} 
+                src={parentInfo.photoUrl} 
+                size="md"
+              />
             </div>
-            {child.team && (
-              <div className="flex items-center gap-1.5 mt-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: child.team.color || "#ec4899" }}
-                />
-                <span className="text-sm font-medium">{child.team.name}</span>
+            
+            {/* Verbindungslinie */}
+            <div className="flex items-center gap-2 min-w-[60px]">
+              <div className="h-px flex-1 bg-gradient-to-r from-primary/40 to-primary/20" />
+              <div className="text-xs text-muted-foreground">→</div>
+              <div className="h-px flex-1 bg-gradient-to-r from-primary/20 to-primary/40" />
+            </div>
+            
+            {/* Kind Avatar und Info rechts */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Avatar 
+                name={child.name} 
+                src={child.photoUrl} 
+                size="lg"
+              />
+              
+              <div className="flex-1 min-w-0">
+                <h2 className="font-semibold text-lg truncate">{child.name}</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="default">{child.role}</Badge>
+                  <span className="text-sm text-muted-foreground">{age} Jahre</span>
+                </div>
+                {child.team && (
+                  <div className="flex items-center gap-1.5 mt-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: child.team.color || "#ec4899" }}
+                    />
+                    <span className="text-sm font-medium">{child.team.name}</span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Normal Member/Athlete-Ansicht */
+          <div className="flex items-center gap-4">
+            {/* Avatar with Profile Switcher (only if multiple profiles) */}
+            <div className="relative z-[100]">
+              {availableProfiles.length > 1 ? (
+                <button
+                  ref={buttonRef}
+                  onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
+                  disabled={profileSwitchLoading}
+                  className="relative group cursor-pointer"
+                  title="Profil wechseln"
+                >
+                  <div className={`transition-all duration-500 ease-out ${
+                    isAnimating 
+                      ? 'animate-profile-switch-out' 
+                      : 'scale-100 opacity-100'
+                  }`}>
+                    <Avatar 
+                      name={child.name} 
+                      src={child.photoUrl} 
+                      size="lg"
+                      className="ring-2 ring-primary/20 group-hover:ring-primary/50 group-hover:animate-profile-glow transition-all duration-300"
+                    />
+                  </div>
+                  
+                  {/* Dropdown Indicator */}
+                  <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1 shadow-lg group-hover:scale-110 transition-transform">
+                    <ChevronDown className="w-3 h-3" />
+                  </div>
+                  
+                  {/* Loading Spinner */}
+                  {profileSwitchLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  )}
+                </button>
+              ) : (
+                /* Simple avatar when only one profile */
+                <div className={`transition-all duration-500 ease-out ${
+                  isAnimating 
+                    ? 'animate-profile-switch-out' 
+                    : 'scale-100 opacity-100'
+                }`}>
+                  <Avatar 
+                    name={child.name} 
+                    src={child.photoUrl} 
+                    size="lg"
+                  />
+                </div>
+              )}
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <h2 className="font-semibold text-lg truncate">{child.name}</h2>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="default">{child.role}</Badge>
+                <span className="text-sm text-muted-foreground">{age} Jahre</span>
+              </div>
+              {child.team && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: child.team.color || "#ec4899" }}
+                  />
+                  <span className="text-sm font-medium">{child.team.name}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Quick Stats */}
@@ -455,8 +521,8 @@ export function HomeContent({
         )}
       </section>
       
-      {/* Profile Dropdown Menu - Rendered as Portal */}
-      {isProfileMenuOpen && availableProfiles.length > 1 && typeof window !== 'undefined' && createPortal(
+      {/* Profile Dropdown Menu - Rendered as Portal (not shown for parents) */}
+      {!parentInfo && isProfileMenuOpen && availableProfiles.length > 1 && typeof window !== 'undefined' && createPortal(
         <div 
           ref={dropdownRef}
           className="fixed w-64 bg-card border border-border rounded-lg shadow-2xl z-[99999] animate-in fade-in slide-in-from-top-2 duration-200"

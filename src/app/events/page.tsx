@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { EventsContent } from "./events-content";
 import { PollData } from "@/components/ui/poll";
-import { getActiveProfile } from "@/modules/profile-switcher";
+import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 import {
   getEventsWithParticipants,
   getCompetitionsWithParticipants,
@@ -101,7 +101,7 @@ export default async function EventsPage() {
     redirect("/login");
   }
 
-  const activeProfileId = getActiveProfile(session);
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
 
   // Prefer athlete team but also include coach team so users see announcements for both
   const teamIds = Array.from(new Set([session.teamId, session.coachTeamId].filter(Boolean))) as number[];

@@ -4,6 +4,9 @@ import { SessionUser } from '@/lib/auth';
  * Get the active profile ID from session.
  * Returns activeProfileId if set, otherwise falls back to the user's own ID.
  * 
+ * Note: This does NOT handle parent-child mapping automatically.
+ * Use getActiveProfileWithParentMapping() in server components for that.
+ * 
  * Use this in API routes when you need to know "who is acting" in the current request.
  * 
  * Example:

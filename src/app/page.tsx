@@ -2,7 +2,7 @@
 import { HomeContent } from "./home-content";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { getActiveProfile } from "@/modules/profile-switcher";
+import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 import {
   getMemberForHome,
   getUpcomingTrainingsMinimal,
@@ -14,6 +14,7 @@ import {
   getMessagesForStaff,
   getResolvedMessageCount,
 } from "@/lib/queries";
+import { prisma } from "@/lib/db";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -25,8 +26,41 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  // Get active profile ID (respects profile switching)
-  const activeProfileId = getActiveProfile(session);
+  // Check if user is a parent (has parent role, regardless of other roles)
+  // Check both roles array AND userRole field for comprehensive role detection
+  const rolesFromArray = session.roles || [];
+  const rolesFromString = session.userRole?.split(',').map(r => r.trim()) || [];
+  const allRoles = [...new Set([...rolesFromArray, ...rolesFromString])]; // Combine and deduplicate
+  
+  const hasParentRole = allRoles.includes('parent');
+  
+  // getActiveProfileWithParentMapping() automatically returns child's ID for parent accounts
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
+  let parentInfo = null;
+  
+  // If user has parent role, load parent info for display
+  if (hasParentRole) {
+    const parentMember = await prisma.member.findUnique({
+      where: { id: session.id },
+      select: { 
+        id: true,
+        name: true,
+        firstName: true,
+        lastName: true,
+        photoUrl: true,
+      },
+    });
+    
+    if (parentMember) {
+      parentInfo = {
+        id: parentMember.id,
+        name: parentMember.name,
+        firstName: parentMember.firstName,
+        lastName: parentMember.lastName,
+        photoUrl: parentMember.photoUrl,
+      };
+    }
+  }
 
   const child = await getMemberForHome(activeProfileId);
 
@@ -113,6 +147,7 @@ export default async function HomePage() {
       openMessages={openMessages}
       resolvedMessageCount={resolvedMessageCount}
       isOrga={isOrga}
+      parentInfo={parentInfo}
     />
   );
 }
