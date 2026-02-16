@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { encryptText, decryptText } from "@/lib/crypto";
+import { revalidatePath } from "next/cache";
 
 // GET single announcement
 type RouteContext = {
@@ -139,6 +140,11 @@ export async function PATCH(req: Request, context: RouteContext) {
       }
     }
 
+    // Invalidate caches for realtime updates
+    revalidatePath("/events");
+    revalidatePath("/admin/announcements");
+    revalidatePath("/");
+
     return NextResponse.json({ success: true, announcement });
   } catch (e) {
     console.error(e);
@@ -159,6 +165,12 @@ export async function DELETE(req: Request, context: RouteContext) {
   try {
     const id = Number((await context.params).id);
     await prisma.announcement.delete({ where: { id } });
+    
+    // Invalidate caches for realtime updates
+    revalidatePath("/events");
+    revalidatePath("/admin/announcements");
+    revalidatePath("/");
+    
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

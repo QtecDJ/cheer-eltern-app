@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { createMessageReply, getMessageById } from "@/lib/queries";
 import { decryptText } from "@/lib/crypto";
 import { sendOneSignalPushByExternalUserId } from "@/lib/onesignal-push";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request, context: any) {
   const session = await getSession();
@@ -31,6 +32,11 @@ export async function POST(req: Request, context: any) {
     
     // decrypt body for immediate client use
     const replyBody = created.body ? decryptText(created.body) : created.body;
+    
+    // Invalidate messages cache for realtime feel
+    revalidatePath("/messages");
+    revalidatePath("/admin/messages");
+    
     return NextResponse.json({ success: true, reply: { id: created.id, body: replyBody, createdAt: created.createdAt, authorId: created.authorId } });
   } catch (e) {
     console.error(e);

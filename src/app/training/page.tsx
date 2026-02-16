@@ -8,8 +8,9 @@ import {
   getMemberForHome,
 } from "@/lib/queries";
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// ISR with 3-minute cache - Training data changes infrequently
+// SW provides additional 5 min client cache
+export const revalidate = 180;
 
 export default async function TrainingPage() {
   const session = await getSession();

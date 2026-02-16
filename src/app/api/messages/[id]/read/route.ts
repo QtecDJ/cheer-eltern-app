@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getMessageById, assignMessageTo } from "@/lib/queries";
 import { prisma } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request, context: any) {
   const session = await getSession();
@@ -21,6 +22,10 @@ export async function POST(req: Request, context: any) {
       }
     }
     // Do NOT change assignment here — keep the message assigned. Frontend will adjust local counters.
+    
+    // Invalidate messages cache
+    revalidatePath("/messages");
+    
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error(e);

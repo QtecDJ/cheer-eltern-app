@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { encryptText } from "@/lib/crypto";
 import { sendOneSignalPushToMultipleUsers } from "@/lib/onesignal-push";
+import { revalidatePath } from "next/cache";
 
 // GET all announcements
 export async function GET(req: Request) {
@@ -157,6 +158,11 @@ export async function POST(req: Request) {
         });
       }
     }
+
+    // Invalidate events and announcements cache for realtime updates
+    revalidatePath("/events");
+    revalidatePath("/admin/announcements");
+    revalidatePath("/");  // Home page also shows announcements
 
     return NextResponse.json({ success: true, announcement });
   } catch (e) {

@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import React from "react";
 import AnnouncementsList from "@/components/admin/AnnouncementsList";
 
-export const revalidate = 60;
+// Admin announcements can cache longer
+export const revalidate = 120;
 
 export default async function AnnouncementsPage() {
   const session = await getSession();

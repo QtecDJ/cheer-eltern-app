@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { createMessage } from "@/lib/queries";
 import { sendOneSignalPushToMultipleUsers } from "@/lib/onesignal-push";
 import { prisma } from "@/lib/db";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -74,6 +75,10 @@ export async function POST(req: Request) {
     sendOneSignalPushToMultipleUsers(memberIds, pushPayload).catch(error => {
       console.error('Failed to send OneSignal push notifications:', error);
     });
+    
+    // Invalidate messages page cache for realtime feel
+    revalidatePath("/messages");
+    revalidatePath("/admin/messages");
     
     // Return the created message so the client can navigate to it
     return NextResponse.json({ success: true, message: created });

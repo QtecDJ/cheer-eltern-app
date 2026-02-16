@@ -9,9 +9,9 @@ import {
   getLatestAssessmentMinimal,
 } from "@/lib/queries";
 
-// Revalidate every 300 seconds (5 Min) - Profile ändern sich sehr selten
-// Service Worker cached zusätzlich 5-10 Min (LONG strategy)
-export const revalidate = 300;
+// ISR with 10-minute cache - Profile data is nearly static
+// SW provides additional 5-10 min client cache
+export const revalidate = 600;
 
 export default async function ProfilePage() {
   const session = await getSession();

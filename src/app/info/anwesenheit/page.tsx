@@ -9,8 +9,8 @@ import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AnwesenheitContent } from "./anwesenheit-content";
 
-// Revalidate every 30 seconds for attendance
-export const revalidate = 30;
+// Attendance data changes frequently, but 60s cache is acceptable
+export const revalidate = 60;
 
 export default async function AnwesenheitPage({ searchParams }: { searchParams?: any }) {
   const session = await getSession();

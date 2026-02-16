@@ -118,8 +118,7 @@ export const viewport: Viewport = {
 
 import { cookies } from "next/headers";
 
-// Force dynamic rendering - no caching of layout
-export const dynamic = 'force-dynamic';
+// Layout uses session from cookies (no DB queries) - dynamic rendering needed for auth
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getSession();

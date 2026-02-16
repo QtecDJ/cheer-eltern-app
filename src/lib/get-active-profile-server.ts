@@ -34,7 +34,7 @@ export async function getActiveProfileWithParentMapping(session: SessionUser): P
           memberId: { not: null },
         },
       },
-      include: {
+      select: {
         child: {
           select: {
             memberId: true,

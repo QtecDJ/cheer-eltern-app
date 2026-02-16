@@ -5,7 +5,8 @@ import React from "react";
 import TodoDetail from "@/components/admin/TodoDetail";
 import TodoDetailClientFallback from "@/components/admin/TodoDetailClient";
 
-export const revalidate = 60;
+// Admin todo details can cache longer
+export const revalidate = 120;
 
 export default async function TodoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();

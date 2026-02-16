@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 import { prisma } from "@/lib/db";
 
-export const dynamic = 'force-dynamic';
+// Cache attendance data for 60 seconds
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +29,10 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ attendanceMap: map });
+    const response = NextResponse.json({ attendanceMap: map });
+    // Cache for 60 seconds, stale-while-revalidate for 120
+    response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
+    return response;
   } catch (error) {
     console.error("Error fetching attendance map:", error);
     return NextResponse.json(

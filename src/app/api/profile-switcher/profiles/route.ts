@@ -3,6 +3,9 @@ import { getSession, updateSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
+// Cache profile list for 2 minutes
+export const revalidate = 120;
+
 /**
  * GET /api/profile-switcher/profiles
  * Returns all profiles the current user has access to
@@ -49,10 +52,12 @@ export async function GET() {
     // They should see their child's data directly without switching
     if (hasParentRole) {
       // Return empty profiles array - no profile switching for parents
-      return NextResponse.json({
+      const response = NextResponse.json({
         profiles: [],
         activeProfileId: session.activeProfileId || userId,
       });
+      response.headers.set('Cache-Control', 's-maxage=120, stale-while-revalidate=240');
+      return response;
     }
     
     // Only add self profile for non-parents
@@ -133,10 +138,13 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       profiles,
       activeProfileId: session.activeProfileId || userId,
     });
+    // Cache profile list for 2 minutes
+    response.headers.set('Cache-Control', 's-maxage=120, stale-while-revalidate=240');
+    return response;
   } catch (error) {
     console.error('Error fetching profiles:', error);
     return NextResponse.json(

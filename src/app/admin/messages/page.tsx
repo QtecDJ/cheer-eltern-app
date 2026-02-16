@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { getMessagesForStaff, getActiveTeamsWithMembers } from "@/lib/queries";
 import TicketBoard from "@/components/admin/TicketBoard";
 
-export const revalidate = 60;
+// Admin messages view can cache longer
+export const revalidate = 120;
 
 export default async function MessagesAdminPage() {
   const session = await getSession();

@@ -7,7 +7,8 @@ import TodoList from "@/components/admin/TodoList";
 import { Card } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 
-export const revalidate = 60;
+// Admin pages don't need frequent updates
+export const revalidate = 120;
 
 export default async function TodosAdminPage() {
   const session = await getSession();

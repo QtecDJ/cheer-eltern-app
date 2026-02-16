@@ -7,7 +7,8 @@ import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-serv
 import { getMessagesForMember } from "@/lib/queries";
 import { Card } from "@/components/ui/card";
 
-export const revalidate = 0;
+// Messages change occasionally, cache for 90 seconds
+export const revalidate = 90;
 
 export default async function MessagesPage() {
   const session = await getSession();

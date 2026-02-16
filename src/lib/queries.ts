@@ -147,11 +147,11 @@ export async function getTeamMembers(teamId: number, limit = 20) {
  * Attendance-Statistiken (aggregiert, kein Transfer großer Listen)
  */
 export async function getAttendanceStats(memberId: number) {
-  // Hole die neuesten Attendance-Einträge für Trainings und wähle pro trainingId den aktuellsten Eintrag
+  // Optimiert: Nur die letzten 200 Einträge für Stats (reicht für Saisonübersicht)
   const attendances = await prisma.attendance.findMany({
     where: { memberId, type: "training" },
     orderBy: { updatedAt: "desc" },
-    take: 1000,
+    take: 200,
     select: { trainingId: true, status: true },
   });
 
