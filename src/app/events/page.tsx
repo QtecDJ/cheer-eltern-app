@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { EventsContent } from "./events-content";
 import { PollData } from "@/components/ui/poll";
+import { getActiveProfile } from "@/modules/profile-switcher";
 import {
   getEventsWithParticipants,
   getCompetitionsWithParticipants,
@@ -100,6 +101,8 @@ export default async function EventsPage() {
     redirect("/login");
   }
 
+  const activeProfileId = getActiveProfile(session);
+
   // Prefer athlete team but also include coach team so users see announcements for both
   const teamIds = Array.from(new Set([session.teamId, session.coachTeamId].filter(Boolean))) as number[];
   const relevantTeamIdOrArray = teamIds.length > 0 ? teamIds : undefined;
@@ -108,18 +111,18 @@ export default async function EventsPage() {
   const [events, competitions, rawAnnouncements] = await Promise.all([
     getEventsWithParticipants(),
     getCompetitionsWithParticipants(),
-    getEventAnnouncementsWithPolls(relevantTeamIdOrArray, session.id),
+    getEventAnnouncementsWithPolls(relevantTeamIdOrArray, activeProfileId),
   ]);
 
   // Transform announcements to match expected format
-  const eventAnnouncements = transformAnnouncements(rawAnnouncements, session.id);
+  const eventAnnouncements = transformAnnouncements(rawAnnouncements, activeProfileId);
 
   return (
     <EventsContent 
       events={events} 
       competitions={competitions} 
       eventAnnouncements={eventAnnouncements}
-      memberId={session.id}
+      memberId={activeProfileId}
       // Orga users should not see upcoming trainings and may see full poll voter names
       showUpcoming={!((session.roles || []).includes("orga") || (session.userRole || "").toString().toLowerCase().split(',').includes('orga'))}
       showVoterNames={(session.roles || []).includes("orga") || (session.userRole || "").toString().toLowerCase().split(',').includes('orga')}

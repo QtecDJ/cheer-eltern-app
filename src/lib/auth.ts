@@ -18,6 +18,7 @@ export interface SessionUser {
   userRole: string | null;
   roles?: string[] | null;
   coachTeamId: number | null;
+  activeProfileId?: number | null; // For profile switching - the currently active member ID
 }
 
 // Hilfsfunktion zum Prüfen ob User Admin oder Trainer ist
@@ -115,7 +116,7 @@ export async function login(firstName: string, lastName: string, password: strin
       teamId: member.teamId,
       teamName: member.team?.name || null,
       userRole: member.userRole || null,
-      roles: (member as any).roles || (member.userRole ? member.userRole.split(',').map((r: string) => r.trim()) : []),
+      roles: ((member as { roles?: string[] }).roles) || (member.userRole ? member.userRole.split(',').map((r: string) => r.trim()) : []),
       coachTeamId: member.coachTeamId || null,
     };
 
@@ -222,6 +223,14 @@ export async function updateSession(updates: Partial<SessionUser>): Promise<void
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, JSON.stringify(newSession), {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30,
+    path: "/",
+  });
+  // Also update public session cookie
+  cookieStore.set(PUBLIC_SESSION_COOKIE, buildPublicSessionCookie(newSession), {
+    httpOnly: false,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 30,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { getActiveProfile } from "@/modules/profile-switcher";
 import { v2 as cloudinary } from "cloudinary";
 
 // Cloudinary Konfiguration
@@ -19,6 +20,8 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const activeProfileId = getActiveProfile(session);
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Zu Cloudinary hochladen
     const result = await cloudinary.uploader.upload(base64, {
       folder: "eltern-app/profile-pictures",
-      public_id: `user_${session.id}`,
+      public_id: `user_${activeProfileId}`,
       overwrite: true,
       transformation: [
         { width: 400, height: 400, crop: "fill", gravity: "face" },

@@ -1,10 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import OneSignal from "react-onesignal";
 
 export function OneSignalInit() {
+  const isInitialized = useRef(false);
+
   useEffect(() => {
+    // Prevent double initialization
+    if (isInitialized.current) {
+      console.log('[OneSignal] Already initialized, skipping');
+      return;
+    }
+
     const initOneSignal = async () => {
       const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
       
@@ -14,6 +22,13 @@ export function OneSignalInit() {
       }
 
       try {
+        // Check if OneSignal is already initialized
+        if (typeof window !== 'undefined' && (window as any).OneSignalDeferred) {
+          console.log('[OneSignal] SDK already loaded, skipping init');
+          isInitialized.current = true;
+          return;
+        }
+
         await OneSignal.init({
           appId,
           safari_web_id: "web.onesignal.auto.25811132-3882-4d1b-a1e7-3632ed052841",
@@ -23,6 +38,7 @@ export function OneSignalInit() {
           autoResubscribe: true,
         });
 
+        isInitialized.current = true;
         console.log('[OneSignal] Initialisiert');
 
         // Set external user ID (Member ID)

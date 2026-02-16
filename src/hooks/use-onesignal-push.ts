@@ -92,9 +92,9 @@ export function useOneSignalPush() {
               setEnabled(false);
             }
           }
-        } catch (permError: any) {
+        } catch (permError: unknown) {
           // Silently handle slidedown errors
-          console.warn('[OneSignal] Permission request error (expected if dismissed):', permError.message);
+          console.warn('[OneSignal] Permission request error (expected if dismissed):', (permError as Error).message);
           setEnabled(false);
         }
       }

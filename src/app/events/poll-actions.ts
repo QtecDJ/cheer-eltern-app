@@ -9,8 +9,7 @@ import { revalidatePath } from "next/cache";
 export async function votePoll(pollId: number, optionIds: number[], memberId: number) {
   try {
     // Hole die Poll, um Einstellungen zu prüfen
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const poll = await (prisma as any).poll.findUnique({
+    const poll = await prisma.poll.findUnique({
       where: { id: pollId },
       select: {
         allowMultiple: true,
@@ -33,8 +32,7 @@ export async function votePoll(pollId: number, optionIds: number[], memberId: nu
     }
 
     // Entferne alle bisherigen Stimmen dieses Mitglieds für diese Umfrage
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (prisma as any).pollVote.deleteMany({
+    await prisma.pollVote.deleteMany({
       where: {
         pollId,
         memberId,
@@ -43,8 +41,7 @@ export async function votePoll(pollId: number, optionIds: number[], memberId: nu
 
     // Füge neue Stimmen hinzu
     if (optionIds.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (prisma as any).pollVote.createMany({
+      await prisma.pollVote.createMany({
         data: optionIds.map((optionId) => ({
           pollId,
           optionId,
@@ -69,8 +66,7 @@ export async function votePoll(pollId: number, optionIds: number[], memberId: nu
 export async function removePollVote(pollId: number, memberId: number) {
   try {
     // Prüfe ob die Umfrage noch aktiv ist
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const poll = await (prisma as any).poll.findUnique({
+    const poll = await prisma.poll.findUnique({
       where: { id: pollId },
       select: { endsAt: true },
     });
@@ -84,8 +80,7 @@ export async function removePollVote(pollId: number, memberId: number) {
     }
 
     // Entferne alle Stimmen
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (prisma as any).pollVote.deleteMany({
+    await prisma.pollVote.deleteMany({
       where: {
         pollId,
         memberId,

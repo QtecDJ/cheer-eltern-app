@@ -9,7 +9,7 @@ export default async function AnnouncementsPage() {
   const session = await getSession();
   if (!session) redirect('/login');
   
-  const roles = (session.roles || []).map((r: any) => (r || '').toString().toLowerCase());
+  const roles = (session.roles || []).map((r: string | null | undefined) => (r || '').toString().toLowerCase());
   if (!roles.includes('admin') && !roles.includes('orga')) redirect('/');
 
   return (

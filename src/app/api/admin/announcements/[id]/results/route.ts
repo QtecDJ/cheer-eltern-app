@@ -8,22 +8,18 @@ type RouteParams = {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    console.log('🔍 Results API called');
     const session = await getSession();
     if (!session) {
-      console.log('❌ No session');
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const roles = (session.roles || []).map((r: any) => (r || "").toString().toLowerCase());
+    const roles = (session.roles || []).map((r: string | null | undefined) => (r || "").toString().toLowerCase());
     if (!roles.includes("admin") && !roles.includes("orga")) {
-      console.log('❌ Forbidden - roles:', roles);
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const resolvedParams = await params;
     const id = Number(resolvedParams.id);
-    console.log('📋 Fetching results for announcement:', id);
 
     // Get poll results
     const pollResults = await prisma.poll.findFirst({
@@ -68,6 +64,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             firstName: true,
             lastName: true,
             name: true,
+            photoUrl: true,
             team: {
               select: {
                 id: true,
@@ -81,12 +78,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       orderBy: {
         respondedAt: 'desc',
       },
-    });
-
-    console.log('📊 Results for announcement', id, ':', {
-      hasPoll: !!pollResults,
-      pollVotes: pollResults?.PollOption?.reduce((sum, opt) => sum + (opt.PollVote?.length || 0), 0) || 0,
-      rsvpCount: rsvpResults.length
     });
 
     return NextResponse.json({

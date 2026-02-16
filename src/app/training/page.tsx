@@ -1,15 +1,15 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { TrainingContent } from "./training-content";
+import { getActiveProfile } from "@/modules/profile-switcher";
 import {
   getTrainingsList,
   getAttendanceMap,
   getMemberForHome,
 } from "@/lib/queries";
 
-// Revalidate every 180 seconds (3 Min) - Trainings sind relativ stabil
-// Service Worker cached zusätzlich 2-5 Min
-export const revalidate = 180;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function TrainingPage() {
   const session = await getSession();
@@ -18,7 +18,8 @@ export default async function TrainingPage() {
     redirect("/login");
   }
 
-  const member = await getMemberForHome(session.id);
+  const activeProfileId = getActiveProfile(session);
+  const member = await getMemberForHome(activeProfileId);
 
   if (!member || !member.teamId) {
     return (

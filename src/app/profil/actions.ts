@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getSession, hashPassword, updateSession } from "@/lib/auth";
+import { getActiveProfile } from "@/modules/profile-switcher";
 import { revalidatePath } from "next/cache";
 
 export async function updateEmail(formData: FormData) {
@@ -9,6 +10,8 @@ export async function updateEmail(formData: FormData) {
   if (!session) {
     return { success: false, error: "Nicht eingeloggt" };
   }
+
+  const activeProfileId = getActiveProfile(session);
 
   const email = formData.get("email") as string;
   
@@ -21,7 +24,7 @@ export async function updateEmail(formData: FormData) {
     const existing = await prisma.member.findFirst({
       where: { 
         email: email,
-        id: { not: session.id }
+        id: { not: activeProfileId }
       },
     });
 
@@ -31,7 +34,7 @@ export async function updateEmail(formData: FormData) {
 
     // Prüfe ob User bereits eine E-Mail hat
     const currentUser = await prisma.member.findUnique({
-      where: { id: session.id },
+      where: { id: activeProfileId },
       select: { email: true },
     });
 
@@ -41,7 +44,7 @@ export async function updateEmail(formData: FormData) {
 
     // E-Mail einmalig setzen
     await prisma.member.update({
-      where: { id: session.id },
+      where: { id: activeProfileId },
       data: { email },
     });
 
@@ -62,6 +65,8 @@ export async function updatePassword(formData: FormData) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
+  const activeProfileId = getActiveProfile(session);
+
   const currentPassword = formData.get("currentPassword") as string;
   const newPassword = formData.get("newPassword") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
@@ -80,7 +85,7 @@ export async function updatePassword(formData: FormData) {
 
   try {
     const user = await prisma.member.findUnique({
-      where: { id: session.id },
+      where: { id: activeProfileId },
       select: { passwordHash: true },
     });
 
@@ -105,7 +110,7 @@ export async function updatePassword(formData: FormData) {
     // Neues Passwort setzen
     const hashedPassword = await hashPassword(newPassword);
     await prisma.member.update({
-      where: { id: session.id },
+      where: { id: activeProfileId },
       data: { passwordHash: hashedPassword },
     });
 
@@ -123,6 +128,8 @@ export async function updateEmergencyContact(formData: FormData) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
+  const activeProfileId = getActiveProfile(session);
+
   const emergencyContact = formData.get("emergencyContact") as string;
   const emergencyPhone = formData.get("emergencyPhone") as string;
   const emergencyContact2 = formData.get("emergencyContact2") as string;
@@ -130,7 +137,7 @@ export async function updateEmergencyContact(formData: FormData) {
 
   try {
     await prisma.member.update({
-      where: { id: session.id },
+      where: { id: activeProfileId },
       data: { 
         emergencyContact: emergencyContact || null,
         emergencyPhone: emergencyPhone || null,
@@ -153,13 +160,15 @@ export async function updateHealthInfo(formData: FormData) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
+  const activeProfileId = getActiveProfile(session);
+
   const allergies = formData.get("allergies") as string;
   const diseases = formData.get("diseases") as string;
   const medications = formData.get("medications") as string;
 
   try {
     await prisma.member.update({
-      where: { id: session.id },
+      where: { id: activeProfileId },
       data: { 
         allergies: allergies || null,
         diseases: diseases || null,
@@ -181,13 +190,15 @@ export async function updateProfilePhoto(photoUrl: string) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
+  const activeProfileId = getActiveProfile(session);
+
   if (!photoUrl || !photoUrl.startsWith("https://")) {
     return { success: false, error: "Ungültige Bild-URL" };
   }
 
   try {
     await prisma.member.update({
-      where: { id: session.id },
+      where: { id: activeProfileId },
       data: { photoUrl },
     });
 
@@ -205,9 +216,11 @@ export async function deleteProfilePhoto() {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
+  const activeProfileId = getActiveProfile(session);
+
   try {
     await prisma.member.update({
-      where: { id: session.id },
+      where: { id: activeProfileId },
       data: { photoUrl: null },
     });
 

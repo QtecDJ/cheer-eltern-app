@@ -20,6 +20,7 @@ model Team {
   members          Member[]
   trainings        TrainingSession[]
   trainingPlans    TrainingPlan[]
+  children         Child[]
 
   @@index([status])
 }
@@ -76,6 +77,9 @@ model Member {
   roles            String[]  @default([])
   // Training plans created by this member (as coach)
   createdTrainingPlans TrainingPlan[]
+  // Parent-Child relations for profile switching
+  parentRelations  ParentChildRelation[]  @relation("ParentRelation")
+  childAccount     Child[]                @relation("ChildMember")
 
   @@index([email])
   @@index([status])
@@ -317,6 +321,7 @@ model AnnouncementRSVP {
   memberId       Int
   status         String       @db.VarChar(20)
   respondedAt    DateTime?    @default(now()) @db.Timestamp(6)
+  attended       Boolean?     // null = nicht bestätigt, true = anwesend, false = nicht anwesend
   Announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   Member         Member       @relation(fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -478,4 +483,60 @@ model MessageReply {
 
   @@index([messageId])
   @@index([authorId])
+}
+
+model Child {
+  id                Int                   @id @default(autoincrement())
+  firstName         String                @db.VarChar
+  lastName          String                @db.VarChar
+  birthDate         DateTime              @db.Date
+  email             String?               @db.VarChar
+  phone             String?               @db.VarChar
+  address           String?
+  photoUrl          String?
+  notes             String?
+  allergies         String?
+  diseases          String?
+  medications       String?
+  emergencyContact  String?               @db.VarChar
+  emergencyPhone    String?               @db.VarChar
+  emergencyContact2 String?               @db.VarChar
+  emergencyPhone2   String?               @db.VarChar
+  teamId            Int?
+  status            String                @default("active") @db.VarChar
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @default(now()) @updatedAt
+  memberId          Int?                  // Optional link to Member account
+  member            Member?               @relation("ChildMember", fields: [memberId], references: [id], onDelete: SetNull)
+  team              Team?                 @relation(fields: [teamId], references: [id])
+  parentRelations   ParentChildRelation[]
+
+  @@index([memberId])
+  @@index([teamId])
+  @@index([status])
+}
+
+model ParentChildRelation {
+  id                 Int       @id @default(autoincrement())
+  parentId           Int
+  childId            Int
+  relationshipType   String    @default("parent") @db.VarChar
+  canViewAttendance  Boolean   @default(true)
+  canEditProfile     Boolean   @default(true)
+  canReceiveMessages Boolean   @default(true)
+  canAuthorizePickup Boolean   @default(true)
+  isActive           Boolean   @default(true)
+  inviteCode         String?   @db.VarChar
+  inviteStatus       String?   @default("accepted") @db.VarChar
+  invitedAt          DateTime?
+  acceptedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @default(now()) @updatedAt
+  parent             Member    @relation("ParentRelation", fields: [parentId], references: [id], onDelete: Cascade)
+  child              Child     @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, childId])
+  @@index([parentId])
+  @@index([childId])
+  @@index([isActive])
 }

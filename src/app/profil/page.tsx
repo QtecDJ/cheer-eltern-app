@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { ProfileContent } from "./profile-content";
+import { getActiveProfile } from "@/modules/profile-switcher";
 import {
   getMemberFullProfile,
   getTeamMembers,
@@ -19,7 +20,8 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const member = await getMemberFullProfile(session.id);
+  const activeProfileId = getActiveProfile(session);
+  const member = await getMemberFullProfile(activeProfileId);
 
   if (!member) {
     return (

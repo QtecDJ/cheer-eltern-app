@@ -17,6 +17,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { getActiveProfile } from "@/modules/profile-switcher";
 import {
   getMemberForHome,
   getUpcomingTrainingsMinimal,
@@ -39,8 +40,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const activeProfileId = getActiveProfile(session);
+
     // Member laden
-    const child = await getMemberForHome(session.id);
+    const child = await getMemberForHome(activeProfileId);
     
     // Early return: Member nicht gefunden
     if (!child) {

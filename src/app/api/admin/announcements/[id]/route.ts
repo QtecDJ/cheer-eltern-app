@@ -4,7 +4,11 @@ import { prisma } from "@/lib/db";
 import { encryptText, decryptText } from "@/lib/crypto";
 
 // GET single announcement
-export async function GET(req: Request, context: any) {
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(req: Request, context: RouteContext) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   
@@ -52,7 +56,7 @@ export async function GET(req: Request, context: any) {
 }
 
 // PATCH update announcement
-export async function PATCH(req: Request, context: any) {
+export async function PATCH(req: Request, context: RouteContext) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   
@@ -65,7 +69,18 @@ export async function PATCH(req: Request, context: any) {
     const id = Number((await context.params).id);
     const body = await req.json();
 
-    const updateData: any = {};
+    const updateData: Partial<{
+      title: string;
+      content: string;
+      priority: string;
+      category: string;
+      isPinned: boolean;
+      audience: string;
+      expiresAt: Date | null;
+      allowRsvp: boolean;
+      teamId: number | null;
+      imageUrl: string | null;
+    }> = {};
     if (body.title !== undefined) updateData.title = body.title;
     if (body.content !== undefined) updateData.content = encryptText(body.content);
     if (body.category !== undefined) updateData.category = body.category;
@@ -132,7 +147,7 @@ export async function PATCH(req: Request, context: any) {
 }
 
 // DELETE announcement
-export async function DELETE(req: Request, context: any) {
+export async function DELETE(req: Request, context: RouteContext) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   

@@ -47,8 +47,8 @@ export default function ComposeButton({ label = "Neue Nachricht", compact = fals
         setTimeout(() => {
           closeModal();
         }, 2500);
-    } catch (e: any) {
-      setError(e?.message || "Fehler beim Senden");
+    } catch (e: unknown) {
+      setError((e as Error)?.message || "Fehler beim Senden");
     } finally {
       setLoading(false);
     }

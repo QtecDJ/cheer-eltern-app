@@ -20,11 +20,16 @@ import {
   AlertTriangle,
   Info,
   PartyPopper,
+  ChevronDown,
+  Check,
+  UserCircle,
 } from "lucide-react";
-import { ResponseButtons } from "@/components/training/ResponseButtons";
 import { useVersionedContent } from "@/lib/use-versioned-content";
 import { useOneSignalPush } from "@/hooks/use-onesignal-push";
-import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState, useRef } from "react";
+import { useProfileSwitcher } from "@/modules/profile-switcher";
+import { createPortal } from "react-dom";
 
 interface HomeContentProps {
   child: {
@@ -73,7 +78,6 @@ interface HomeContentProps {
     isPinned: boolean;
     createdAt: Date;
   }>;
-  attendanceMap?: Record<number, string>;
   showUpcoming?: boolean;
   showVoterNames?: boolean;
   polls?: any[];
@@ -89,7 +93,6 @@ export function HomeContent({
   attendanceStats,
   latestAssessment,
   announcements,
-  attendanceMap,
   showUpcoming = true,
   showVoterNames = false,
   polls = [],
@@ -104,6 +107,70 @@ export function HomeContent({
   );
 
   const { enabled: pushEnabled, loading: pushLoading, supported: pushSupported, toggle: togglePush } = useOneSignalPush();
+  const router = useRouter();
+  
+  // Profile Switcher State
+  const { availableProfiles, activeProfileId, isLoading: profileSwitchLoading, switchProfile } = useProfileSwitcher();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Update dropdown position when opening
+  useEffect(() => {
+    if (isProfileMenuOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+      });
+    }
+  }, [isProfileMenuOpen]);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+      // Check if click is outside button and dropdown
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
+        setIsProfileMenuOpen(false);
+      }
+    }
+    
+    if (isProfileMenuOpen) {
+      // Small delay to prevent immediate close on button click
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 10);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isProfileMenuOpen]);
+
+  const handleTrainingClick = (trainingId: number) => {
+    router.push(`/training#training-${trainingId}`);
+  };
+  
+  const handleProfileSwitch = async (profileId: number) => {
+    if (profileId === activeProfileId) {
+      setIsProfileMenuOpen(false);
+      return;
+    }
+    
+    setIsAnimating(true);
+    setIsProfileMenuOpen(false);
+    
+    // Trigger animation before switch
+    setTimeout(async () => {
+      await switchProfile(profileId);
+      // Animation will continue through page reload
+    }, 150);
+  };
 
   return (
     <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
@@ -136,10 +203,51 @@ export function HomeContent({
       </header>
 
 
-      {/* Kind Profil Card */}
-      <Card variant="gradient" className="mb-6 animate-slide-up relative">
+      {/* Kind Profil Card mit Profile Switcher */}
+      <Card variant="gradient" className="mb-6 animate-slide-up relative overflow-visible">
         <div className="flex items-center gap-4">
-          <Avatar name={child.name} src={child.photoUrl} size="lg" />
+          {/* Clickable Avatar with Profile Switcher */}
+          <div className="relative z-[100]">
+            <button
+              ref={buttonRef}
+              onClick={() => availableProfiles.length > 1 && setIsProfileMenuOpen(!isProfileMenuOpen)}
+              disabled={profileSwitchLoading || availableProfiles.length <= 1}
+              className={`relative group ${availableProfiles.length > 1 ? 'cursor-pointer' : 'cursor-default'}`}
+              title={availableProfiles.length > 1 ? "Profil wechseln" : undefined}
+            >
+              <div className={`transition-all duration-500 ease-out ${
+                isAnimating 
+                  ? 'animate-profile-switch-out' 
+                  : 'scale-100 opacity-100'
+              }`}>
+                <Avatar 
+                  name={child.name} 
+                  src={child.photoUrl} 
+                  size="lg"
+                  className={`${
+                    availableProfiles.length > 1 
+                      ? 'ring-2 ring-primary/20 group-hover:ring-primary/50 group-hover:animate-profile-glow transition-all duration-300' 
+                      : ''
+                  }`}
+                />
+              </div>
+              
+              {/* Dropdown Indicator */}
+              {availableProfiles.length > 1 && (
+                <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1 shadow-lg group-hover:scale-110 transition-transform">
+                  <ChevronDown className="w-3 h-3" />
+                </div>
+              )}
+              
+              {/* Loading Spinner */}
+              {profileSwitchLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background/80 rounded-full">
+                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </button>
+          </div>
+          
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold text-lg truncate">{child.name}</h2>
             <div className="flex items-center gap-2 mt-1">
@@ -156,7 +264,6 @@ export function HomeContent({
               </div>
             )}
           </div>
-          {/* entfernt: Profilansicht-Hinweis */}
         </div>
       </Card>
 
@@ -299,7 +406,8 @@ export function HomeContent({
                 className={`block animate-slide-up stagger-${index + 1}`}
               >
               <Card
-                className="hover:bg-muted/50 transition-colors"
+                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => handleTrainingClick(training.id)}
               >
                 <div className="flex items-start gap-3">
                   {/* Datum Badge */}
@@ -338,12 +446,6 @@ export function HomeContent({
                         </div>
                       )}
                     </div>
-                    {/* Zu-/Absage Buttons (gleiche Komponente wie auf der Trainingsseite) */}
-                    <ResponseButtons
-                      trainingId={training.id}
-                      memberId={child.id}
-                      currentStatus={attendanceMap ? attendanceMap[training.id] : undefined}
-                    />
                   </div>
                 </div>
               </Card>
@@ -352,6 +454,66 @@ export function HomeContent({
           </div>
         )}
       </section>
+      
+      {/* Profile Dropdown Menu - Rendered as Portal */}
+      {isProfileMenuOpen && availableProfiles.length > 1 && typeof window !== 'undefined' && createPortal(
+        <div 
+          ref={dropdownRef}
+          className="fixed w-64 bg-card border border-border rounded-lg shadow-2xl z-[99999] animate-in fade-in slide-in-from-top-2 duration-200"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+          }}
+        >
+          <div className="p-2">
+            <div className="text-xs font-medium text-muted-foreground px-3 py-2">
+              Profil wechseln
+            </div>
+            {availableProfiles.map((profile) => (
+              <button
+                key={profile.id}
+                onClick={() => handleProfileSwitch(profile.id)}
+                disabled={profileSwitchLoading}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                  profile.id === activeProfileId
+                    ? 'bg-primary/10 text-primary'
+                    : 'hover:bg-muted/50'
+                }`}
+              >
+                <div className="relative">
+                  <Avatar 
+                    name={profile.name} 
+                    src={profile.photoUrl} 
+                    size="sm"
+                  />
+                  {profile.id === activeProfileId && (
+                    <div className="absolute -bottom-0.5 -right-0.5 bg-primary text-primary-foreground rounded-full p-0.5">
+                      <Check className="w-2.5 h-2.5" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1 text-left">
+                  <div className="font-medium text-sm">{profile.firstName}</div>
+                  {profile.teamName && (
+                    <div className="text-xs text-muted-foreground">{profile.teamName}</div>
+                  )}
+                </div>
+                
+                <div className="flex gap-1">
+                  {profile.isSelf && (
+                    <Badge variant="default" size="sm">Du</Badge>
+                  )}
+                  {!profile.isSelf && (
+                    <Badge variant="info" size="sm">Kind</Badge>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -365,5 +527,5 @@ function AnnouncementContent({ announcementId, content }: { announcementId: numb
     ttl: 1000 * 60 * 60 * 12, // 12h Cache (Announcements ändern sich öfter)
   });
 
-  return <>{cachedContent || content}</>;
+  return <span dangerouslySetInnerHTML={{ __html: cachedContent || content }} />;
 }

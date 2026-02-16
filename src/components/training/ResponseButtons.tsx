@@ -18,10 +18,11 @@ export function ResponseButtons({
   onStatusChange?: (newStatus: string | null) => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [optimisticStatus, setOptimisticStatus] = useState<string | null | undefined>(currentStatus);
+  const [optimisticStatus, setOptimisticStatus] = useState<string | null | undefined>(() => currentStatus);
   const [showReasonDialog, setShowReasonDialog] = useState(false);
   const [reason, setReason] = useState("");
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const isInTransitionRef = useRef(false);
 
   useEffect(() => {
     if (showReasonDialog) {
@@ -31,28 +32,43 @@ export function ResponseButtons({
     }
   }, [showReasonDialog]);
 
-  // Keep optimisticStatus in sync when parent updates currentStatus
+  // Keep optimisticStatus in sync when parent updates currentStatus, but only if not in transition
   useEffect(() => {
-    setOptimisticStatus(currentStatus);
+    if (!isInTransitionRef.current) {
+      setOptimisticStatus(currentStatus);
+    }
   }, [currentStatus]);
 
   const router = useRouter();
 
   const handleResponse = (status: ResponseStatus, reasonText?: string) => {
     const previousStatus = optimisticStatus;
-    setOptimisticStatus(status === "confirmed" ? "present" : "excused");
+    const newOptimisticStatus = status === "confirmed" ? "present" : status === "declined" ? "excused" : "pending";
+    setOptimisticStatus(newOptimisticStatus);
+    isInTransitionRef.current = true;
 
     startTransition(async () => {
       const res = await respondToTraining(memberId, trainingId, status, reasonText);
       if (!res || !res.success) {
-        // Revert optimistic state silently on error
+        // Revert optimistic state on error
         setOptimisticStatus(previousStatus);
+        isInTransitionRef.current = false;
       } else {
-        // Update parent/local map immediately (no logging)
+        // Update parent/local map immediately
         const newStatus = status === "confirmed" ? "present" : status === "declined" ? "excused" : "pending";
         onStatusChange?.(newStatus);
 
-        // Refresh server components to pick up revalidated data
+        // Dispatch custom event for cross-component sync
+        window.dispatchEvent(new CustomEvent('attendanceChanged', { 
+          detail: { trainingId, status: newStatus, memberId } 
+        }));
+
+        // Small delay before refresh to ensure DB write completes
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        isInTransitionRef.current = false;
+        
+        // Force refresh to get latest data from server
         router.refresh();
       }
     });
@@ -86,40 +102,42 @@ export function ResponseButtons({
         <div className="flex-1 flex items-center justify-center gap-2">
           <button
             onClick={() => handleResponse("confirmed")}
-            disabled={isPending}
+            disabled={isPending || isConfirmed}
             className={cn(
               "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
               isConfirmed
-                ? "bg-emerald-500 text-white"
+                ? "bg-emerald-500 text-white cursor-default"
                 : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20",
-              isPending && "opacity-50 cursor-not-allowed"
+              (isPending || isConfirmed) && "opacity-50 cursor-not-allowed"
             )}
+            title={isConfirmed ? "Du hast bereits zugesagt" : "Zum Training zusagen"}
           >
             {isPending ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <Check className="w-3.5 h-3.5" />
             )}
-            Zusagen
+            {isConfirmed ? "Zugesagt ✓" : "Zusagen"}
           </button>
 
           <button
             onClick={handleDeclineClick}
-            disabled={isPending}
+            disabled={isPending || isDeclined}
             className={cn(
               "flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all",
               isDeclined
-                ? "bg-red-500 text-white"
+                ? "bg-red-500 text-white cursor-default"
                 : "bg-red-500/10 text-red-600 hover:bg-red-500/20",
-              isPending && "opacity-50 cursor-not-allowed"
+              (isPending || isDeclined) && "opacity-50 cursor-not-allowed"
             )}
+            title={isDeclined ? "Du hast bereits abgesagt" : "Vom Training absagen"}
           >
             {isPending ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <X className="w-3.5 h-3.5" />
             )}
-            Absagen
+            {isDeclined ? "Abgesagt ✗" : "Absagen"}
           </button>
         </div>
       </div>

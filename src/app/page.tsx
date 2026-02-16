@@ -2,6 +2,7 @@
 import { HomeContent } from "./home-content";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { getActiveProfile } from "@/modules/profile-switcher";
 import {
   getMemberForHome,
   getUpcomingTrainingsMinimal,
@@ -14,7 +15,8 @@ import {
   getResolvedMessageCount,
 } from "@/lib/queries";
 
-export const revalidate = 90;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function HomePage() {
   const session = await getSession();
@@ -23,9 +25,10 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  // session available
+  // Get active profile ID (respects profile switching)
+  const activeProfileId = getActiveProfile(session);
 
-  const child = await getMemberForHome(session.id);
+  const child = await getMemberForHome(activeProfileId);
 
   if (!child) {
     return (
@@ -47,7 +50,7 @@ export default async function HomePage() {
     getAttendanceStats(child.id),
     // Orga users should get announcements with poll data (to inspect votes)
     // Provide `undefined` team filter for orga so they see polls across teams
-    isOrga ? (getEventAnnouncementsWithPolls as any)(undefined, session.id) : getAnnouncementsMinimal(child.teamId ?? undefined),
+    isOrga ? (getEventAnnouncementsWithPolls as any)(undefined, activeProfileId) : getAnnouncementsMinimal(child.teamId ?? undefined),
     getLatestAssessmentMinimal(child.id),
   ]);
 
@@ -97,14 +100,6 @@ export default async function HomePage() {
     };
   });
 
-  // (debug logs removed)
-
-  
-
-  // Attendance map für schnelle Anzeige des RSVP-Status
-  const attendanceMap = await (await import("@/lib/queries")).getAttendanceMap(child.id);
-  // attendanceMap loaded
-
   return (
     <HomeContent
       child={child}
@@ -118,7 +113,6 @@ export default async function HomePage() {
       openMessages={openMessages}
       resolvedMessageCount={resolvedMessageCount}
       isOrga={isOrga}
-      attendanceMap={attendanceMap}
     />
   );
 }

@@ -3,6 +3,7 @@ import MessageForm from "@/components/messages/MessageForm";
 import ComposeButton from "@/components/messages/ComposeButton";
 import MessageItem from "@/components/messages/MessageItem";
 import { getSession } from "@/lib/auth";
+import { getActiveProfile } from "@/modules/profile-switcher";
 import { getMessagesForMember } from "@/lib/queries";
 import { Card } from "@/components/ui/card";
 
@@ -14,7 +15,8 @@ export default async function MessagesPage() {
     <div className="py-6">Bitte zuerst <a href="/login" className="underline">anmelden</a>.</div>
   );
 
-  const messages = await getMessagesForMember(session.id, 50);
+  const activeProfileId = getActiveProfile(session);
+  const messages = await getMessagesForMember(activeProfileId, 50);
 
   return (
     <div className="py-6 space-y-6">

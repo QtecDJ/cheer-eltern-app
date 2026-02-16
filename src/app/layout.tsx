@@ -9,6 +9,7 @@ import { ContentCacheInit } from "@/components/content-cache-init";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { OneSignalInit } from "@/components/OneSignalInit";
 import AdminQuickButton from "@/components/admin/AdminQuickButton";
+import { ProfileProvider } from "@/modules/profile-switcher/ProfileContext";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -117,8 +118,12 @@ export const viewport: Viewport = {
 
 import { cookies } from "next/headers";
 
+// Force dynamic rendering - no caching of layout
+export const dynamic = 'force-dynamic';
+
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const session = await getSession();
+  
   const userRole = session?.userRole || null;
   const hasAdminAccess = isAdminOrTrainer(session?.roles ?? userRole ?? null);
   const navItems: NavItem[] = [
@@ -136,23 +141,32 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         {/* ...existing code... */}
       </head>
       <body className={"font-sans antialiased bg-slate-900 text-white"}>
-        {session && <ServiceWorkerRegistration />}
-        {session && <InstallPrompt />}
-        {session && <ContentCacheInit />}
-        {session && <OfflineIndicator />}
-        {session && <OneSignalInit />}
-        {session && <TopNav items={navItems} userName={session.firstName || undefined} userRole={userRole || undefined} isAdmin={hasAdminAccess} />}
-        {session && hasAdminAccess && (
-          <AdminQuickButton />
+        {session ? (
+          <ProfileProvider>
+            <ServiceWorkerRegistration />
+            <InstallPrompt />
+            <ContentCacheInit />
+            <OfflineIndicator />
+            <OneSignalInit />
+            
+            <TopNav items={navItems} userName={session.firstName || undefined} userRole={userRole || undefined} isAdmin={hasAdminAccess} />
+            {hasAdminAccess && <AdminQuickButton />}
+            
+            <PullToRefresh>
+              <main className={cn(
+                "min-h-screen safe-area-inset w-full pb-20"
+              )}>
+                {children}
+              </main>
+            </PullToRefresh>
+          </ProfileProvider>
+        ) : (
+          <PullToRefresh>
+            <main className="min-h-screen safe-area-inset w-full">
+              {children}
+            </main>
+          </PullToRefresh>
         )}
-        <PullToRefresh>
-          <main className={cn(
-            "min-h-screen safe-area-inset w-full",
-            session ? "pb-20" : ""
-          )}>
-            {children}
-          </main>
-        </PullToRefresh>
       </body>
     </html>
   );

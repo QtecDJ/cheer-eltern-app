@@ -2,13 +2,18 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getTodoById, updateTodo, changeTodoStatus, assignTodo, deleteTodo } from "@/lib/queries";
 import { prisma } from "@/lib/db";import { encryptText } from "@/lib/crypto";
-export async function GET(req: Request, context: any) {
+type RouteContext = {
+  params: Promise<{ id: string }>;
+};
+
+export async function GET(req: Request, context: RouteContext) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const roles = (session.roles || []).map(r => (r || "").toString().toLowerCase());
   if (!roles.includes("admin") && !roles.includes("orga")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   try {
-    const id = Number((context?.params && (await context.params).id) ?? context?.params?.id ?? context?.params);
+    const resolvedParams = await context.params;
+    const id = Number(resolvedParams.id);
     const t = await getTodoById(id);
     if (!t) return NextResponse.json({ error: "not_found" }, { status: 404 });
     return NextResponse.json({ todo: t });
@@ -18,12 +23,13 @@ export async function GET(req: Request, context: any) {
   }
 }
 
-export async function PATCH(req: Request, context: any) {
+export async function PATCH(req: Request, context: RouteContext) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const roles = (session.roles || []).map(r => (r || "").toString().toLowerCase());
   try {
-    const id = Number((context?.params && (await context.params).id) ?? context?.params?.id ?? context?.params);
+    const resolvedParams = await context.params;
+    const id = Number(resolvedParams.id);
     const todo = await getTodoById(id);
     if (!todo) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const isPrivileged = roles.includes("admin") || roles.includes("orga") || (session.id && Number(session.id) === Number(todo.creatorId));
@@ -67,7 +73,13 @@ export async function PATCH(req: Request, context: any) {
     }
     
     // Allow partial updates - only update fields that are provided
-    const updateData: any = {};
+    const updateData: Partial<{
+      title: string;
+      description: string;
+      priority: string;
+      status: string;
+      dueDate: Date | null;
+    }> = {};
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description;
     if (body.priority !== undefined) updateData.priority = body.priority;
@@ -81,12 +93,13 @@ export async function PATCH(req: Request, context: any) {
   }
 }
 
-export async function DELETE(req: Request, context: any) {
+export async function DELETE(req: Request, context: RouteContext) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const roles = (session.roles || []).map(r => (r || "").toString().toLowerCase());
   try {
-    const id = Number((context?.params && (await context.params).id) ?? context?.params?.id ?? context?.params);
+    const resolvedParams = await context.params;
+    const id = Number(resolvedParams.id);
     const todo = await getTodoById(id);
     if (!todo) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const isPrivileged = roles.includes("admin") || roles.includes("orga") || (session.id && Number(session.id) === Number(todo.creatorId));

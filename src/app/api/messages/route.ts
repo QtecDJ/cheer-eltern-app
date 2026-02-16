@@ -6,16 +6,39 @@ import { prisma } from "@/lib/db";
 
 export async function POST(req: Request) {
   const session = await getSession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!session) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
 
   try {
     const body = await req.json();
-    const subject = (body.subject || "").toString().slice(0, 255);
-    const message = (body.message || "").toString();
-    const target = (body.target || body.target === "" ? body.target : "admins").toString();
-    if (!subject || !message) return NextResponse.json({ error: "missing" }, { status: 400 });
+    
+    // Validiere Input
+    const subject = (body.subject || "").toString().trim();
+    const message = (body.message || "").toString().trim();
+    const target = (body.target || "admins").toString().toLowerCase();
+    
+    // Validierung
+    if (!subject || subject.length > 255) {
+      return NextResponse.json({ error: "invalid_subject" }, { status: 400 });
+    }
+    
+    if (!message || message.length > 10000) {
+      return NextResponse.json({ error: "invalid_message" }, { status: 400 });
+    }
+    
+    if (!["admins", "orga", ""].includes(target)) {
+      return NextResponse.json({ error: "invalid_target" }, { status: 400 });
+    }
+    
+    const finalTarget = target || "admins";
 
-    const created = await createMessage({ subject, body: message, senderId: session.id, target });
+    const created = await createMessage({ 
+      subject, 
+      body: message, 
+      senderId: session.id, 
+      target: finalTarget 
+    });
     
     // Send push notification based on target audience
     const pushPayload = {
@@ -27,9 +50,9 @@ export async function POST(req: Request) {
     
     // Get all members with the target roles and send individual notifications
     let targetRoles: string[] = [];
-    if (target === "admins") {
+    if (finalTarget === "admins") {
       targetRoles = ["admin"];
-    } else if (target === "orga") {
+    } else if (finalTarget === "orga") {
       targetRoles = ["admin", "orga"];
     } else {
       targetRoles = ["admin", "orga"];

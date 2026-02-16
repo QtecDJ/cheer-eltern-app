@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Menu, X, Mail, Info, Calendar, Bell, CheckSquare } from "lucide-react";
+import { Menu, X, Mail, Info, Calendar, Bell, CheckSquare, UserCheck } from "lucide-react";
 
 export default function AdminQuickButton() {
   const [open, setOpen] = useState(false);
@@ -20,6 +20,10 @@ export default function AdminQuickButton() {
               <Link href="/admin/announcements" onClick={handleLinkClick} className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
                 <Bell className="w-4 h-4" />
                 <span className="text-sm">Ankündigungen</span>
+              </Link>
+              <Link href="/admin/rsvp" onClick={handleLinkClick} className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
+                <UserCheck className="w-4 h-4" />
+                <span className="text-sm">RSVP</span>
               </Link>
               <Link href="/admin/messages" onClick={handleLinkClick} className="flex items-center gap-2 p-2 hover:bg-muted/30 rounded">
                 <Mail className="w-4 h-4" />

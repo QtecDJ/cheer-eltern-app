@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       success: true,
       replyId: reply.id 
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error sending reply:", error);
     return NextResponse.json(
       { error: "Fehler beim Senden der Antwort" },

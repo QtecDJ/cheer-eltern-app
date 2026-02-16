@@ -5,14 +5,42 @@ import { sendOneSignalPushToMultipleUsers } from "@/lib/onesignal-push";
 
 export async function POST(req: Request) {
   const session = await getSession();
-  if (!session || !isAdminOrTrainer(session.roles ?? session.userRole ?? null)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!session || !isAdminOrTrainer(session.roles ?? session.userRole ?? null)) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  
   try {
     const body = await req.json();
-    const assignees: number[] = Array.isArray(body.assignees) ? body.assignees.map((n: any) => Number(n)).filter(Boolean) : [];
-    if (!assignees.length) return NextResponse.json({ error: "no_assignees" }, { status: 400 });
-    const subject: string = (body.subject || "").toString();
-    const message: string = (body.body || "").toString();
-    const created = await createMessageForAssignees({ subject, body: message, senderId: session.id, assignees });
+    
+    // Validiere assignees: nur positive Integer
+    const assignees: number[] = Array.isArray(body.assignees) 
+      ? body.assignees
+          .map((n: any) => Number(n))
+          .filter((n: number) => Number.isInteger(n) && n > 0)
+      : [];
+      
+    if (!assignees.length) {
+      return NextResponse.json({ error: "no_assignees" }, { status: 400 });
+    }
+    
+    // Validiere subject und body
+    const subject: string = (body.subject || "").toString().trim();
+    const message: string = (body.body || "").toString().trim();
+    
+    if (!subject || subject.length > 255) {
+      return NextResponse.json({ error: "invalid_subject" }, { status: 400 });
+    }
+    
+    if (!message || message.length > 10000) {
+      return NextResponse.json({ error: "invalid_message" }, { status: 400 });
+    }
+    
+    const created = await createMessageForAssignees({ 
+      subject, 
+      body: message, 
+      senderId: session.id, 
+      assignees 
+    });
     
     // Send push notification to all recipients via OneSignal
     sendOneSignalPushToMultipleUsers(assignees, {

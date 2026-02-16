@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { X, Users, BarChart3, CheckCircle, XCircle, Clock, TrendingUp } from "lucide-react";
+import { X, Users, BarChart3, CheckCircle, XCircle, Clock, TrendingUp, UserCheck, UserX, User } from "lucide-react";
 
 type Member = {
   id: number;
   firstName?: string;
   lastName?: string;
   name?: string;
+  photoUrl?: string | null;
   team?: {
     id: number;
     name: string;
@@ -42,6 +43,7 @@ type RSVP = {
   id: number;
   status: string;
   respondedAt: string;
+  attended: boolean | null;
   Member: Member;
 };
 
@@ -59,6 +61,7 @@ export default function AnnouncementResultsModal({
   const [loading, setLoading] = useState(true);
   const [pollResults, setPollResults] = useState<Poll | null>(null);
   const [rsvpResults, setRsvpResults] = useState<RSVP[]>([]);
+  const [updatingAttendance, setUpdatingAttendance] = useState<number | null>(null);
 
   useEffect(() => {
     fetchResults();
@@ -67,20 +70,41 @@ export default function AnnouncementResultsModal({
   async function fetchResults() {
     try {
       const res = await fetch(`/api/admin/announcements/${announcementId}/results`);
-      console.log('📡 API Response Status:', res.status, res.statusText);
       const data = await res.json();
-      console.log('📊 Fetched results:', data);
       if (res.ok) {
         setPollResults(data.pollResults);
         setRsvpResults(data.rsvpResults || []);
-        console.log('✅ Set state:', { hasPoll: !!data.pollResults, rsvpCount: data.rsvpResults?.length });
-      } else {
-        console.error('❌ API error:', { status: res.status, data });
       }
     } catch (err) {
       console.error('Failed to fetch results:', err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function updateAttendance(rsvpId: number, attended: boolean | null) {
+    setUpdatingAttendance(rsvpId);
+    try {
+      const res = await fetch(`/api/admin/rsvp/${rsvpId}/attendance`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attended }),
+      });
+      
+      if (res.ok) {
+        // Update local state
+        setRsvpResults(prev => 
+          prev.map(rsvp => 
+            rsvp.id === rsvpId ? { ...rsvp, attended } : rsvp
+          )
+        );
+      } else {
+        console.error('Failed to update attendance');
+      }
+    } catch (err) {
+      console.error('Error updating attendance:', err);
+    } finally {
+      setUpdatingAttendance(null);
     }
   }
 
@@ -312,19 +336,29 @@ export default function AnnouncementResultsModal({
                       }`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
-                          rsvp.status === 'accepted' ? 'bg-green-500/20' :
-                          'bg-red-500/20'
-                        }`}>
-                          <div className={getRsvpStatusColor(rsvp.status)}>
-                            {getRsvpStatusIcon(rsvp.status)}
-                          </div>
+                        {/* Profilbild oder Platzhalter */}
+                        <div className="flex-shrink-0">
+                          {rsvp.Member.photoUrl ? (
+                            <img 
+                              src={rsvp.Member.photoUrl} 
+                              alt={getMemberName(rsvp.Member)}
+                              className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border-2 border-border"
+                            />
+                          ) : (
+                            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center ${
+                              rsvp.status === 'accepted' ? 'bg-green-500/20' :
+                              'bg-red-500/20'
+                            }`}>
+                              <User className={`w-5 h-5 md:w-6 md:h-6 ${getRsvpStatusColor(rsvp.status)}`} />
+                            </div>
+                          )}
                         </div>
+                        
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-sm md:text-base truncate">
                             {getMemberName(rsvp.Member)}
                           </p>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <p className={`text-xs md:text-sm font-medium ${getRsvpStatusColor(rsvp.status)}`}>
                               {getRsvpStatusLabel(rsvp.status)}
                             </p>
@@ -339,15 +373,65 @@ export default function AnnouncementResultsModal({
                                 {rsvp.Member.team.name}
                               </span>
                             )}
+                            {/* Anwesenheitsstatus Anzeige */}
+                            {rsvp.attended !== null && (
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                                rsvp.attended 
+                                  ? 'bg-blue-500/20 text-blue-600 border border-blue-500/50' 
+                                  : 'bg-gray-500/20 text-gray-600 border border-gray-500/50'
+                              }`}>
+                                {rsvp.attended ? '✓ Anwesend' : '✗ Nicht erschienen'}
+                              </span>
+                            )}
                           </div>
+                          <span className="text-xs text-muted-foreground">
+                            {rsvp.respondedAt && new Date(rsvp.respondedAt).toLocaleDateString('de-DE', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
                         </div>
                       </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {rsvp.respondedAt && new Date(rsvp.respondedAt).toLocaleDateString('de-DE', {
-                          day: '2-digit',
-                          month: '2-digit'
-                        })}
-                      </span>
+                      
+                      {/* Anwesenheitsbestätigung Buttons */}
+                      <div className="flex gap-1 md:gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => updateAttendance(rsvp.id, true)}
+                          disabled={updatingAttendance === rsvp.id}
+                          className={`p-2 rounded-lg transition-all ${
+                            rsvp.attended === true
+                              ? 'bg-blue-500 text-white shadow-md'
+                              : 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20'
+                          } disabled:opacity-50`}
+                          title="Anwesend bestätigen"
+                        >
+                          <UserCheck className="w-4 h-4 md:w-5 md:h-5" />
+                        </button>
+                        <button
+                          onClick={() => updateAttendance(rsvp.id, false)}
+                          disabled={updatingAttendance === rsvp.id}
+                          className={`p-2 rounded-lg transition-all ${
+                            rsvp.attended === false
+                              ? 'bg-gray-500 text-white shadow-md'
+                              : 'bg-gray-500/10 text-gray-600 hover:bg-gray-500/20'
+                          } disabled:opacity-50`}
+                          title="Nicht erschienen"
+                        >
+                          <UserX className="w-4 h-4 md:w-5 md:h-5" />
+                        </button>
+                        {rsvp.attended !== null && (
+                          <button
+                            onClick={() => updateAttendance(rsvp.id, null)}
+                            disabled={updatingAttendance === rsvp.id}
+                            className="p-2 rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted transition-all disabled:opacity-50"
+                            title="Zurücksetzen"
+                          >
+                            <XCircle className="w-4 h-4 md:w-5 md:h-5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

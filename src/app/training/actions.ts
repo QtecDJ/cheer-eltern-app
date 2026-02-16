@@ -57,7 +57,11 @@ export async function respondToTraining(
       });
     }
 
-    // Revalidiere die Seite um die neuen Daten anzuzeigen
+    // Revalidiere beide Seiten um die neuen Daten anzuzeigen
+    revalidatePath("/training", "page");
+    revalidatePath("/", "page");
+    
+    // Zusätzlich: Revalidiere auch alle dynamischen Segmente
     revalidatePath("/training");
     revalidatePath("/");
 

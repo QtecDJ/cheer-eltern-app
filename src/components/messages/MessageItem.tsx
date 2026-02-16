@@ -12,17 +12,27 @@ export default function MessageItem({ message }: { message: any }) {
 
   useEffect(() => {
     if (!open) return;
-    // When opening a message, attempt to mark it as read/resolved for this user.
+    
+    const abortController = new AbortController();
+    
     (async () => {
       try {
-        const res = await fetch(`/api/messages/${message.id}/read`, { method: "POST" });
+        const res = await fetch(`/api/messages/${message.id}/read`, { 
+          method: "POST",
+          signal: abortController.signal
+        });
         if (res.ok && typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('messages:changed', { detail: { localDecrementAssigned: true } }));
         }
       } catch (e) {
-        // ignore errors; server will validate permissions
+        if ((e as Error).name === 'AbortError') return; // Ignore abort errors
+        // ignore other errors; server will validate permissions
       }
     })();
+    
+    return () => {
+      abortController.abort();
+    };
   }, [open, message.id]);
 
   // Replies local state so newly posted replies appear immediately
@@ -69,17 +79,20 @@ export default function MessageItem({ message }: { message: any }) {
   useEffect(() => {
     if (!open || !todoId) return;
     
-    // Fetch the current todo to get the latest description
+    const abortController = new AbortController();
+    let mounted = true;
+    
     (async () => {
       try {
-        const res = await fetch(`/api/admin/todos/${todoId}`);
-        if (res.ok) {
+        const res = await fetch(`/api/admin/todos/${todoId}`, {
+          signal: abortController.signal
+        });
+        if (res.ok && mounted) {
           const data = await res.json();
           if (data.todo?.description) {
             setTodoDescription(data.todo.description);
             
             // Replace the description part in the message body
-            // The message format is: "... \n\n{description}\n\nPriorität ..."
             const originalBody = message.body || '';
             const descriptionMatch = originalBody.match(/(.*?\*\*\n\n)([\s\S]*?)(\n\nPriorität.*)/);
             if (descriptionMatch) {
@@ -89,9 +102,16 @@ export default function MessageItem({ message }: { message: any }) {
           }
         }
       } catch (err) {
-        console.error('Failed to load todo description:', err);
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Failed to load todo description:', err);
+        }
       }
     })();
+    
+    return () => {
+      mounted = false;
+      abortController.abort();
+    };
   }, [open, todoId, message.body]);
 
   // Handle checkbox changes

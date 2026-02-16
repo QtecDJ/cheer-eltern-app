@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { useProfileSwitcher } from "@/modules/profile-switcher";
 import { 
   Home, 
   Users, 

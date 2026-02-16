@@ -12,7 +12,7 @@ export function ServiceWorkerRegistration() {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [contentCacheSize, setContentCacheSize] = useState<number | null>(null);
   const [reduceMotion, setReduceMotion] = useState(false);
-  const offlineToastTimeoutRef = useRef<number | null>(null);
+  const offlineToastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Detect reduced-motion preference once on mount
   useEffect(() => {
@@ -34,7 +34,6 @@ export function ServiceWorkerRegistration() {
 
   useEffect(() => {
     // Online/Offline Status
-    const offlineToastTimeoutRef = { current: null as number | null };
     const handleOnline = () => {
       setIsOnline(true);
       setShowOfflineToast(false);
@@ -48,11 +47,11 @@ export function ServiceWorkerRegistration() {
     const handleOffline = () => {
       setIsOnline(false);
       setShowOfflineToast(true);
-      // Toast nach 5 Sekunden ausblenden (store id so we can clear on unmount)
+      // Toast nach 5 Sekunden ausblenden
       if (offlineToastTimeoutRef.current) {
         clearTimeout(offlineToastTimeoutRef.current);
       }
-      offlineToastTimeoutRef.current = window.setTimeout(() => setShowOfflineToast(false), 5000) as unknown as number;
+      offlineToastTimeoutRef.current = setTimeout(() => setShowOfflineToast(false), 5000);
     };
 
     setIsOnline(navigator.onLine);
@@ -65,8 +64,9 @@ export function ServiceWorkerRegistration() {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      if ((offlineToastTimeoutRef as any).current) {
-        clearTimeout((offlineToastTimeoutRef as any).current);
+      if (offlineToastTimeoutRef.current) {
+        clearTimeout(offlineToastTimeoutRef.current);
+        offlineToastTimeoutRef.current = null;
       }
     };
   }, []);

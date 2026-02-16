@@ -50,9 +50,9 @@ export function SendMessageToMember({ memberId, memberName }: SendMessageToMembe
         setIsOpen(false);
         setStatus("idle");
       }, 2000);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setStatus("error");
-      setError(e?.message || "Fehler beim Senden");
+      setError((e as Error)?.message || "Fehler beim Senden");
     }
   };
 

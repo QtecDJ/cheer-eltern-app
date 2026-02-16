@@ -46,17 +46,28 @@ export function BottomNav({ items, userName, userRole }: BottomNavProps) {
 
   React.useEffect(() => {
     let mounted = true;
-    (async () => {
+    const abortController = new AbortController();
+    
+    const fetchCounts = async () => {
       try {
-        const res = await fetch('/api/messages/unread-count');
+        const res = await fetch('/api/messages/unread-count', {
+          signal: abortController.signal
+        });
         if (!res.ok) return;
         const json = await res.json();
-        if (mounted && typeof json.count === 'number') setUnread(json.count);
-        if (mounted && typeof json.replied === 'number') setReplied(json.replied);
+        if (mounted) {
+          if (typeof json.count === 'number') setUnread(json.count);
+          if (typeof json.replied === 'number') setReplied(json.replied);
+        }
       } catch (e) {
-        // ignore
+        if ((e as Error).name !== 'AbortError') {
+          // ignore non-abort errors
+        }
       }
-    })();
+    };
+    
+    fetchCounts();
+    
     // listen for global events to refresh counts (e.g., message read/assigned)
     const handler = (e?: any) => {
       // If event signals a local decrement (user read an assigned message or replied), adjust locally
@@ -73,18 +84,16 @@ export function BottomNav({ items, userName, userRole }: BottomNavProps) {
       } catch (err) {
         // ignore
       }
-      (async () => {
-        try {
-          const res = await fetch('/api/messages/unread-count');
-          if (!res.ok) return;
-          const json = await res.json();
-          if (mounted && typeof json.count === 'number') setUnread(json.count);
-          if (mounted && typeof json.replied === 'number') setReplied(json.replied);
-        } catch (e) {}
-      })();
+      fetchCounts();
     };
+    
     window.addEventListener('messages:changed', handler as any);
-    return () => { mounted = false; };
+    
+    return () => { 
+      mounted = false;
+      abortController.abort();
+      window.removeEventListener('messages:changed', handler as any);
+    };
   }, []);
 
   return (

@@ -148,6 +148,83 @@ export function TrainingContent({
 
   // Local attendanceMap so UI updates instantly after action
   const [localAttendanceMap, setLocalAttendanceMap] = useState<Record<number, string | null>>(attendanceMap);
+  const [isLoadingMap, setIsLoadingMap] = useState(false);
+
+  // Sync localAttendanceMap when attendanceMap prop changes
+  useEffect(() => {
+    setLocalAttendanceMap(attendanceMap);
+  }, [attendanceMap]);
+
+  // Fetch fresh attendance map on mount and when page becomes visible
+  useEffect(() => {
+    const fetchAttendanceMap = async () => {
+      setIsLoadingMap(true);
+      try {
+        const res = await fetch('/api/attendance', {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setLocalAttendanceMap(data.attendanceMap || {});
+        }
+      } catch (error) {
+        console.error('Failed to fetch attendance map:', error);
+      } finally {
+        setIsLoadingMap(false);
+      }
+    };
+
+    fetchAttendanceMap();
+
+    // Refetch when page becomes visible (tab switch)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchAttendanceMap();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // Listen for attendance changes from other components
+  useEffect(() => {
+    const handleAttendanceChange = (event: CustomEvent) => {
+      const { trainingId, status } = event.detail;
+      setLocalAttendanceMap(prev => ({ ...prev, [trainingId]: status }));
+    };
+
+    window.addEventListener('attendanceChanged', handleAttendanceChange as EventListener);
+    return () => {
+      window.removeEventListener('attendanceChanged', handleAttendanceChange as EventListener);
+    };
+  }, []);
+
+  // Auto-scroll to training if hash is present in URL
+  useEffect(() => {
+    if (window.location.hash && trainings.length > 0) {
+      const targetId = window.location.hash.substring(1); // Remove #
+      let highlightTimeout: NodeJS.Timeout | null = null;
+      
+      const scrollTimeout = setTimeout(() => {
+        const element = document.getElementById(targetId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add highlight effect
+          element.classList.add('ring-2', 'ring-primary');
+          highlightTimeout = setTimeout(() => {
+            element.classList.remove('ring-2', 'ring-primary');
+          }, 2000);
+        }
+      }, 300); // Delay to ensure DOM is ready
+      
+      return () => {
+        clearTimeout(scrollTimeout);
+        if (highlightTimeout) clearTimeout(highlightTimeout);
+      };
+    }
+  }, [trainings]);
 
   // Trennung in kommende und vergangene Trainings
   const upcomingTrainings = trainings.filter((t) => t.date >= today);
@@ -190,8 +267,9 @@ export function TrainingContent({
             {upcomingTrainings.map((training, index) => (
               <Card
                 key={training.id}
+                id={`training-${training.id}`}
                 className={cn(
-                  "animate-slide-up",
+                  "animate-slide-up transition-all",
                   index === 0 && "ring-2 ring-primary/20"
                 )}
               >
