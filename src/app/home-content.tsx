@@ -182,7 +182,8 @@ export function HomeContent({
   };
 
   return (
-    <div cSeasonal Theme Banner */}
+    <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
+      {/* Seasonal Theme Banner */}
       <div className={`mb-4 p-4 rounded-2xl bg-gradient-to-r ${theme.gradient} relative overflow-hidden animate-fade-in`}>
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-2 right-2 text-6xl">{theme.iconOverlay || theme.emoji}</div>
@@ -197,7 +198,6 @@ export function HomeContent({
         </div>
       </div>
 
-      {/* lassName="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
       {/* Header mit Begrüßung */}
       <header className="mb-6 md:mb-8 animate-fade-in">
         <div className="flex items-start justify-between">

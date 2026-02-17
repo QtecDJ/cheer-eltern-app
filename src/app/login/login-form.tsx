@@ -80,7 +80,24 @@ export function LoginForm() {
         </div>
 
         {/* Login Form */}
-        <form action={handleSubmit} className="space-white/95 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 text-foreground placeholder:text-muted-foreground shadow-lg"
+        <form action={handleSubmit} className="space-y-4 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl">
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <input
+                type="text"
+                name="firstName"
+                placeholder="Vorname"
+                required
+                autoComplete="given-name"
+                className="w-full pl-11 pr-4 py-3 bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 text-foreground placeholder:text-muted-foreground shadow-lg"
               />
             </div>
 
@@ -105,24 +122,7 @@ export function LoginForm() {
                 required
                 minLength={4}
                 autoComplete="current-password"
-                className="w-full pl-11 pr-4 py-3 bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 text-foreground placeholder:text-muted-foreground shadow-lg
-                placeholder="Nachname"
-                required
-                autoComplete="family-name"
-                className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
-              />
-            </div>
-
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <input
-                type="password"
-                name="password"
-                placeholder="Passwort"
-                required
-                minLength={4}
-                autoComplete="current-password"
-                className="w-full pl-11 pr-4 py-3 bg-card border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
+                className="w-full pl-11 pr-4 py-3 bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 text-foreground placeholder:text-muted-foreground shadow-lg"
               />
             </div>
           </div>
