@@ -26,7 +26,12 @@ export function ProfileProvider({ children }: ProfileProviderProps) {  const rou
   const refreshProfiles = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/profile-switcher/profiles');
+      const res = await fetch('/api/profile-switcher/profiles', {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setAvailableProfiles(data.profiles || []);
@@ -53,6 +58,7 @@ export function ProfileProvider({ children }: ProfileProviderProps) {  const rou
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profileId }),
+        cache: 'no-store',
       });
 
       console.log('ProfileContext: API response status:', res.status);
@@ -61,19 +67,18 @@ export function ProfileProvider({ children }: ProfileProviderProps) {  const rou
         const data = await res.json();
         console.log('ProfileContext: Switch successful, response:', data);
         
-        // Update active profile locally
+        // Update active profile locally immediately
         setActiveProfileId(profileId);
         
+        // Refresh profile list to ensure we have latest data
+        console.log('ProfileContext: Refreshing profile list...');
+        await refreshProfiles();
+        
+        // Refresh Next.js router to reload server components with new session
         console.log('ProfileContext: Refreshing router...');
-        // First try router.refresh() for Next.js
         router.refresh();
         
-        // Then do a full page reload after a short delay
-        // This ensures all components get the new session data
-        setTimeout(() => {
-          console.log('ProfileContext: Full page reload...');
-          window.location.href = window.location.href;
-        }, 300);
+        // isLoading is set to false by refreshProfiles()
       } else {
         const data = await res.json();
         console.error('ProfileContext: Switch failed:', data);
