@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
-// @ts-expect-error - next-pwa has no types
-import withPWA from "next-pwa";
+import withPWAInit from "@ducanh2912/next-pwa";
+
+const withPWA = withPWAInit({
+  dest: "public",
+  cacheOnFrontEndNav: true,
+  aggressiveFrontEndNavCaching: true,
+  reloadOnOnline: true,
+  workboxOptions: {
+    disableDevLogs: true,
+  },
+});
 
 const nextConfig: NextConfig = {
   // Vercel-optimierte Konfiguration
@@ -111,16 +120,4 @@ const nextConfig: NextConfig = {
   compress: true,
 };
 
-// PWA Konfiguration
-const pwaConfig = withPWA({
-  dest: "public",
-  disable: false,
-  register: true,
-  skipWaiting: true,
-  fallbacks: {
-    document: "/offline",
-  },
-  disableDevLogs: true,
-});
-
-export default pwaConfig(nextConfig);
+export default withPWA(nextConfig);

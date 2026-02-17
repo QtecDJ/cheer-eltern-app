@@ -5,7 +5,7 @@
   "author": "ICA-Dev Kai Püttmann",
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && prisma migrate deploy && next build --webpack",
+    "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "check-env": "node scripts/check-env.js",
@@ -30,6 +30,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
@@ -39,7 +40,6 @@
     "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
-    "next-pwa": "^5.6.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5"
