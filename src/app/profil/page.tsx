@@ -20,8 +20,8 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const activeProfileId = await getActiveProfileWithParentMapping(session);
-  const member = await getMemberFullProfile(activeProfileId);
+  // Use session.id to show logged-in user's own profile (not child's)
+  const member = await getMemberFullProfile(session.id);
 
   if (!member) {
     return (

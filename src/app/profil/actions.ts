@@ -194,15 +194,14 @@ export async function updateProfilePhoto(photoUrl: string) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
-  const activeProfileId = await getActiveProfileWithParentMapping(session);
-
+  // Use session.id to update logged-in user's own photo (not child's)
   if (!photoUrl || !photoUrl.startsWith("https://")) {
     return { success: false, error: "Ungültige Bild-URL" };
   }
 
   try {
     await prisma.member.update({
-      where: { id: activeProfileId },
+      where: { id: session.id },
       data: { photoUrl },
     });
 
@@ -221,11 +220,10 @@ export async function deleteProfilePhoto() {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
-  const activeProfileId = await getActiveProfileWithParentMapping(session);
-
+  // Use session.id to delete logged-in user's own photo (not child's)
   try {
     await prisma.member.update({
-      where: { id: activeProfileId },
+      where: { id: session.id },
       data: { photoUrl: null },
     });
 
