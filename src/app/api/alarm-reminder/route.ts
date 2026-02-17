@@ -5,7 +5,9 @@ import {
   getNextTrainingForAttendance,
   getAttendancesForTraining,
   getTeamMembersForAttendance,
+  getMemberForHome,
 } from "@/lib/queries";
+import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 
 export async function GET(req: Request) {
   const session = await getSession();
@@ -16,7 +18,11 @@ export async function GET(req: Request) {
 
   const userRole = session.userRole || null;
   const coachTeamId = session.coachTeamId ?? null;
-  const athleteTeamId = session.teamId ?? null;
+  
+  // For parent accounts, get the child's teamId instead of parent's teamId
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
+  const member = await getMemberForHome(activeProfileId);
+  const athleteTeamId = member?.teamId ?? session.teamId ?? null;
 
   const isCoachLike = ["admin", "coach", "orga"].includes((userRole || "").toLowerCase());
 

@@ -7,6 +7,7 @@ import {
   getEventsWithParticipants,
   getCompetitionsWithParticipants,
   getEventAnnouncementsWithPolls,
+  getMemberForHome,
 } from "@/lib/queries";
 
 // ISR with 2-minute cache - Events need reasonable freshness
@@ -102,9 +103,16 @@ export default async function EventsPage() {
   }
 
   const activeProfileId = await getActiveProfileWithParentMapping(session);
+  
+  // Load member to get correct teamId (important for parent accounts)
+  const member = await getMemberForHome(activeProfileId);
+  
+  if (!member) {
+    redirect("/login");
+  }
 
-  // Prefer athlete team but also include coach team so users see announcements for both
-  const teamIds = Array.from(new Set([session.teamId, session.coachTeamId].filter(Boolean))) as number[];
+  // Use child's teamId for parent accounts, prefer athlete team but also include coach team
+  const teamIds = Array.from(new Set([member.teamId, session.coachTeamId].filter(Boolean))) as number[];
   const relevantTeamIdOrArray = teamIds.length > 0 ? teamIds : undefined;
 
   // Alle Daten parallel laden mit optimierten Queries

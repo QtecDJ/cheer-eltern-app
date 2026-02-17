@@ -52,6 +52,7 @@ export async function updateEmail(formData: FormData) {
     await updateSession({ email });
 
     revalidatePath("/profil");
+    revalidatePath("/einstellungen");
     return { success: true };
   } catch (error) {
     console.error("Update email error:", error);
@@ -115,6 +116,7 @@ export async function updatePassword(formData: FormData) {
     });
 
     revalidatePath("/profil");
+    revalidatePath("/einstellungen");
     return { success: true };
   } catch (error) {
     console.error("Update password error:", error);
@@ -147,6 +149,7 @@ export async function updateEmergencyContact(formData: FormData) {
     });
 
     revalidatePath("/profil");
+    revalidatePath("/einstellungen");
     return { success: true };
   } catch (error) {
     console.error("Update emergency contact error:", error);
@@ -177,6 +180,7 @@ export async function updateHealthInfo(formData: FormData) {
     });
 
     revalidatePath("/profil");
+    revalidatePath("/einstellungen");
     return { success: true };
   } catch (error) {
     console.error("Update health info error:", error);
@@ -203,6 +207,7 @@ export async function updateProfilePhoto(photoUrl: string) {
     });
 
     revalidatePath("/profil");
+    revalidatePath("/einstellungen");
     return { success: true };
   } catch (error) {
     console.error("Update profile photo error:", error);
@@ -225,6 +230,7 @@ export async function deleteProfilePhoto() {
     });
 
     revalidatePath("/profil");
+    revalidatePath("/einstellungen");
     return { success: true };
   } catch (error) {
     console.error("Delete profile photo error:", error);

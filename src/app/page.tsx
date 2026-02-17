@@ -61,7 +61,8 @@ export default async function HomePage() {
     );
   }
 
-  const teamIds = Array.from(new Set([session.teamId, session.coachTeamId].filter(Boolean))) as number[];
+  // Use child's teamId for parent accounts
+  const teamIds = Array.from(new Set([child.teamId, session.coachTeamId].filter(Boolean))) as number[];
   const relevantTeamIdOrArray = teamIds.length > 0 ? teamIds : undefined;
 
   const isOrga = (session.roles || []).includes("orga") || (session.userRole || "").toString().toLowerCase().split(',').includes('orga');

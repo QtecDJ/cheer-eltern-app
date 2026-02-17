@@ -1,7 +1,8 @@
-import { getMembersWithEmergencyInfo, getActiveTeamsForFilter } from "@/lib/queries";
+import { getMembersWithEmergencyInfo, getActiveTeamsForFilter, getMemberForHome } from "@/lib/queries";
 import { getSession, isAdminOrTrainer } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { InfoContent } from "../mitglieder-info-content";
+import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 
 // Revalidate every 5 minutes
 export const revalidate = 300;
@@ -32,7 +33,11 @@ export default async function MitgliederInfoPage() {
   }
 
   const isAdmin = userRole === "admin";
-  const trainerTeamId = coachTeamId || session.teamId;
+  
+  // For parent accounts, get the child's team instead of parent's teamId
+  const activeProfileId = await getActiveProfileWithParentMapping(session);
+  const member = await getMemberForHome(activeProfileId);
+  const trainerTeamId = coachTeamId || member?.teamId || session.teamId;
 
   // Hole Mitglieder mit Notfall/Gesundheitsinfos
   // Admins sehen alle, Trainer/Coaches nur ihr Team
