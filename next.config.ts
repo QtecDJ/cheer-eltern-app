@@ -1,8 +1,13 @@
 import type { NextConfig } from "next";
+// @ts-expect-error - next-pwa has no types
+import withPWA from "next-pwa";
 
 const nextConfig: NextConfig = {
   // Vercel-optimierte Konfiguration
   poweredByHeader: false,
+  
+  // Turbopack Config hinzufügen um Warnung zu vermeiden
+  turbopack: {},
   
   // Bilder-Domains erlauben (falls externe Bilder geladen werden)
   images: {
@@ -106,4 +111,16 @@ const nextConfig: NextConfig = {
   compress: true,
 };
 
-export default nextConfig;
+// PWA Konfiguration
+const pwaConfig = withPWA({
+  dest: "public",
+  disable: false,
+  register: true,
+  skipWaiting: true,
+  fallbacks: {
+    document: "/offline",
+  },
+  disableDevLogs: true,
+});
+
+export default pwaConfig(nextConfig);

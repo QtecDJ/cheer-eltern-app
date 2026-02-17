@@ -67,18 +67,15 @@ export function ProfileProvider({ children }: ProfileProviderProps) {  const rou
         const data = await res.json();
         console.log('ProfileContext: Switch successful, response:', data);
         
-        // Update active profile locally immediately
+        // Update active profile locally immediately for instant UI feedback
         setActiveProfileId(profileId);
         
-        // Refresh profile list to ensure we have latest data
-        console.log('ProfileContext: Refreshing profile list...');
-        await refreshProfiles();
-        
-        // Refresh Next.js router to reload server components with new session
-        console.log('ProfileContext: Refreshing router...');
-        router.refresh();
-        
-        // isLoading is set to false by refreshProfiles()
+        // Small delay to ensure session cookies are set, then reload page
+        // This ensures all server components get fresh session data
+        setTimeout(() => {
+          console.log('ProfileContext: Reloading page with new session...');
+          window.location.reload();
+        }, 200);
       } else {
         const data = await res.json();
         console.error('ProfileContext: Switch failed:', data);
