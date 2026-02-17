@@ -7,6 +7,7 @@ import { Loader2, User, Lock, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { InstallPrompt } from "@/components/install-prompt";
 import { useSeasonalTheme } from "@/lib/seasonal-theme";
+import { SeasonalOverlay } from "@/components/seasonal-overlay";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -43,44 +44,55 @@ export function LoginForm() {
 
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-br ${theme.gradient} relative overflow-hidden`}>
-      {/* Seasonal Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-10 right-10 text-9xl animate-bounce">{theme.iconOverlay || theme.emoji}</div>
-        <div className="absolute bottom-20 left-10 text-9xl animate-pulse">{theme.iconOverlay || theme.emoji}</div>
-        <div className="absolute top-1/2 left-1/2 text-9xl opacity-30">{theme.emoji}</div>
-      </div>
+      {/* Seasonal Overlay Effect - nur bei aktiven Themen */}
+      {theme.isActive && theme.overlayEffect && (
+        <SeasonalOverlay effect={theme.overlayEffect} />
+      )}
+
+      {/* Seasonal Background Pattern - nur bei aktiven Themen */}
+      {theme.isActive && (
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-10 right-10 text-9xl animate-bounce">{theme.iconOverlay || theme.emoji}</div>
+          <div className="absolute bottom-20 left-10 text-9xl animate-pulse">{theme.iconOverlay || theme.emoji}</div>
+          <div className="absolute top-1/2 left-1/2 text-9xl opacity-30">{theme.emoji}</div>
+        </div>
+      )}
 
       <div className="w-full max-w-sm space-y-8 relative z-10">
         {/* Logo */}
         <div className="flex flex-col items-center space-y-4">
-          <div className="relative w-24 h-24 animate-float">
+          <div className={`relative w-24 h-24 ${theme.isActive ? 'animate-float' : ''}`}>
             <Image
               src="/logo.webp"
               alt="Logo"
               fill
-              className="object-contain drop-shadow-2xl"
+              className={`object-contain ${theme.isActive ? 'drop-shadow-2xl' : ''}`}
               priority
             />
-            {/* Seasonal Icon Overlay */}
-            <div className="absolute -top-2 -right-2 text-3xl animate-bounce">
-              {theme.emoji}
-            </div>
+            {/* Seasonal Icon Overlay - nur bei aktiven Themen */}
+            {theme.isActive && theme.emoji && (
+              <div className="absolute -top-2 -right-2 text-3xl animate-bounce">
+                {theme.emoji}
+              </div>
+            )}
           </div>
           <div className="text-center">
-            <h1 className={`text-2xl font-bold ${theme.accentColor} drop-shadow-lg`}>
+            <h1 className={`text-2xl font-bold ${theme.accentColor} ${theme.isActive ? 'drop-shadow-lg' : ''}`}>
               {theme.greeting}
             </h1>
-            <p className="text-white/90 mt-2 font-medium text-shadow">
-              {theme.motivationalText}
-            </p>
-            <p className="text-white/70 mt-4 text-sm">
+            {theme.isActive && (
+              <p className={`${theme.isActive ? 'text-white/90' : 'text-muted-foreground'} mt-2 font-medium ${theme.isActive ? 'text-shadow' : ''}`}>
+                {theme.motivationalText}
+              </p>
+            )}
+            <p className={`${theme.isActive ? 'text-white/70' : 'text-muted-foreground'} mt-${theme.isActive ? '4' : '1'} text-sm`}>
               Melde dich mit Vor- und Nachnamen an
             </p>
           </div>
         </div>
 
         {/* Login Form */}
-        <form action={handleSubmit} className="space-y-4 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-2xl">
+        <form action={handleSubmit} className={`space-y-4 p-6 rounded-2xl ${theme.isActive ? 'bg-white/10 backdrop-blur-md shadow-2xl' : 'bg-card border border-border shadow-lg'}`}>
           {error && (
             <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-sm">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -97,7 +109,11 @@ export function LoginForm() {
                 placeholder="Vorname"
                 required
                 autoComplete="given-name"
-                className="w-full pl-11 pr-4 py-3 bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 text-foreground placeholder:text-muted-foreground shadow-lg"
+                className={`w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 text-foreground placeholder:text-muted-foreground ${
+                  theme.isActive 
+                    ? 'bg-white/95 backdrop-blur-sm border border-white/20 focus:ring-white/50 shadow-lg' 
+                    : 'bg-card border border-border focus:ring-primary'
+                }`}
               />
             </div>
 
@@ -109,7 +125,11 @@ export function LoginForm() {
                 placeholder="Nachname"
                 required
                 autoComplete="family-name"
-                className="w-full pl-11 pr-4 py-3 bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 text-foreground placeholder:text-muted-foreground shadow-lg"
+                className={`w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 text-foreground placeholder:text-muted-foreground ${
+                  theme.isActive 
+                    ? 'bg-white/95 backdrop-blur-sm border border-white/20 focus:ring-white/50 shadow-lg' 
+                    : 'bg-card border border-border focus:ring-primary'
+                }`}
               />
             </div>
 
@@ -122,7 +142,11 @@ export function LoginForm() {
                 required
                 minLength={4}
                 autoComplete="current-password"
-                className="w-full pl-11 pr-4 py-3 bg-white/95 backdrop-blur-sm border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-white/50 text-foreground placeholder:text-muted-foreground shadow-lg"
+                className={`w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 text-foreground placeholder:text-muted-foreground ${
+                  theme.isActive 
+                    ? 'bg-white/95 backdrop-blur-sm border border-white/20 focus:ring-white/50 shadow-lg' 
+                    : 'bg-card border border-border focus:ring-primary'
+                }`}
               />
             </div>
           </div>

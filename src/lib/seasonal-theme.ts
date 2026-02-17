@@ -1,42 +1,33 @@
 /**
  * Seasonal Theme System
- * Passt visuelles Design an Jahreszeiten und deutsche Feiertage an
- * Immer im Cheerleading/Sport-Kontext
+ * Aktiviert spezielle Themen nur an genauen deutschen Feiertagen
+ * Sonst normale App-Ansicht
  */
 
 export interface SeasonalTheme {
   id: string;
   name: string;
-  emoji: string;
+  emoji?: string;
   gradient: string;
   accentColor: string;
-  bgPattern?: string;
   greeting: string;
   motivationalText: string;
   iconOverlay?: string;
+  isActive: boolean; // Neu: zeigt an ob Theme aktiv ist
+  overlayEffect?: 'snow' | 'confetti' | 'sparkles' | 'leaves' | 'hearts';
 }
 
 /**
- * Prüft ob ein Datum in einem Zeitraum liegt
+ * Prüft ob ein Datum genau ein bestimmter Tag ist oder in kleinem Zeitraum (±1-2 Tage)
  */
-function isDateInRange(date: Date, startMonth: number, startDay: number, endMonth: number, endDay: number): boolean {
-  const month = date.getMonth() + 1; // 0-indexed
-  const day = date.getDate();
+function isNearDate(date: Date, targetMonth: number, targetDay: number, daysBefore: number = 0, daysAfter: number = 0): boolean {
+  const targetDate = new Date(date.getFullYear(), targetMonth - 1, targetDay);
+  const startDate = new Date(targetDate);
+  startDate.setDate(startDate.getDate() - daysBefore);
+  const endDate = new Date(targetDate);
+  endDate.setDate(endDate.getDate() + daysAfter);
   
-  if (startMonth === endMonth) {
-    return month === startMonth && day >= startDay && day <= endDay;
-  }
-  
-  if (startMonth < endMonth) {
-    return (month === startMonth && day >= startDay) || 
-           (month === endMonth && day <= endDay) ||
-           (month > startMonth && month < endMonth);
-  } else {
-    // Übergang Jahreswechsel (z.B. Dezember-Januar)
-    return (month === startMonth && day >= startDay) || 
-           (month === endMonth && day <= endDay) ||
-           (month > startMonth || month < endMonth);
-  }
+  return date >= startDate && date <= endDate;
 }
 
 /**
@@ -62,7 +53,7 @@ function getEasterDate(year: number): Date {
 }
 
 /**
- * Ermittelt das aktuelle Theme basierend auf Datum
+ * Ermittelt das aktuelle Theme basierend auf genauen Feiertagen
  */
 export function getCurrentSeasonalTheme(): SeasonalTheme {
   const now = new Date();
@@ -70,78 +61,62 @@ export function getCurrentSeasonalTheme(): SeasonalTheme {
   const day = now.getDate();
   const year = now.getFullYear();
   
-  // Deutsche Feiertage (Priorität: höchste zuerst)
+  // Standard/Normales Theme (wird zurückgegeben wenn kein Feiertag)
+  const defaultTheme: SeasonalTheme = {
+    id: 'default',
+    name: 'Standard',
+    gradient: 'from-background to-muted/30',
+    accentColor: 'text-primary',
+    greeting: 'Willkommen zurück! 👋',
+    motivationalText: 'Bereit für dein Training?',
+    isActive: false,
+  };
   
-  // Weihnachten (1. Dezember - 6. Januar)
-  if (isDateInRange(now, 12, 1, 1, 6)) {
-    return {
-      id: 'christmas',
-      name: 'Weihnachtszeit',
-      emoji: '🎄',
-      gradient: 'from-red-900 via-green-900 to-red-900',
-      accentColor: 'text-red-400',
-      greeting: 'Frohe Weihnachten! 🎅',
-      motivationalText: 'Mit festlicher Energie ins Training! ✨🎄',
-      iconOverlay: '❄️',
-    };
-  }
+  // ===== GESETZLICHE FEIERTAGE DEUTSCHLAND =====
   
-  // Silvester/Neujahr (27. Dezember - 2. Januar)
-  if (isDateInRange(now, 12, 27, 1, 2)) {
+  // Neujahr (1. Januar ±2 Tage)
+  if (isNearDate(now, 1, 1, 2, 2)) {
     return {
       id: 'newyear',
-      name: 'Jahreswechsel',
+      name: 'Neujahr',
       emoji: '🎆',
       gradient: 'from-yellow-600 via-orange-600 to-pink-600',
       accentColor: 'text-yellow-300',
-      greeting: 'Guten Rutsch! 🎆',
+      greeting: 'Frohes Neues Jahr! 🎆',
       motivationalText: 'Neue Ziele, neue Erfolge! 🚀',
       iconOverlay: '🎊',
+      isActive: true,
+      overlayEffect: 'confetti',
     };
   }
   
-  // Ostern (Karfreitag bis Ostermontag +7 Tage = 2 Wochen)
+  // Heilige Drei Könige (6. Januar ±1 Tag)
+  if (isNearDate(now, 1, 6, 1, 1)) {
+    return {
+      id: 'epiphany',
+      name: 'Heilige Drei Könige',
+      emoji: '⭐',
+      gradient: 'from-amber-600 via-yellow-500 to-amber-600',
+      accentColor: 'text-yellow-400',
+      greeting: 'Sternsingerzeit! ⭐',
+      motivationalText: 'Mit Glanz ins Training! ✨',
+      iconOverlay: '👑',
+      isActive: true,
+      overlayEffect: 'sparkles',
+    };
+  }
+  
+  // Ostern berechnen (für Karneval und Ostern)
   const easter = getEasterDate(year);
-  const easterStart = new Date(easter);
-  easterStart.setDate(easterStart.getDate() - 2); // Karfreitag
-  const easterEnd = new Date(easter);
-  easterEnd.setDate(easterEnd.getDate() + 9); // Ostermontag + 1 Woche
   
-  if (now >= easterStart && now <= easterEnd) {
-    return {
-      id: 'easter',
-      name: 'Osterzeit',
-      emoji: '🐰',
-      gradient: 'from-yellow-400 via-pink-400 to-purple-400',
-      accentColor: 'text-pink-400',
-      greeting: 'Frohe Ostern! 🐰',
-      motivationalText: 'Mit Frühlingsenergie durchstarten! 🌸',
-      iconOverlay: '🥚',
-    };
-  }
-  
-  // Halloween (20. Oktober - 1. November)
-  if (isDateInRange(now, 10, 20, 11, 1)) {
-    return {
-      id: 'halloween',
-      name: 'Halloween',
-      emoji: '🎃',
-      gradient: 'from-orange-900 via-purple-900 to-orange-900',
-      accentColor: 'text-orange-400',
-      greeting: 'Happy Halloween! 👻',
-      motivationalText: 'Spektakuläre Stunts warten! 🎃✨',
-      iconOverlay: '👻',
-    };
-  }
-  
-  // Karneval/Fasching (1 Woche vor bis 1 Tag nach Rosenmontag)
-  // Rosenmontag ist 48 Tage vor Ostersonntag
+  // Karneval/Fasching (Rosenmontag ist 48 Tage vor Ostersonntag)
+  // Karnevalszeit: 7 Tage vor Rosenmontag bis 1 Tag nach Rosenmontag
   const rosenmontag = new Date(easter);
   rosenmontag.setDate(rosenmontag.getDate() - 48);
   const karnevalStart = new Date(rosenmontag);
   karnevalStart.setDate(karnevalStart.getDate() - 7);
   const karnevalEnd = new Date(rosenmontag);
-  karnevalEnd.setDate(karnevalEnd.getDate() + 1);
+  karnevalEnd.setDate(karnevalEnd.getDate() + 1); // Aschermittwoch
   
   if (now >= karnevalStart && now <= karnevalEnd) {
     return {
@@ -150,95 +125,199 @@ export function getCurrentSeasonalTheme(): SeasonalTheme {
       emoji: '🎭',
       gradient: 'from-purple-600 via-pink-600 to-yellow-600',
       accentColor: 'text-pink-400',
-      greeting: 'Helau & Alaaf! 🎭',
-      motivationalText: 'Bunt und energiegeladen! 🎉',
+      greeting: 'Helau & Alaaf! 🎭🎉',
+      motivationalText: 'Bunt und energiegeladen ins Training! 🎊',
       iconOverlay: '🎊',
+      isActive: true,
+      overlayEffect: 'confetti',
     };
   }
   
-  // Sommer-EM/WM Vibes (wenn gerade EM/WM läuft - kann angepasst werden)
-  // Standard: Juni-Juli für Fußball-EM
-  if (isDateInRange(now, 6, 10, 7, 15)) {
+  const karfreitag = new Date(easter);
+  karfreitag.setDate(karfreitag.getDate() - 2);
+  const ostermontag = new Date(easter);
+  ostermontag.setDate(ostermontag.getDate() + 1);
+  
+  // Karfreitag bis Ostermontag (±1 Tag)
+  const easterStart = new Date(karfreitag);
+  easterStart.setDate(easterStart.getDate() - 1);
+  const easterEnd = new Date(ostermontag);
+  easterEnd.setDate(easterEnd.getDate() + 1);
+  
+  if (now >= easterStart && now <= easterEnd) {
     return {
-      id: 'euro',
-      name: 'EM-Stimmung',
-      emoji: '⚽',
-      gradient: 'from-black via-red-600 to-yellow-600',
-      accentColor: 'text-yellow-400',
-      greeting: 'Sport verbindet! ⚽',
-      motivationalText: 'Zeig dein Können wie die Profis! 🏆',
-      iconOverlay: '🇩🇪',
+      id: 'easter',
+      name: 'Ostern',
+      emoji: '🐰',
+      gradient: 'from-yellow-400 via-pink-400 to-purple-400',
+      accentColor: 'text-pink-400',
+      greeting: 'Frohe Ostern! 🐰🥚',
+      motivationalText: 'Mit Frühlingsenergie durchstarten! 🌸',
+      iconOverlay: '🥚',
+      isActive: true,
+      overlayEffect: 'sparkles',
     };
   }
   
-  // Jahreszeiten (Fallback)
-  
-  // Frühling (1. März - 31. Mai)
-  if (month >= 3 && month <= 5) {
+  // Tag der Arbeit (1. Mai ±1 Tag)
+  if (isNearDate(now, 5, 1, 1, 1)) {
     return {
-      id: 'spring',
-      name: 'Frühling',
-      emoji: '🌸',
-      gradient: 'from-green-400 via-teal-400 to-blue-400',
-      accentColor: 'text-green-400',
-      greeting: 'Hallo Frühling! 🌸',
-      motivationalText: 'Frische Energie für neue Stunts! 🌱',
-      iconOverlay: '🦋',
+      id: 'laborday',
+      name: 'Tag der Arbeit',
+      emoji: '💪',
+      gradient: 'from-red-600 via-orange-500 to-yellow-500',
+      accentColor: 'text-red-400',
+      greeting: 'Tag der Arbeit! 💪',
+      motivationalText: 'Teamwork macht uns stark! 🤝',
+      iconOverlay: '⚡',
+      isActive: true,
     };
   }
   
-  // Sommer (1. Juni - 31. August)
-  if (month >= 6 && month <= 8) {
-    return {
-      id: 'summer',
-      name: 'Sommer',
-      emoji: '☀️',
-      gradient: 'from-yellow-400 via-orange-400 to-red-400',
-      accentColor: 'text-yellow-300',
-      greeting: 'Sommer Power! ☀️',
-      motivationalText: 'Heiße Moves im Sommer-Training! 🔥',
-      iconOverlay: '🏖️',
-    };
-  }
+  // Christi Himmelfahrt (Ostersonntag + 39 Tage ±1)
+  const christiHimmelfahrt = new Date(easter);
+  christiHimmelfahrt.setDate(christiHimmelfahrt.getDate() + 39);
+  const himmelfahrtStart = new Date(christiHimmelfahrt);
+  himmelfahrtStart.setDate(himmelfahrtStart.getDate() - 1);
+  const himmelfahrtEnd = new Date(christiHimmelfahrt);
+  himmelfahrtEnd.setDate(himmelfahrtEnd.getDate() + 1);
   
-  // Herbst (1. September - 30. November)
-  if (month >= 9 && month <= 11) {
+  if (now >= himmelfahrtStart && now <= himmelfahrtEnd) {
     return {
-      id: 'autumn',
-      name: 'Herbst',
-      emoji: '🍂',
-      gradient: 'from-orange-600 via-red-600 to-amber-700',
-      accentColor: 'text-orange-400',
-      greeting: 'Herbst-Energie! 🍂',
-      motivationalText: 'Stark wie die Herbstwinde! 💪',
-      iconOverlay: '🍁',
-    };
-  }
-  
-  // Winter (1. Dezember - 28. Februar) - aber nur wenn nicht Weihnachten
-  if (month === 12 || month === 1 || month === 2) {
-    return {
-      id: 'winter',
-      name: 'Winter',
-      emoji: '❄️',
-      gradient: 'from-blue-900 via-cyan-800 to-blue-900',
+      id: 'ascension',
+      name: 'Christi Himmelfahrt',
+      emoji: '☁️',
+      gradient: 'from-blue-400 via-cyan-400 to-blue-500',
       accentColor: 'text-blue-300',
-      greeting: 'Winter-Training! ❄️',
-      motivationalText: 'Cool bleiben, heiß performen! 🧊',
-      iconOverlay: '⛄',
+      greeting: 'Schönen Vatertag! ☁️',
+      motivationalText: 'Hoch hinaus mit neuen Stunts! 🚀',
+      iconOverlay: '✨',
+      isActive: true,
     };
   }
   
-  // Fallback (sollte nie erreicht werden)
-  return {
-    id: 'default',
-    name: 'Standard',
-    emoji: '⭐',
-    gradient: 'from-pink-600 via-purple-600 to-pink-600',
-    accentColor: 'text-pink-400',
-    greeting: 'Willkommen zurück! ⭐',
-    motivationalText: 'Gib alles im Training! 💪',
-  };
+  // Pfingsten (Ostersonntag + 49/50 Tage ±1)
+  const pfingstsonntag = new Date(easter);
+  pfingstsonntag.setDate(pfingstsonntag.getDate() + 49);
+  const pfingstmontag = new Date(easter);
+  pfingstmontag.setDate(pfingstmontag.getDate() + 50);
+  const pfingstenStart = new Date(pfingstsonntag);
+  pfingstenStart.setDate(pfingstenStart.getDate() - 1);
+  const pfingstenEnd = new Date(pfingstmontag);
+  pfingstenEnd.setDate(pfingstenEnd.getDate() + 1);
+  
+  if (now >= pfingstenStart && now <= pfingstenEnd) {
+    return {
+      id: 'pentecost',
+      name: 'Pfingsten',
+      emoji: '🕊️',
+      gradient: 'from-green-400 via-emerald-400 to-teal-400',
+      accentColor: 'text-green-300',
+      greeting: 'Frohe Pfingsten! 🕊️',
+      motivationalText: 'Frische Energie fürs Training! 🌿',
+      iconOverlay: '🌸',
+      isActive: true,
+      overlayEffect: 'sparkles',
+    };
+  }
+  
+  // Tag der Deutschen Einheit (3. Oktober ±1)
+  if (isNearDate(now, 10, 3, 1, 1)) {
+    return {
+      id: 'unification',
+      name: 'Tag der Deutschen Einheit',
+      emoji: '🇩🇪',
+      gradient: 'from-black via-red-600 to-yellow-500',
+      accentColor: 'text-yellow-400',
+      greeting: 'Tag der Einheit! 🇩🇪',
+      motivationalText: 'Gemeinsam sind wir stark! 💪',
+      iconOverlay: '🦅',
+      isActive: true,
+      overlayEffect: 'confetti',
+    };
+  }
+  
+  // Halloween (31. Oktober ±2 Tage)
+  if (isNearDate(now, 10, 31, 2, 2)) {
+    return {
+      id: 'halloween',
+      name: 'Halloween',
+      emoji: '🎃',
+      gradient: 'from-orange-900 via-purple-900 to-orange-900',
+      accentColor: 'text-orange-400',
+      greeting: 'Happy Halloween! 🎃👻',
+      motivationalText: 'Spektakuläre Stunts warten! ✨',
+      iconOverlay: '👻',
+      isActive: true,
+      overlayEffect: 'sparkles',
+    };
+  }
+  
+  // Allerheiligen (1. November ±1)
+  if (isNearDate(now, 11, 1, 1, 1)) {
+    return {
+      id: 'allsaints',
+      name: 'Allerheiligen',
+      emoji: '🕯️',
+      gradient: 'from-purple-900 via-indigo-900 to-purple-900',
+      accentColor: 'text-purple-300',
+      greeting: 'Allerheiligen 🕯️',
+      motivationalText: 'Mit Ruhe und Kraft ins Training',
+      iconOverlay: '✨',
+      isActive: true,
+    };
+  }
+  
+  // Advent & Nikolaus (6. Dezember ±2)
+  if (isNearDate(now, 12, 6, 2, 2)) {
+    return {
+      id: 'nikolaus',
+      name: 'Nikolaus',
+      emoji: '🎅',
+      gradient: 'from-red-800 via-red-600 to-red-800',
+      accentColor: 'text-red-300',
+      greeting: 'Frohen Nikolaus! 🎅',
+      motivationalText: 'Ho ho ho - Training ruft! 🎁',
+      iconOverlay: '🎁',
+      isActive: true,
+      overlayEffect: 'snow',
+    };
+  }
+  
+  // Weihnachten (24.-26. Dezember ±2 Tage)
+  if (isNearDate(now, 12, 24, 2, 0) || isNearDate(now, 12, 25, 0, 2) || isNearDate(now, 12, 26, 0, 2)) {
+    return {
+      id: 'christmas',
+      name: 'Weihnachten',
+      emoji: '🎄',
+      gradient: 'from-red-900 via-green-900 to-red-900',
+      accentColor: 'text-red-400',
+      greeting: 'Frohe Weihnachten! 🎄✨',
+      motivationalText: 'Mit festlicher Energie ins Training! 🎅',
+      iconOverlay: '❄️',
+      isActive: true,
+      overlayEffect: 'snow',
+    };
+  }
+  
+  // Silvester (31. Dezember ±1)
+  if (isNearDate(now, 12, 31, 1, 0)) {
+    return {
+      id: 'silvester',
+      name: 'Silvester',
+      emoji: '🎆',
+      gradient: 'from-purple-900 via-pink-700 to-yellow-600',
+      accentColor: 'text-yellow-300',
+      greeting: 'Guten Rutsch! 🎆🎊',
+      motivationalText: 'Feuerwerk der Stunts! 🚀',
+      iconOverlay: '🎇',
+      isActive: true,
+      overlayEffect: 'confetti',
+    };
+  }
+  
+  // Kein aktiver Feiertag - normale App
+  return defaultTheme;
 }
 
 /**

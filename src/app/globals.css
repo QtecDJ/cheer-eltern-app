@@ -563,6 +563,24 @@ body.pull-active {
   animation: float 3s ease-in-out infinite;
 }
 
+/* Seasonal Overlay Fall Animation */
+@keyframes seasonal-fall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
 .text-shadow {
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }

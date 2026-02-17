@@ -31,6 +31,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useProfileSwitcher } from "@/modules/profile-switcher";
 import { createPortal } from "react-dom";
 import { useSeasonalTheme } from "@/lib/seasonal-theme";
+import { SeasonalOverlay } from "@/components/seasonal-overlay";
 
 interface HomeContentProps {
   child: {
@@ -183,20 +184,27 @@ export function HomeContent({
 
   return (
     <div className="px-4 md:px-6 lg:px-8 pt-6 pb-4 max-w-lg md:max-w-none mx-auto">
-      {/* Seasonal Theme Banner */}
-      <div className={`mb-4 p-4 rounded-2xl bg-gradient-to-r ${theme.gradient} relative overflow-hidden animate-fade-in`}>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-2 right-2 text-6xl">{theme.iconOverlay || theme.emoji}</div>
-          <div className="absolute bottom-2 left-2 text-4xl opacity-50">{theme.emoji}</div>
-        </div>
-        <div className="relative z-10 flex items-center gap-3">
-          <span className="text-4xl animate-bounce">{theme.emoji}</span>
-          <div>
-            <h2 className="text-white font-bold text-lg drop-shadow-lg">{theme.greeting}</h2>
-            <p className="text-white/90 text-sm">{theme.motivationalText}</p>
+      {/* Seasonal Overlay Effect - nur bei aktiven Themen */}
+      {theme.isActive && theme.overlayEffect && (
+        <SeasonalOverlay effect={theme.overlayEffect} />
+      )}
+
+      {/* Seasonal Theme Banner - nur bei aktiven Themen */}
+      {theme.isActive && theme.emoji && (
+        <div className={`mb-4 p-4 rounded-2xl bg-gradient-to-r ${theme.gradient} relative overflow-hidden animate-fade-in`}>
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-2 right-2 text-6xl">{theme.iconOverlay || theme.emoji}</div>
+            <div className="absolute bottom-2 left-2 text-4xl opacity-50">{theme.emoji}</div>
+          </div>
+          <div className="relative z-10 flex items-center gap-3">
+            <span className="text-4xl animate-bounce">{theme.emoji}</span>
+            <div>
+              <h2 className="text-white font-bold text-lg drop-shadow-lg">{theme.greeting}</h2>
+              <p className="text-white/90 text-sm">{theme.motivationalText}</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Header mit Begrüßung */}
       <header className="mb-6 md:mb-8 animate-fade-in">
