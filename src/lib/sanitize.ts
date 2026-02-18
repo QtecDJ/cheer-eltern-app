@@ -5,10 +5,7 @@
  * und XSS-Angriffe zu verhindern.
  */
 
-import DOMPurify from 'dompurify';
-
-// Server-side check (DOMPurify benötigt DOM)
-const isServer = typeof window === 'undefined';
+import DOMPurify from 'isomorphic-dompurify';
 
 /**
  * Bereinigt HTML-Content und entfernt gefährliche Tags/Attribute
@@ -18,13 +15,6 @@ const isServer = typeof window === 'undefined';
  */
 export function sanitizeHtml(dirty: string): string {
   if (!dirty) return '';
-  
-  if (isServer) {
-    // Auf dem Server können wir DOMPurify nicht verwenden
-    // Content wird erst auf dem Client gerendert
-    console.warn('[sanitize] HTML sanitization skipped on server');
-    return dirty;
-  }
   
   return DOMPurify.sanitize(dirty, {
     ALLOWED_TAGS: [
@@ -63,7 +53,6 @@ export function sanitizeHtml(dirty: string): string {
  */
 export function sanitizeAttribute(attr: string): string {
   if (!attr) return '';
-  if (isServer) return attr;
   
   return DOMPurify.sanitize(attr, { 
     ALLOWED_TAGS: [],
@@ -80,7 +69,6 @@ export function sanitizeAttribute(attr: string): string {
  */
 export function sanitizeHtmlStrict(dirty: string): string {
   if (!dirty) return '';
-  if (isServer) return dirty;
   
   return DOMPurify.sanitize(dirty, {
     ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a'],
