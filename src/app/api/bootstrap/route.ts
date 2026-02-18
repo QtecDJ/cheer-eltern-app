@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
     for (let i = 0; i < settled.length; i++) {
       const res = settled[i];
       const key = keys[i];
+      if (!res || !key) continue; // Skip if undefined
       if (res.status === 'fulfilled') {
         try {
           switch (key) {

@@ -4,6 +4,7 @@ import { login, logout } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { clearContentCache } from "@/lib/content-cache";
+import { validateRequestSafe, LoginSchema } from "@/lib/validation";
 
 const CURRENT_VERSION = "1.7.0";
 const VERSION_COOKIE = "app_version";
@@ -13,11 +14,25 @@ export async function loginAction(formData: FormData) {
   const lastName = formData.get("lastName") as string;
   const password = formData.get("password") as string;
 
-  if (!firstName || !lastName || !password) {
-    return { success: false, error: "Vorname, Nachname und Passwort sind erforderlich" };
+  // Input Validation mit Zod
+  const validation = validateRequestSafe(LoginSchema, {
+    firstName,
+    lastName,
+    password,
+  });
+  
+  if (!validation.success) {
+    return { 
+      success: false, 
+      error: validation.error 
+    };
   }
 
-  const result = await login(firstName, lastName, password);
+  const result = await login(
+    validation.data.firstName, 
+    validation.data.lastName, 
+    validation.data.password
+  );
   
   if (result.success) {
     // Prüfe ob Update nötig ist

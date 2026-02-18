@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getActiveProfileWithParentMapping } from "@/lib/get-active-profile-server";
 import { prisma } from "@/lib/db";
+import { AttendanceCreateSchema, validateRequestSafe } from "@/lib/validation";
+import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
 
 // Cache attendance data for 60 seconds
 
@@ -11,6 +13,10 @@ export async function GET(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Rate Limiting (READ preset)
+    const rateLimitResult = await applyRateLimit(request, RateLimitPresets.READ);
+    if (rateLimitResult) return rateLimitResult;
 
     const memberId = await getActiveProfileWithParentMapping(session);
 
@@ -53,15 +59,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
-    const { trainingId, memberId, status } = body;
+    // Rate Limiting
+    const rateLimitResult = await applyRateLimit(request, RateLimitPresets.WRITE);
+    if (rateLimitResult) return rateLimitResult;
 
-    if (!trainingId || !memberId) {
+    const body = await request.json();
+
+    // Input Validation mit Zod
+    const validation = validateRequestSafe(AttendanceCreateSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "trainingId und memberId sind erforderlich" },
+        { error: "Validierung fehlgeschlagen", details: validation.error },
         { status: 400 }
       );
     }
+
+    const { trainingId, memberId, status } = validation.data;
     
     const activeProfileId = await getActiveProfileWithParentMapping(session);
     

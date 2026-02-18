@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 import withPWAInit from "@ducanh2912/next-pwa";
 
+// Bundle analyzer configuration (nur in ANALYZE mode)
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const withPWA = withPWAInit({
   dest: "public",
   cacheOnFrontEndNav: true,
@@ -118,6 +123,21 @@ const nextConfig: NextConfig = {
   
   // Komprimierung aktivieren
   compress: true,
+  
+  // Webpack Konfiguration für Production Optimierungen
+  webpack: (config, { dev, isServer }) => {
+    // Production-only optimizations
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        minimize: true,
+        sideEffects: true,
+        usedExports: true,
+      };
+    }
+    
+    return config;
+  },
 };
 
-export default withPWA(nextConfig);
+export default withBundleAnalyzer(withPWA(nextConfig));

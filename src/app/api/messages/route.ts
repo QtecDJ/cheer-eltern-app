@@ -1,37 +1,35 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { createMessage } from "@/lib/queries";
 import { sendOneSignalPushToMultipleUsers } from "@/lib/onesignal-push";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { MessageCreateSchema, validateRequestSafe } from "@/lib/validation";
+import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // Rate Limiting
+  const rateLimitResult = await applyRateLimit(req, RateLimitPresets.WRITE);
+  if (rateLimitResult) return rateLimitResult;
+
   try {
     const body = await req.json();
     
-    // Validiere Input
-    const subject = (body.subject || "").toString().trim();
-    const message = (body.message || "").toString().trim();
-    const target = (body.target || "admins").toString().toLowerCase();
-    
-    // Validierung
-    if (!subject || subject.length > 255) {
-      return NextResponse.json({ error: "invalid_subject" }, { status: 400 });
+    // Input Validation mit Zod
+    const validation = validateRequestSafe(MessageCreateSchema, body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: "Validierung fehlgeschlagen", details: validation.error },
+        { status: 400 }
+      );
     }
-    
-    if (!message || message.length > 10000) {
-      return NextResponse.json({ error: "invalid_message" }, { status: 400 });
-    }
-    
-    if (!["admins", "orga", ""].includes(target)) {
-      return NextResponse.json({ error: "invalid_target" }, { status: 400 });
-    }
-    
+
+    const { subject, message, target } = validation.data;
     const finalTarget = target || "admins";
 
     const created = await createMessage({ 

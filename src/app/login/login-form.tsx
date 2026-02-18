@@ -16,11 +16,11 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full py-3 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      className="w-full py-2.5 px-4 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
     >
       {pending ? (
         <>
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <Loader2 className="w-4 h-4 animate-spin" />
           Anmelden...
         </>
       ) : (
@@ -43,7 +43,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center px-4 bg-gradient-to-br ${theme.gradient} relative overflow-hidden`}>
+    <div className={`h-screen w-screen fixed inset-0 flex flex-col items-center justify-center px-4 bg-gradient-to-br ${theme.gradient} overflow-hidden`}>
       {/* Seasonal Overlay Effect - nur bei aktiven Themen */}
       {theme.isActive && theme.overlayEffect && (
         <SeasonalOverlay effect={theme.overlayEffect} />
@@ -58,10 +58,10 @@ export function LoginForm() {
         </div>
       )}
 
-      <div className="w-full max-w-sm space-y-8 relative z-10">
+      <div className="w-full max-w-sm space-y-6 relative z-10">
         {/* Logo */}
-        <div className="flex flex-col items-center space-y-4">
-          <div className={`relative w-24 h-24 ${theme.isActive ? 'animate-float' : ''}`}>
+        <div className="flex flex-col items-center space-y-3">
+          <div className={`relative w-32 h-32 ${theme.isActive ? 'animate-float' : ''}`}>
             <Image
               src="/logo.webp"
               alt="Logo"
@@ -77,39 +77,36 @@ export function LoginForm() {
             )}
           </div>
           <div className="text-center">
-            <h1 className={`text-2xl font-bold ${theme.accentColor} ${theme.isActive ? 'drop-shadow-lg' : ''}`}>
-              {theme.greeting}
-            </h1>
             {theme.isActive && (
-              <p className={`${theme.isActive ? 'text-white/90' : 'text-muted-foreground'} mt-2 font-medium ${theme.isActive ? 'text-shadow' : ''}`}>
+              <p className={`${theme.isActive ? 'text-white/90' : 'text-muted-foreground'} text-sm font-medium ${theme.isActive ? 'text-shadow' : ''}`}>
                 {theme.motivationalText}
               </p>
             )}
-            <p className={`${theme.isActive ? 'text-white/70' : 'text-muted-foreground'} mt-${theme.isActive ? '4' : '1'} text-sm`}>
+            <p className={`${theme.isActive ? 'text-white/70' : 'text-muted-foreground'} ${theme.isActive ? 'mt-2' : ''} text-xs`}>
               Melde dich mit Vor- und Nachnamen an
             </p>
           </div>
         </div>
 
         {/* Login Form */}
-        <form action={handleSubmit} className={`space-y-4 p-6 rounded-2xl ${theme.isActive ? 'bg-white/10 backdrop-blur-md shadow-2xl' : 'bg-card border border-border shadow-lg'}`}>
+        <form action={handleSubmit} className={`space-y-3 p-5 rounded-2xl ${theme.isActive ? 'bg-white/10 backdrop-blur-md shadow-2xl' : 'bg-card border border-border shadow-lg'}`}>
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-sm">
+            <div className="flex items-center gap-2 p-2 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 text-xs">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {error}
             </div>
           )}
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 name="firstName"
                 placeholder="Vorname"
                 required
                 autoComplete="given-name"
-                className={`w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 text-foreground placeholder:text-muted-foreground ${
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 text-foreground placeholder:text-muted-foreground text-sm ${
                   theme.isActive 
                     ? 'bg-white/95 backdrop-blur-sm border border-white/20 focus:ring-white/50 shadow-lg' 
                     : 'bg-card border border-border focus:ring-primary'
@@ -118,14 +115,14 @@ export function LoginForm() {
             </div>
 
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 name="lastName"
                 placeholder="Nachname"
                 required
                 autoComplete="family-name"
-                className={`w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 text-foreground placeholder:text-muted-foreground ${
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 text-foreground placeholder:text-muted-foreground text-sm ${
                   theme.isActive 
                     ? 'bg-white/95 backdrop-blur-sm border border-white/20 focus:ring-white/50 shadow-lg' 
                     : 'bg-card border border-border focus:ring-primary'
@@ -134,7 +131,7 @@ export function LoginForm() {
             </div>
 
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="password"
                 name="password"
@@ -142,7 +139,7 @@ export function LoginForm() {
                 required
                 minLength={4}
                 autoComplete="current-password"
-                className={`w-full pl-11 pr-4 py-3 rounded-xl focus:outline-none focus:ring-2 text-foreground placeholder:text-muted-foreground ${
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 text-foreground placeholder:text-muted-foreground text-sm ${
                   theme.isActive 
                     ? 'bg-white/95 backdrop-blur-sm border border-white/20 focus:ring-white/50 shadow-lg' 
                     : 'bg-card border border-border focus:ring-primary'
@@ -155,8 +152,10 @@ export function LoginForm() {
         </form>
       </div>
       
-      {/* PWA Install Prompt */}
-      <InstallPrompt />
+      {/* PWA Install Prompt - Fixed at bottom */}
+      <div className="absolute bottom-4 left-0 right-0 px-4 z-20">
+        <InstallPrompt />
+      </div>
     </div>
   );
 }

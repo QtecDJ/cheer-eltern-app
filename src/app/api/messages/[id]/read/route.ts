@@ -1,14 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { getMessageById, assignMessageTo } from "@/lib/queries";
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
 
-export async function POST(req: Request, context: any) {
+export async function POST(req: NextRequest, context: any) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  
+  // Rate Limiting (READ preset - less restrictive)
+  const rateLimitResult = await applyRateLimit(req, RateLimitPresets.READ);
+  if (rateLimitResult) return rateLimitResult;
+  
   try {
     const id = Number((context?.params && (await context.params).id) ?? context?.params?.id ?? context?.params);
+    
+    // Validate ID
+    if (isNaN(id) || id <= 0) {
+      return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+    }
+    
     const msg = await getMessageById(id);
     if (!msg) return NextResponse.json({ error: "not_found" }, { status: 404 });
     // Only allow assignee or sender to mark as read.

@@ -1,9 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { encryptText } from "@/lib/crypto";
 import { sendOneSignalPushToMultipleUsers } from "@/lib/onesignal-push";
 import { revalidatePath } from "next/cache";
+import { validateRequestSafe, AnnouncementCreateSchema } from "@/lib/validation";
+import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
 
 // GET all announcements
 export async function GET(req: Request) {
@@ -64,7 +66,11 @@ export async function GET(req: Request) {
 }
 
 // POST create new announcement
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+  // Rate Limiting
+  const rateLimitResult = await applyRateLimit(req, RateLimitPresets.WRITE);
+  if (rateLimitResult) return rateLimitResult;
+  
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   
@@ -76,25 +82,31 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    if (!body.title || !body.content) {
-      return NextResponse.json({ error: "missing_required_fields" }, { status: 400 });
+    // Input Validation mit Zod
+    const validation = validateRequestSafe(AnnouncementCreateSchema, body);
+    if (!validation.success) {
+      return NextResponse.json({ 
+        error: "validation_failed", 
+        details: validation.error 
+      }, { status: 400 });
     }
-
-    const encryptedContent = encryptText(body.content);
+    
+    const validatedData = validation.data;
+    const encryptedContent = encryptText(validatedData.content);
 
     // Create announcement with optional poll
     const announcement = await prisma.announcement.create({
       data: {
-        title: body.title,
+        title: validatedData.title,
         content: encryptedContent,
-        category: body.category || 'news',
-        priority: body.priority || 'normal',
+        category: validatedData.category,
+        priority: validatedData.priority,
         authorId: session.id,
         teamId: body.teamId || null,
-        isPinned: body.isPinned || false,
-        expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
-        allowRsvp: body.allowRsvp || false,
-        imageUrl: body.imageUrl || null,
+        isPinned: validatedData.isPinned,
+        expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : null,
+        allowRsvp: validatedData.allowRsvp,
+        imageUrl: validatedData.imageUrl || null,
       },
     });
 

@@ -107,7 +107,7 @@ export function DokumenteContent({ embedded = false }: { embedded?: boolean } = 
     if (!acc[doc.category]) {
       acc[doc.category] = [];
     }
-    acc[doc.category].push(doc);
+    acc[doc.category]!.push(doc); // Non-null assertion since we just ensured it exists
     return acc;
   }, {} as Record<string, Document[]>);
 

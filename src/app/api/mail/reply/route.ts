@@ -8,6 +8,15 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { encryptText } from "@/lib/crypto";
 import { sendOneSignalPushByExternalUserId } from "@/lib/onesignal-push";
+import { validateRequestSafe } from "@/lib/validation";
+import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
+import { z } from "zod";
+
+// Validation Schema
+const MessageReplySchema = z.object({
+  messageId: z.union([z.number().int().positive(), z.string().regex(/^\d+$/)]),
+  message: z.string().min(1, "Nachricht darf nicht leer sein").max(10000),
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,27 +29,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Rate Limiting
+    const rateLimitResult = await applyRateLimit(request, RateLimitPresets.WRITE);
+    if (rateLimitResult) return rateLimitResult;
+
     const body = await request.json();
-    const { messageId, message } = body;
 
-    // Validation
-    if (!messageId || isNaN(parseInt(messageId))) {
+    // Input Validation mit Zod
+    const validation = validateRequestSafe(MessageReplySchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "Ungültige Nachrichten-ID" },
+        { error: "Validierung fehlgeschlagen", details: validation.error },
         { status: 400 }
       );
     }
 
-    if (!message || message.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Nachricht darf nicht leer sein" },
-        { status: 400 }
-      );
-    }
+    const { messageId, message } = validation.data;
+    const parsedMessageId = typeof messageId === 'string' ? parseInt(messageId) : messageId;
 
     // Get root message to verify access
     const rootMessage = await prisma.message.findUnique({
-      where: { id: parseInt(messageId) },
+      where: { id: parsedMessageId },
     });
 
     if (!rootMessage) {
@@ -62,7 +71,7 @@ export async function POST(request: NextRequest) {
     const encryptedBody = encryptText(message);
     const reply = await prisma.messageReply.create({
       data: {
-        messageId: parseInt(messageId),
+        messageId: parsedMessageId,
         authorId: user.id,
         body: encryptedBody,
       },
@@ -74,7 +83,7 @@ export async function POST(request: NextRequest) {
       sendOneSignalPushByExternalUserId(`member_${recipientId}`, {
         title: `${user.firstName || user.name} hat geantwortet`,
         body: message.substring(0, 100),
-        url: `/messages/${messageId}`,
+        url: `/messages/${parsedMessageId}`,
         icon: '/icons/icon-192x192.png',
       }).catch(error => {
         console.error('Failed to send OneSignal push:', error);

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Poll, PollData } from "@/components/ui/poll";
 import { cn, getRelativeDate } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { votePoll, removePollVote } from "./poll-actions";
 import {
   acceptEvent,
@@ -84,13 +85,13 @@ function addToCalendar(title: string, date: string, time: string, location: stri
   // Erstelle ICS-Datei für Kalender
   const [hours, minutes] = time.replace(' Uhr', '').split(':');
   const startDate = new Date(date);
-  startDate.setHours(parseInt(hours), parseInt(minutes), 0);
+  startDate.setHours(parseInt(hours || '0'), parseInt(minutes || '0'), 0);
   
   const endDate = new Date(startDate);
   endDate.setHours(endDate.getHours() + 2); // 2 Stunden Event
   
   const formatICSDate = (d: Date) => {
-    return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    return d.toISOString().replace(/[-:]/g, '').split('.')[0]! + 'Z'; // Non-null assertion since split always returns at least one element
   };
   
   const icsContent = [
@@ -129,7 +130,7 @@ function addToCalendar(title: string, date: string, time: string, location: stri
 function addToCalendarAllDay(title: string, description: string) {
   // Erstelle ICS-Datei für Kalender (ganztägiges Event)
   const today = new Date();
-  const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
+  const dateStr = today.toISOString().split('T')[0]!.replace(/-/g, ''); // Non-null assertion since split always returns at least one element
   
   const icsContent = [
     'BEGIN:VCALENDAR',
@@ -816,7 +817,7 @@ export function EventsContent({ events, competitions, eventAnnouncements = [], m
                                     <div 
                                       data-announcement-content
                                       className="text-[15px] text-foreground/85 leading-[1.7]"
-                                      dangerouslySetInnerHTML={{ __html: announcement.content }}
+                                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(announcement.content) }}
                                     />
                                   </div>
 

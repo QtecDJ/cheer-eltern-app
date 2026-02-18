@@ -4,5 +4,9 @@ import { LoginForm } from "./login-form";
 export const revalidate = 3600; // 1 hour
 
 export default function LoginPage() {
-  return <LoginForm />;
+  return (
+    <div className="h-screen w-screen overflow-hidden fixed inset-0">
+      <LoginForm />
+    </div>
+  );
 }

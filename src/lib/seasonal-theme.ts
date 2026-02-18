@@ -67,7 +67,7 @@ export function getCurrentSeasonalTheme(): SeasonalTheme {
     name: 'Standard',
     gradient: 'from-background to-muted/30',
     accentColor: 'text-primary',
-    greeting: 'Willkommen zurück! 👋',
+    greeting: 'Willkommen',
     motivationalText: 'Bereit für dein Training?',
     isActive: false,
   };

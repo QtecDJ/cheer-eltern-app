@@ -1,13 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    // Rate Limiting (READ preset for admin views)
+    const rateLimitResult = await applyRateLimit(req, RateLimitPresets.READ);
+    if (rateLimitResult) return rateLimitResult;
 
     const roles = (session.roles || []).map(r => (r || "").toString().toLowerCase());
     const isAdmin = roles.includes("admin") || roles.includes("orga") || roles.includes("trainer");

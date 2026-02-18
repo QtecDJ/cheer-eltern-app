@@ -8,8 +8,22 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { encryptText } from "@/lib/crypto";
 import { sendOneSignalPushByExternalUserId } from "@/lib/onesignal-push";
+import { validateRequestSafe } from "@/lib/validation";
+import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
+import { z } from "zod";
+
+// Schema für Direct Messages
+const DirectMessageSchema = z.object({
+  recipientId: z.number().int().positive().or(z.string().transform(Number)),
+  subject: z.string().max(255).optional(),
+  message: z.string().min(1, "Nachricht darf nicht leer sein").max(10000),
+});
 
 export async function POST(request: NextRequest) {
+  // Rate Limiting - WRITE preset
+  const rateLimitResult = await applyRateLimit(request, RateLimitPresets.WRITE);
+  if (rateLimitResult) return rateLimitResult;
+  
   try {
     const user = await getSession();
     
@@ -21,29 +35,24 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { recipientId, subject, message } = body;
 
-    // Validation
-    if (!recipientId) {
+    // Input Validation mit Zod
+    const validation = validateRequestSafe(DirectMessageSchema, body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: "Empfänger erforderlich" },
+        { error: "Validierung fehlgeschlagen", details: validation.error },
         { status: 400 }
       );
     }
 
-    if (!message || message.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Nachricht darf nicht leer sein" },
-        { status: 400 }
-      );
-    }
+    const { recipientId, subject, message } = validation.data;
 
     // Create message with encrypted body
     const encryptedBody = encryptText(message);
     const newMessage = await prisma.message.create({
       data: {
         senderId: user.id,
-        assignedTo: parseInt(recipientId),
+        assignedTo: typeof recipientId === 'string' ? parseInt(recipientId) : recipientId,
         subject: subject || `Nachricht von ${user.firstName || user.name}`,
         body: encryptedBody,
         status: 'open',

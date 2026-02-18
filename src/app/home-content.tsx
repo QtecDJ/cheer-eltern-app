@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { calculateAge, calculateAttendanceRate, getRelativeDate } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 import {
   Bell,
   BellOff,
@@ -618,5 +619,5 @@ function AnnouncementContent({ announcementId, content }: { announcementId: numb
     ttl: 1000 * 60 * 60 * 12, // 12h Cache (Announcements ändern sich öfter)
   });
 
-  return <span dangerouslySetInnerHTML={{ __html: cachedContent || content }} />;
+  return <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(cachedContent || content) }} />;
 }

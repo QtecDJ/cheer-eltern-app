@@ -33,14 +33,47 @@ export function isAdminOrTrainer(userRoleOrRoles: string | string[] | null): boo
   return roles.includes("admin") || roles.includes("trainer") || roles.includes("coach") || roles.includes("orga");
 }
 
-// Passwort-Vergleich: unterstützt bcrypt-Hashes und Klartext-Passwörter
+// Passwort-Vergleich: Nur bcrypt-Hashes werden akzeptiert
 async function verifyPassword(inputPassword: string, storedHash: string): Promise<boolean> {
   // Prüfe ob es ein bcrypt-Hash ist (beginnt mit $2a$, $2b$ oder $2y$)
-  if (storedHash.startsWith("$2")) {
-    return bcrypt.compare(inputPassword, storedHash);
+  if (!storedHash.startsWith("$2")) {
+    // Kein bcrypt-Hash - Security-Problem!
+    logger.error('[auth] Non-bcrypt password detected - migration required', {
+      hashPrefix: storedHash.substring(0, 3),
+    });
+    throw new Error('Passwort-Migration erforderlich. Bitte kontaktieren Sie den Administrator.');
   }
-  // Klartext-Vergleich für alte Passwörter
-  return inputPassword === storedHash;
+  
+  return bcrypt.compare(inputPassword, storedHash);
+}
+
+// Prüft ob ein Passwort-Hash ein Plaintext-Passwort ist (für Migration)
+function isPlaintextPassword(hash: string): boolean {
+  return !hash.startsWith("$2");
+}
+
+// Migriert ein Plaintext-Passwort zu bcrypt (wird beim Login aufgerufen)
+async function migratePlaintextPassword(
+  memberId: number, 
+  plaintextPassword: string,
+  inputPassword: string
+): Promise<boolean> {
+  // Prüfe ob Input-Passwort mit Plaintext übereinstimmt
+  if (inputPassword !== plaintextPassword) {
+    return false;
+  }
+  
+  // Hashe das Passwort mit bcrypt
+  const hashedPassword = await hashPassword(inputPassword);
+  
+  // Update in Datenbank
+  await prisma.member.update({
+    where: { id: memberId },
+    data: { passwordHash: hashedPassword },
+  });
+  
+  logger.info('[auth] Migrated plaintext password to bcrypt', { memberId });
+  return true;
 }
 
 // Passwort hashen mit bcrypt
@@ -84,9 +117,33 @@ export async function login(firstName: string, lastName: string, password: strin
 
     // Prüfe Passwort (falls vorhanden, sonst erstmaliger Login)
     if (member.passwordHash) {
-      const isValid = await verifyPassword(password, member.passwordHash);
-      if (!isValid) {
-        return { success: false, error: "Vorname, Nachname oder Passwort falsch" };
+      // Prüfe ob Plaintext-Passwort (Migration erforderlich)
+      if (isPlaintextPassword(member.passwordHash)) {
+        // Migriere Plaintext zu bcrypt
+        const migrated = await migratePlaintextPassword(
+          member.id, 
+          member.passwordHash, 
+          password
+        );
+        
+        if (!migrated) {
+          return { success: false, error: "Vorname, Nachname oder Passwort falsch" };
+        }
+        
+        logger.info('[auth] Successfully migrated plaintext password', { 
+          memberId: member.id 
+        });
+      } else {
+        // Normaler bcrypt-Vergleich
+        try {
+          const isValid = await verifyPassword(password, member.passwordHash);
+          if (!isValid) {
+            return { success: false, error: "Vorname, Nachname oder Passwort falsch" };
+          }
+        } catch (error) {
+          logger.error('[auth] Password verification failed', { error });
+          return { success: false, error: "Authentifizierung fehlgeschlagen. Bitte kontaktieren Sie den Administrator." };
+        }
       }
     } else {
       // Erstes Login - setze das Passwort (gehasht mit bcrypt)

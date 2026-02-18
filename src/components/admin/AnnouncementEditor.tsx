@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,13 +53,65 @@ export default function AnnouncementEditor({
   const [showImageLightbox, setShowImageLightbox] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
+  // Load announcement data
+  const loadAnnouncement = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/announcements/${announcementId}`);
+      const data = await res.json();
+      if (res.ok && data.announcement) {
+        const a = data.announcement;
+        setTitle(a.title);
+        setContent(a.content);
+        setCategory(a.category);
+        setPriority(a.priority);
+        setIsPinned(a.isPinned);
+        setAllowRsvp(a.allowRsvp);
+        setExpiresAt(a.expiresAt ? a.expiresAt.split('T')[0] : '');
+        setTeamIds(a.AnnouncementTeam?.map((at: any) => at.teamId) || []);
+        setImageUrl(a.imageUrl || '');
+        
+        // Load poll if exists
+        if (a.Poll && a.Poll.length > 0) {
+          const poll = a.Poll[0];
+          setHasPoll(true);
+          setPollQuestion(poll.question);
+          setAllowMultiple(poll.allowMultiple);
+          setIsAnonymous(poll.isAnonymous);
+          setPollEndsAt(poll.endsAt ? poll.endsAt.split('T')[0] : '');
+          setPollOptions(poll.PollOption.map((opt: any, idx: number) => ({
+            id: idx + 1,
+            text: opt.text
+          })));
+          setNextPollOptionId(poll.PollOption.length + 1);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load announcement:', err);
+    } finally {
+      setLoadingData(false);
+    }
+  }, [announcementId]);
+
+  // Load teams data
+  const loadTeams = useCallback(async () => {
+    try {
+      const res = await fetch('/api/teams');
+      const data = await res.json();
+      if (res.ok) {
+        setTeams(data.teams || []);
+      }
+    } catch (err) {
+      console.error('Failed to load teams:', err);
+    }
+  }, []);
+
   // Load existing announcement
   useEffect(() => {
     if (announcementId) {
       loadAnnouncement();
     }
     loadTeams();
-  }, [announcementId]);
+  }, [announcementId, loadAnnouncement, loadTeams]);
 
   // Set editor content when it changes
   useEffect(() => {
@@ -97,56 +149,6 @@ export default function AnnouncementEditor({
       }
     }
   }, [content]);
-
-  async function loadAnnouncement() {
-    try {
-      const res = await fetch(`/api/admin/announcements/${announcementId}`);
-      const data = await res.json();
-      if (res.ok && data.announcement) {
-        const a = data.announcement;
-        setTitle(a.title);
-        setContent(a.content);
-        setCategory(a.category);
-        setPriority(a.priority);
-        setIsPinned(a.isPinned);
-        setAllowRsvp(a.allowRsvp);
-        setExpiresAt(a.expiresAt ? a.expiresAt.split('T')[0] : '');
-        setTeamIds(a.AnnouncementTeam?.map((at: any) => at.teamId) || []);
-        setImageUrl(a.imageUrl || '');
-        
-        // Load poll if exists
-        if (a.Poll && a.Poll.length > 0) {
-          const poll = a.Poll[0];
-          setHasPoll(true);
-          setPollQuestion(poll.question);
-          setAllowMultiple(poll.allowMultiple);
-          setIsAnonymous(poll.isAnonymous);
-          setPollEndsAt(poll.endsAt ? poll.endsAt.split('T')[0] : '');
-          setPollOptions(poll.PollOption.map((opt: any, idx: number) => ({
-            id: idx + 1,
-            text: opt.text
-          })));
-          setNextPollOptionId(poll.PollOption.length + 1);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load announcement:', err);
-    } finally {
-      setLoadingData(false);
-    }
-  }
-
-  async function loadTeams() {
-    try {
-      const res = await fetch('/api/teams');
-      const data = await res.json();
-      if (res.ok) {
-        setTeams(data.teams || []);
-      }
-    } catch (err) {
-      console.error('Failed to load teams:', err);
-    }
-  }
 
   function formatText(command: string, value?: string) {
     document.execCommand(command, false, value);

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { CheckSquare } from "lucide-react";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export default function MessageItem({ message }: { message: any }) {
   const [open, setOpen] = useState(false);
@@ -221,7 +222,7 @@ export default function MessageItem({ message }: { message: any }) {
           <div 
             ref={descriptionRef}
             className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: fullMessageBody }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(fullMessageBody) }}
           />
           
           {todoId && (

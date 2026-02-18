@@ -9,6 +9,7 @@ import {
   ArrowLeft, Trash2, Send, MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 function getPriorityBadge(priority: string) {
   switch (priority?.toLowerCase()) {
@@ -144,7 +145,7 @@ export default function TodoDetail({ todo, currentUserId, roles }: { todo: any; 
             <div 
               ref={descriptionRef}
               className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: item.description }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(item.description) }}
             />
           )}
 
