@@ -207,39 +207,56 @@ export async function getAttendanceMap(memberId: number, limit = 50) {
 
 /**
  * Trainings-Liste für Training-Seite
- * Minimal, keine Teilnehmer-Details
+ * Alle kommenden Trainings (ohne Limit) + letzte 5 vergangene
  */
-export async function getTrainingsList(teamId: number, limit = 20) {
-  return await prisma.trainingSession.findMany({
-    where: {
-      teamId,
-      isArchived: false,
-      type: "training",
-    },
-    orderBy: { date: "asc" },
-    take: limit,
-    select: {
-      id: true,
-      title: true,
-      date: true,
-      time: true,
-      location: true,
-      trainer: true,
-      status: true,
-      description: true,
-      maxParticipants: true,
-      type: true,
-      // Team minimal
-      team: {
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          color: true,
-        },
+export async function getTrainingsList(teamId: number) {
+  const today = new Date().toISOString().split('T')[0];
+
+  const baseWhere = {
+    teamId,
+    isArchived: false,
+    type: "training",
+  };
+
+  const selectFields = {
+    id: true,
+    title: true,
+    date: true,
+    time: true,
+    location: true,
+    trainer: true,
+    status: true,
+    description: true,
+    maxParticipants: true,
+    type: true,
+    team: {
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        color: true,
       },
     },
-  });
+  };
+
+  const [upcoming, past] = await Promise.all([
+    // Alle kommenden Trainings (kein Limit)
+    prisma.trainingSession.findMany({
+      where: { ...baseWhere, date: { gte: today } },
+      orderBy: { date: 'asc' },
+      select: selectFields,
+    }),
+    // Letzte 5 vergangene Trainings
+    prisma.trainingSession.findMany({
+      where: { ...baseWhere, date: { lt: today } },
+      orderBy: { date: 'desc' },
+      take: 5,
+      select: selectFields,
+    }),
+  ]);
+
+  // Vergangene wieder aufsteigend sortieren und kombinieren
+  return [...past.reverse(), ...upcoming];
 }
 
 /**
