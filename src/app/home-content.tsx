@@ -619,5 +619,5 @@ function AnnouncementContent({ announcementId, content }: { announcementId: numb
     ttl: 1000 * 60 * 60 * 12, // 12h Cache (Announcements ändern sich öfter)
   });
 
-  return <span dangerouslySetInnerHTML={{ __html: sanitizeHtml(cachedContent || content) }} />;
+  return <span data-announcement-content dangerouslySetInnerHTML={{ __html: sanitizeHtml(cachedContent || content) }} />;
 }
