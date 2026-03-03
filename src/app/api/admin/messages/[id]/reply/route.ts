@@ -18,8 +18,9 @@ export async function POST(req: Request, context: any) {
     // Send OneSignal push notification to sender
     if (msg && msg.senderId) {
       sendOneSignalPushByExternalUserId(`member_${msg.senderId}`, {
-        title: `Infinity Cheer Allstars`,
-        body: `Antwort: ${msg.subject}`,
+        title: 'Infinity Cheer Allstars',
+        subtitle: '💬 Neue Antwort',
+        body: msg.subject ? `„${msg.subject}“` : 'Du hast eine neue Antwort erhalten.',
         url: `/messages/${messageId}`,
         icon: '/icons/icon-192x192.png',
       }).catch(error => {

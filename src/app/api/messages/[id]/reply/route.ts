@@ -50,8 +50,9 @@ export async function POST(req: NextRequest, context: any) {
     const recipientId = session.id === msg.senderId ? msg.assignedTo : msg.senderId;
     if (recipientId) {
       sendOneSignalPushByExternalUserId(`member_${recipientId}`, {
-        title: `Infinity Cheer Allstars`,
-        body: `Neue Antwort: ${msg.subject}`,
+        title: 'Infinity Cheer Allstars',
+        subtitle: `💬 Neue Antwort`,
+        body: msg.subject ? `„${msg.subject}“` : 'Du hast eine neue Antwort erhalten.',
         url: `/messages/${messageId}`,
         icon: '/icons/icon-192x192.png',
       }).catch(error => {

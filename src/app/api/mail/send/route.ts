@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { encryptText } from "@/lib/crypto";
-import { sendOneSignalPushByExternalUserId } from "@/lib/onesignal-push";
+import { sendOneSignalPushByExternalUserId, stripHtml } from "@/lib/onesignal-push";
 import { validateRequestSafe } from "@/lib/validation";
 import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
 import { z } from "zod";
@@ -60,9 +60,15 @@ export async function POST(request: NextRequest) {
     });
 
     // Send push notification to recipient via OneSignal
+    const senderName = user.firstName || user.name;
+    const bodyPreview = stripHtml(message);
+    const truncatedPreview = bodyPreview.length > 120 ? bodyPreview.slice(0, 120) + '…' : bodyPreview;
     sendOneSignalPushByExternalUserId(`member_${recipientId}`, {
-      title: `Neue Nachricht von ${user.firstName || user.name}`,
-      body: message.substring(0, 100),
+      title: 'Infinity Cheer Allstars',
+      subtitle: `✉️ Neue Nachricht von ${senderName}`,
+      body: subject
+        ? `${subject}\n${truncatedPreview}`
+        : truncatedPreview,
       url: `/messages/${newMessage.id}`,
       icon: '/icons/icon-192x192.png',
     }).catch(error => {

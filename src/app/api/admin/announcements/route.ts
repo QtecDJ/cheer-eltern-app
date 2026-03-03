@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { encryptText } from "@/lib/crypto";
-import { sendOneSignalPushToMultipleUsers } from "@/lib/onesignal-push";
+import { sendOneSignalPushToMultipleUsers, stripHtml } from "@/lib/onesignal-push";
 import { revalidatePath } from "next/cache";
 import { validateRequestSafe, AnnouncementCreateSchema } from "@/lib/validation";
 import { applyRateLimit, RateLimitPresets } from "@/lib/rate-limit";
@@ -143,12 +143,25 @@ export async function POST(req: NextRequest) {
 
     // Send push notifications via OneSignal
     // If specific teams are targeted, notify their members; otherwise notify all active members
-    const pushContent = validatedData.content.slice(0, 100) + (validatedData.content.length > 100 ? '...' : '');
+    const categoryEmoji: Record<string, string> = {
+      general: '📢',
+      training: '🏋️',
+      competition: '🏆',
+      event: '🎉',
+      urgent: '🚨',
+      info: 'ℹ️',
+    };
+    const emoji = categoryEmoji[validatedData.category] ?? '📢';
+    const isUrgent = validatedData.category === 'urgent';
+    const plainTextContent = stripHtml(validatedData.content);
+    const pushContent = plainTextContent.length > 120 ? plainTextContent.slice(0, 120) + '…' : plainTextContent;
     const pushPayload = {
       title: 'Infinity Cheer Allstars',
-      body: `${validatedData.title}: ${pushContent}`,
+      subtitle: `${emoji} ${isUrgent ? 'Dringend' : 'Neue Ankündigung'}`,
+      body: `${validatedData.title}\n${pushContent}`,
       url: `/events?announcement=${announcement.id}`,
       icon: validatedData.imageUrl || '/icons/icon-192x192.png',
+      priority: isUrgent ? 10 : 7,
     };
 
     if (body.teamIds && Array.isArray(body.teamIds) && body.teamIds.length > 0) {

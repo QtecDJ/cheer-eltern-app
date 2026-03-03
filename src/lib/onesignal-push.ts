@@ -4,11 +4,39 @@ const ONESIGNAL_API_URL = "https://onesignal.com/api/v1";
 const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
+/**
+ * Strip HTML tags and decode common HTML entities from a string.
+ * Safe to call on plain text as well.
+ */
+export function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Truncate a string to maxLen characters, appending "…" if cut.
+ */
+function truncate(str: string, maxLen: number): string {
+  return str.length > maxLen ? str.slice(0, maxLen) + '…' : str;
+}
+
 interface OneSignalNotification {
   title: string;
+  /** iOS subtitle (shown between title and body) */
+  subtitle?: string;
   body: string;
   url: string;
   icon?: string;
+  /** OneSignal priority 1–10. Use 10 for urgent. Default: 7 */
+  priority?: number;
 }
 
 /**
@@ -34,10 +62,12 @@ export async function sendOneSignalPushToUser(
         app_id: ONESIGNAL_APP_ID,
         include_player_ids: [oneSignalPlayerId],
         headings: { en: notification.title },
+        ...(notification.subtitle ? { subtitle: { en: notification.subtitle } } : {}),
         contents: { en: notification.body },
         url: notification.url,
         icon: notification.icon || '/icons/icon-192x192.png',
         chrome_web_icon: notification.icon || '/icons/icon-192x192.png',
+        priority: notification.priority ?? 7,
       }),
     });
 
@@ -79,10 +109,12 @@ export async function sendOneSignalPushByExternalUserId(
         app_id: ONESIGNAL_APP_ID,
         include_external_user_ids: [externalUserId],
         headings: { en: notification.title },
+        ...(notification.subtitle ? { subtitle: { en: notification.subtitle } } : {}),
         contents: { en: notification.body },
         url: notification.url,
         icon: notification.icon || '/icons/icon-192x192.png',
         chrome_web_icon: notification.icon || '/icons/icon-192x192.png',
+        priority: notification.priority ?? 7,
       }),
     });
 
@@ -131,10 +163,12 @@ export async function sendOneSignalPushToMultipleUsers(
         app_id: ONESIGNAL_APP_ID,
         include_external_user_ids: externalUserIds,
         headings: { en: notification.title },
+        ...(notification.subtitle ? { subtitle: { en: notification.subtitle } } : {}),
         contents: { en: notification.body },
         url: notification.url,
         icon: notification.icon || '/icons/icon-192x192.png',
         chrome_web_icon: notification.icon || '/icons/icon-192x192.png',
+        priority: notification.priority ?? 7,
       }),
     });
 

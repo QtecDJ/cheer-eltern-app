@@ -18,7 +18,8 @@ export async function POST(req: Request, context: any) {
       if (msg) {
         sendOneSignalPushByExternalUserId(`member_${assigneeId}`, {
           title: 'Infinity Cheer Allstars',
-          body: `Nachricht zugewiesen: ${msg.subject}`,
+          subtitle: '📋 Nachricht zugewiesen',
+          body: `„${msg.subject}“`,
           url: `/messages/${id}`,
           icon: '/icons/icon-192x192.png',
         }).catch(error => {

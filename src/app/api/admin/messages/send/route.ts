@@ -44,9 +44,10 @@ export async function POST(req: Request) {
     
     // Send push notification to all recipients via OneSignal
     sendOneSignalPushToMultipleUsers(assignees, {
-      title: `Infinity Cheer Allstars`,
-      body: `Neue Nachricht: ${subject}`,
-      url: `/messages`,
+      title: 'Infinity Cheer Allstars',
+      subtitle: '✉️ Neue Nachricht',
+      body: `„${subject}“`,
+      url: '/messages',
       icon: '/icons/icon-192x192.png',
     }).catch(error => {
       console.error('Failed to send OneSignal push to recipients:', error);
