@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "./db";
 import bcrypt from "bcryptjs";
 import { logger } from '@/lib/logger';
+import { decryptText } from './crypto';
 
 const SESSION_COOKIE = "member_session";
 const PUBLIC_SESSION_COOKIE = "member_session_public";
@@ -52,14 +53,26 @@ function isPlaintextPassword(hash: string): boolean {
   return !hash.startsWith("$2");
 }
 
-// Migriert ein Plaintext-Passwort zu bcrypt (wird beim Login aufgerufen)
+// Migriert ein Plaintext- oder AES-verschlüsseltes Passwort zu bcrypt (wird beim Login aufgerufen)
 async function migratePlaintextPassword(
   memberId: number, 
-  plaintextPassword: string,
+  storedHash: string,
   inputPassword: string
 ): Promise<boolean> {
-  // Prüfe ob Input-Passwort mit Plaintext übereinstimmt
-  if (inputPassword !== plaintextPassword) {
+  // Versuche zuerst, das gespeicherte Passwort zu entschlüsseln
+  // (falls es mit encryptText/AES gespeichert wurde, nicht als echtes Plaintext)
+  let actualPassword = storedHash;
+  try {
+    const decrypted = decryptText(storedHash);
+    if (decrypted !== storedHash) {
+      // Erfolgreiche AES-Entschlüsselung
+      actualPassword = decrypted;
+    }
+  } catch {
+    // Ignorieren — bleibt bei storedHash als Plaintext
+  }
+
+  if (inputPassword !== actualPassword) {
     return false;
   }
   
@@ -72,7 +85,7 @@ async function migratePlaintextPassword(
     data: { passwordHash: hashedPassword },
   });
   
-  logger.info('[auth] Migrated plaintext password to bcrypt', { memberId });
+  logger.info('[auth] Migrated password to bcrypt', { memberId });
   return true;
 }
 

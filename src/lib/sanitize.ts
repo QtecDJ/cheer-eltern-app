@@ -1,76 +1,81 @@
 /**
  * HTML Sanitization Utility
- * 
- * Verwendet DOMPurify um potentiell gefährlichen HTML-Content zu bereinigen
- * und XSS-Angriffe zu verhindern.
+ *
+ * Verwendet DOMPurify im Browser, um potentiell gefährlichen HTML-Content zu bereinigen.
+ * Auf dem Server (SSR) wird der Inhalt unverändert zurückgegeben — alle Aufrufer
+ * sind Client-Komponenten, die erst im Browser rendern.
+ * So wird jsdom (und der ESM-Konflikt mit @exodus/bytes) nie server-seitig geladen.
  */
 
-import DOMPurify from 'isomorphic-dompurify';
+type DOMPurifyInstance = {
+  sanitize(dirty: string, config?: Record<string, unknown>): string;
+};
+
+let purify: DOMPurifyInstance | null = null;
+
+function getPurify(): DOMPurifyInstance | null {
+  if (typeof window === 'undefined') return null;
+  if (purify) return purify;
+  // dompurify ist transitive Abhängigkeit von isomorphic-dompurify — direkt verwenden
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const createDOMPurify = require('dompurify');
+  purify = typeof createDOMPurify === 'function'
+    ? createDOMPurify(window)
+    : createDOMPurify;
+  return purify;
+}
+
+const ALLOWED_TAGS = [
+  'p', 'br', 'strong', 'em', 'u', 's', 'span', 'div',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'ul', 'ol', 'li',
+  'a',
+  'blockquote', 'code', 'pre',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  'img',
+  'hr',
+];
+
+const ALLOWED_ATTR = [
+  'href', 'target', 'rel', 'class', 'id', 'style',
+  'src', 'alt', 'width', 'height', 'title',
+];
+
+const SAFE_URI = /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
 
 /**
- * Bereinigt HTML-Content und entfernt gefährliche Tags/Attribute
- * 
- * @param dirty - Unbereinigter HTML-String
- * @returns Sicherer HTML-String
+ * Bereinigt HTML-Content und entfernt gefährliche Tags/Attribute.
+ * Im Browser via DOMPurify, auf dem Server Passthrough (kein jsdom).
  */
 export function sanitizeHtml(dirty: string): string {
   if (!dirty) return '';
-  
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS: [
-      // Text-Formatierung
-      'p', 'br', 'strong', 'em', 'u', 's', 'span', 'div',
-      // Überschriften
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      // Listen
-      'ul', 'ol', 'li',
-      // Links
-      'a',
-      // Quotes und Code
-      'blockquote', 'code', 'pre',
-      // Tabellen
-      'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      // Bilder
-      'img',
-      // Sonstige
-      'hr',
-    ],
-    ALLOWED_ATTR: [
-      'href', 'target', 'rel', 'class', 'id', 'style',
-      'src', 'alt', 'width', 'height', 'title',
-    ],
-    // Nur sichere URLs erlauben (keine javascript:, data: etc.)
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  const dp = getPurify();
+  if (!dp) return dirty; // server-side: kein jsdom, Passthrough
+  return dp.sanitize(dirty, {
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
+    ALLOWED_URI_REGEXP: SAFE_URI,
   });
 }
 
 /**
- * Bereinigt einzelne Attribute (z.B. für title, alt)
- * Entfernt alle HTML-Tags
- * 
- * @param attr - Attribute-String
- * @returns Bereinigter Text
+ * Bereinigt einzelne Attribute (z.B. title, alt) — entfernt alle HTML-Tags.
  */
 export function sanitizeAttribute(attr: string): string {
   if (!attr) return '';
-  
-  return DOMPurify.sanitize(attr, { 
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [] 
-  });
+  const dp = getPurify();
+  if (!dp) return attr;
+  return dp.sanitize(attr, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
 }
 
 /**
- * Bereinigt HTML mit strengeren Regeln (z.B. für Kommentare)
- * Erlaubt nur grundlegende Text-Formatierung
- * 
- * @param dirty - Unbereinigter HTML-String
- * @returns Sicherer HTML-String mit eingeschränkten Tags
+ * Strikte Bereinigung (z.B. für Kommentare) — nur grundlegende Textformatierung.
  */
 export function sanitizeHtmlStrict(dirty: string): string {
   if (!dirty) return '';
-  
-  return DOMPurify.sanitize(dirty, {
+  const dp = getPurify();
+  if (!dp) return dirty;
+  return dp.sanitize(dirty, {
     ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'a'],
     ALLOWED_ATTR: ['href', 'target', 'rel'],
   });

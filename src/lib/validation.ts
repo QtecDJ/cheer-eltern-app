@@ -57,7 +57,7 @@ export const LoginSchema = z.object({
     .max(100, 'Nachname zu lang'),
   
   password: z.string()
-    .min(6, 'Passwort muss mindestens 6 Zeichen lang sein')
+    .min(1, 'Passwort ist erforderlich')
     .max(100, 'Passwort zu lang'),
 });
 

@@ -549,6 +549,17 @@ body.pull-active {
   font-style: italic;
 }
 
+/* Dark mode: override hardcoded inline color/background styles from rich text editor */
+@media (prefers-color-scheme: dark) {
+  [data-announcement-content] [style*="color"],
+  [data-announcement-content] [style*="background"],
+  .announcement-content [style*="color"],
+  .announcement-content [style*="background"] {
+    color: var(--foreground) !important;
+    background-color: transparent !important;
+  }
+}
+
 /* Seasonal Theme Animations */
 @keyframes float {
   0%, 100% {
@@ -587,4 +598,19 @@ body.pull-active {
 
 .drop-shadow-themed {
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+}
+
+/* Dark mode: hardcoded schwarze Schrift (aus dem Editor) auf lesbare Farbe umschalten */
+@media (prefers-color-scheme: dark) {
+  [data-announcement-content] font[color="#000000"],
+  [data-announcement-content] font[color="black"],
+  [data-announcement-content] [style*="color: rgb(0, 0, 0)"],
+  [data-announcement-content] [style*="color: #000000"],
+  [data-announcement-content] [style*="color:#000000"],
+  .announcement-content font[color="#000000"],
+  .announcement-content font[color="black"],
+  .announcement-content [style*="color: rgb(0, 0, 0)"],
+  .announcement-content [style*="color: #000000"] {
+    color: var(--foreground) !important;
+  }
 }

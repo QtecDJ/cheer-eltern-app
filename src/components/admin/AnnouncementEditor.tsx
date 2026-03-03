@@ -156,6 +156,43 @@ export default function AnnouncementEditor({
     updateContent();
   }
 
+  // Farbe via CSS-Variable oder reset — speichert var(--primary) etc. im HTML,
+  // damit dark/light mode beim Anzeigen automatisch korrekt ist
+  function applyColor(cssValue: string) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    if (cssValue === 'reset') {
+      document.execCommand('removeFormat', false);
+      updateContent();
+      setShowColorPicker(false);
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (range.collapsed) {
+      setShowColorPicker(false);
+      return;
+    }
+
+    const span = document.createElement('span');
+    span.setAttribute('style', `color: ${cssValue}`);
+    try {
+      range.surroundContents(span);
+    } catch {
+      const fragment = range.extractContents();
+      span.appendChild(fragment);
+      range.insertNode(span);
+    }
+    selection.removeAllRanges();
+    updateContent();
+    setShowColorPicker(false);
+  }
+
   function updateContent() {
     if (editorRef.current) {
       setContent(editorRef.current.innerHTML);
@@ -341,30 +378,26 @@ export default function AnnouncementEditor({
                 <Palette className="w-4 h-4" />
               </button>
               {showColorPicker && (
-                <div className="absolute top-full left-0 mt-1 p-2 bg-card border-2 border-border rounded-lg shadow-xl z-10 grid grid-cols-5 gap-1">
+                <div className="absolute top-full left-0 mt-1 p-2 bg-card border-2 border-border rounded-lg shadow-xl z-10 grid grid-cols-4 gap-1 min-w-[200px]">
                   {[
-                    { color: '#000000', name: 'Schwarz' },
-                    { color: '#ef4444', name: 'Rot' },
-                    { color: '#f97316', name: 'Orange' },
-                    { color: '#eab308', name: 'Gelb' },
-                    { color: '#22c55e', name: 'Grün' },
-                    { color: '#3b82f6', name: 'Blau' },
-                    { color: '#a855f7', name: 'Lila' },
-                    { color: '#ec4899', name: 'Pink' },
-                    { color: '#64748b', name: 'Grau' },
-                    { color: '#ffffff', name: 'Weiß' },
-                  ].map(({ color, name }) => (
+                    { cssValue: 'var(--primary)', name: 'Pink (Theme)', preview: 'bg-primary' },
+                    { cssValue: 'var(--accent)', name: 'Lila (Theme)', preview: 'bg-accent' },
+                    { cssValue: 'var(--destructive)', name: 'Rot (Theme)', preview: 'bg-destructive' },
+                    { cssValue: '#22c55e', name: 'Grün', preview: 'bg-green-500' },
+                    { cssValue: '#3b82f6', name: 'Blau', preview: 'bg-blue-500' },
+                    { cssValue: '#f97316', name: 'Orange', preview: 'bg-orange-500' },
+                    { cssValue: '#eab308', name: 'Gelb', preview: 'bg-yellow-500' },
+                    { cssValue: 'reset', name: 'Farbe entfernen', preview: 'bg-muted' },
+                  ].map(({ cssValue, name, preview }) => (
                     <button
-                      key={color}
+                      key={cssValue}
                       type="button"
-                      onClick={() => {
-                        formatText('foreColor', color);
-                        setShowColorPicker(false);
-                      }}
-                      className="w-8 h-8 rounded border-2 border-border hover:scale-110 transition-transform"
-                      style={{ backgroundColor: color }}
+                      onClick={() => applyColor(cssValue)}
+                      className={`w-8 h-8 rounded border-2 border-border hover:scale-110 transition-transform ${preview} ${cssValue === 'reset' ? 'text-xs flex items-center justify-center' : ''}`}
                       title={name}
-                    />
+                    >
+                      {cssValue === 'reset' && <span className="text-foreground text-[10px] leading-none">✕</span>}
+                    </button>
                   ))}
                 </div>
               )}
