@@ -26,10 +26,15 @@ export const AnnouncementCreateSchema = z.object({
   isPinned: z.boolean().optional().default(false),
   allowRsvp: z.boolean().optional().default(false),
   
-  expiresAt: z.string()
-    .datetime({ message: 'Ungültiges Datum-Format' })
-    .optional()
-    .nullable(),
+  expiresAt: z.preprocess(
+    (val) => {
+      if (!val || val === '') return null;
+      // Accept both date-only ("2026-03-03") and full ISO datetime strings
+      const d = new Date(val as string);
+      return isNaN(d.getTime()) ? null : d.toISOString();
+    },
+    z.string().datetime().optional().nullable()
+  ),
   
   teamIds: z.array(z.number().int().positive())
     .optional()

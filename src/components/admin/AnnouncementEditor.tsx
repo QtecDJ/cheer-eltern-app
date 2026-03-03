@@ -250,7 +250,7 @@ export default function AnnouncementEditor({
         priority,
         isPinned,
         allowRsvp,
-        expiresAt: expiresAt || null,
+        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
         teamIds,
         imageUrl: imageUrl.trim() || null,
       };
