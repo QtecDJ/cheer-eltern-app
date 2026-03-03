@@ -19,7 +19,7 @@ export const AnnouncementCreateSchema = z.object({
     .min(1, 'Inhalt ist erforderlich')
     .max(50000, 'Inhalt ist zu lang'),
   
-  category: z.enum(['news', 'event', 'training', 'info']).default('news'),
+  category: z.enum(['news', 'event', 'training', 'urgent', 'info']).default('news'),
   
   priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
   
