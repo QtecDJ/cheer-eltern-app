@@ -36,8 +36,8 @@ export async function GET(request: NextRequest) {
     }
 
     const response = NextResponse.json({ attendanceMap: map });
-    // Cache for 60 seconds, stale-while-revalidate for 120
-    response.headers.set('Cache-Control', 's-maxage=60, stale-while-revalidate=120');
+    // Kein Cache: Attendance-Daten sind personalisiert und m\u00fcssen immer aktuell sein
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     return response;
   } catch (error) {
     console.error("Error fetching attendance map:", error);

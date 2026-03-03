@@ -141,32 +141,38 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Send push notifications to team members via OneSignal
+    // Send push notifications via OneSignal
+    // If specific teams are targeted, notify their members; otherwise notify all active members
+    const pushContent = validatedData.content.slice(0, 100) + (validatedData.content.length > 100 ? '...' : '');
+    const pushPayload = {
+      title: 'Infinity Cheer Allstars',
+      body: `${validatedData.title}: ${pushContent}`,
+      url: `/events?announcement=${announcement.id}`,
+      icon: validatedData.imageUrl || '/icons/icon-192x192.png',
+    };
+
     if (body.teamIds && Array.isArray(body.teamIds) && body.teamIds.length > 0) {
-      // Get all members from the specified teams
+      // Targeted: specific teams
       const teamMembers = await prisma.member.findMany({
-        where: {
-          teamId: {
-            in: body.teamIds,
-          },
-        },
+        where: { teamId: { in: body.teamIds } },
         select: { id: true },
       });
-
       const memberIds = teamMembers.map(m => m.id);
-
       if (memberIds.length > 0) {
-        sendOneSignalPushToMultipleUsers(
-          memberIds,
-          {
-            title: 'Infinity Cheer Allstars',
-            body: `${body.title}: ${body.content.slice(0, 80)}${body.content.length > 80 ? '...' : ''}`,
-            url: `/events?announcement=${announcement.id}`,
-            icon: body.imageUrl || '/icons/icon-192x192.png',
-          }
-        ).catch(error => {
+        sendOneSignalPushToMultipleUsers(memberIds, pushPayload).catch(error => {
           console.error('Failed to send OneSignal push notifications:', error);
-          // Don't fail the request if push fails
+        });
+      }
+    } else {
+      // Global: alle aktiven Mitglieder benachrichtigen
+      const allMembers = await prisma.member.findMany({
+        where: { status: 'active' },
+        select: { id: true },
+      });
+      const memberIds = allMembers.map(m => m.id);
+      if (memberIds.length > 0) {
+        sendOneSignalPushToMultipleUsers(memberIds, pushPayload).catch(error => {
+          console.error('Failed to send OneSignal push notifications (global):', error);
         });
       }
     }

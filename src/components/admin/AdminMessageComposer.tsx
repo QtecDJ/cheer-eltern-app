@@ -40,7 +40,7 @@ export default function AdminMessageComposer({ teams }: { teams: Team[] }) {
 
   if (status === "sent") {
     return (
-      <div className="p-4 bg-green-50 border border-green-200 rounded text-black">
+      <div className="p-4 bg-green-500/10 border border-green-500/30 rounded text-foreground">
         Nachricht gesendet.
       </div>
     );

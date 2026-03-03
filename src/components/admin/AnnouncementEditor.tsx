@@ -464,7 +464,7 @@ export default function AnnouncementEditor({
               </div>
               <div className="absolute inset-0 bg-black/0 group-hover/preview:bg-black/30 transition-colors duration-300 flex items-center justify-center">
                 <div className="opacity-0 group-hover/preview:opacity-100 transition-opacity duration-300 bg-white/90 backdrop-blur-sm rounded-full p-3">
-                  <Maximize2 className="w-6 h-6 text-gray-900" />
+                  <Maximize2 className="w-6 h-6 text-foreground" />
                 </div>
               </div>
               <button

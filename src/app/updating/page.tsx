@@ -32,7 +32,7 @@ export default function UpdatingPage() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="max-w-md w-full space-y-6 text-center">
         {/* Icon/Logo */}
         <div className="flex justify-center">
@@ -55,10 +55,10 @@ export default function UpdatingPage() {
 
         {/* Text */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Update wird installiert
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Bitte warten, während die neueste Version geladen wird...
           </p>
         </div>
@@ -66,15 +66,15 @@ export default function UpdatingPage() {
         {/* Progress Bar */}
         <div className="space-y-2">
           <Progress value={progress} className="h-3" />
-          <p className="text-sm text-gray-500">{progress}%</p>
+          <p className="text-sm text-muted-foreground">{progress}%</p>
         </div>
 
         {/* Features/Info */}
-        <div className="pt-4 text-left bg-white rounded-lg p-4 shadow-sm">
-          <h3 className="font-semibold text-sm text-gray-900 mb-2">
+        <div className="pt-4 text-left bg-card border border-border rounded-lg p-4 shadow-sm">
+          <h3 className="font-semibold text-sm text-foreground mb-2">
             Neu in dieser Version:
           </h3>
-          <ul className="text-sm text-gray-600 space-y-1">
+          <ul className="text-sm text-muted-foreground space-y-1">
             <li className="flex items-start">
               <span className="text-green-500 mr-2">✓</span>
               Verbesserte Team-Verwaltung

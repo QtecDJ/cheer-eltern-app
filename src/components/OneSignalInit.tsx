@@ -22,13 +22,6 @@ export function OneSignalInit() {
       }
 
       try {
-        // Check if OneSignal is already initialized
-        if (typeof window !== 'undefined' && (window as any).OneSignalDeferred) {
-          console.log('[OneSignal] SDK already loaded, skipping init');
-          isInitialized.current = true;
-          return;
-        }
-
         console.log('[OneSignal] Starting initialization...');
 
         await OneSignal.init({
