@@ -199,6 +199,56 @@ export default function AnnouncementEditor({
     }
   }
 
+  function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const clipboardData = e.clipboardData;
+
+    // Prefer HTML so formatting (bold, italic, links) is preserved
+    const html = clipboardData.getData('text/html');
+    const plain = clipboardData.getData('text/plain');
+
+    let cleaned: string;
+    if (html) {
+      // Parse und bereinige problematische Inline-Styles
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      // Entferne font-size und font-family aus allen Inline-Styles
+      doc.querySelectorAll<HTMLElement>('[style]').forEach((el) => {
+        const style = el.style;
+        style.removeProperty('font-size');
+        style.removeProperty('font-family');
+        style.removeProperty('line-height');
+        style.removeProperty('mso-line-height-rule');
+        style.removeProperty('background-color');
+        // Wenn Style leer ist, Attribut komplett entfernen
+        if (!el.getAttribute('style')?.trim()) {
+          el.removeAttribute('style');
+        }
+      });
+
+      // Entferne Word-spezifische Klassen und Metadaten
+      doc.querySelectorAll('[class]').forEach((el) => {
+        const cls = el.getAttribute('class') || '';
+        if (cls.startsWith('Mso') || cls.startsWith('mso')) {
+          el.removeAttribute('class');
+        }
+      });
+
+      cleaned = doc.body.innerHTML;
+    } else {
+      // Fallback: Plain text mit Zeilenumbrüchen
+      cleaned = plain
+        .split('\n')
+        .map((line) => `<p>${line || '<br>'}</p>`)
+        .join('');
+    }
+
+    // In den Editor einfügen
+    document.execCommand('insertHTML', false, cleaned);
+    updateContent();
+  }
+
   function addPollOption() {
     setPollOptions([...pollOptions, { id: nextPollOptionId, text: "" }]);
     setNextPollOptionId(nextPollOptionId + 1);
@@ -424,6 +474,7 @@ export default function AnnouncementEditor({
             ref={editorRef}
             contentEditable
             onInput={updateContent}
+            onPaste={handlePaste}
             className="min-h-[300px] p-4 border border-border rounded-xl bg-background focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/50"
             data-placeholder="Schreibe hier den Inhalt der Ankündigung..."
             suppressContentEditableWarning

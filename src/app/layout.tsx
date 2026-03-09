@@ -139,7 +139,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <head>
         {/* ...existing code... */}
       </head>
-      <body className={"font-sans antialiased bg-slate-900 text-white"}>
+      <body className={"font-sans antialiased bg-background text-foreground"}>
         {session ? (
           <ProfileProvider>
             <ServiceWorkerRegistration />
@@ -153,7 +153,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             
             <PullToRefresh>
               <main className={cn(
-                "min-h-screen safe-area-inset w-full pb-20"
+                "min-h-screen safe-area-inset w-full pb-20 lg:pb-8 lg:pt-14"
               )}>
                 {children}
               </main>

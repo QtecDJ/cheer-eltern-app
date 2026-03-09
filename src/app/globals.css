@@ -549,6 +549,14 @@ body.pull-active {
   font-style: italic;
 }
 
+/* Inline font-size / font-family aus eingeklebtem Text (Word etc.) überschreiben */
+[data-announcement-content] *,
+.announcement-content * {
+  font-size: inherit !important;
+  font-family: inherit !important;
+  line-height: inherit !important;
+}
+
 /* Dark mode: override hardcoded inline color/background styles from rich text editor */
 @media (prefers-color-scheme: dark) {
   [data-announcement-content] [style*="color"],

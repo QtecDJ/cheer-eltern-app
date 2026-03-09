@@ -18,7 +18,8 @@ import {
   User,
   LogOut,
   FileText,
-  CalendarDays
+  CalendarDays,
+  Shield,
 } from "lucide-react";
 
 export interface NavItem {
@@ -61,7 +62,6 @@ export function TopNav({ items, userName, userRole, isAdmin }: TopNavProps) {
         setAdminDropdownOpen(false);
       }
     }
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -77,23 +77,119 @@ export function TopNav({ items, userName, userRole, isAdmin }: TopNavProps) {
 
   return (
     <>
-      {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-7 left-0 right-0 z-50 px-4 pb-safe">
+      {/* ── Desktop Top Navigation ─────────────────────────────────── */}
+      <nav className="hidden lg:flex fixed top-0 left-0 right-0 z-50 h-14 bg-card/80 backdrop-blur-xl border-b border-border items-center px-6">
+        <div className="max-w-6xl mx-auto w-full flex items-center gap-2">
+
+          {/* Logo + Brand */}
+          <Link href="/" className="flex items-center gap-2 mr-4 shrink-0">
+            <Image
+              src="/icons/icon-192x192.png"
+              alt="Logo"
+              width={28}
+              height={28}
+              className="rounded-xl"
+            />
+            <span className="font-semibold text-sm text-foreground">Member App</span>
+          </Link>
+
+          {/* Nav Links */}
+          <div className="flex items-center gap-0.5">
+            {items.map((item) => {
+              const Icon = iconMap[item.icon];
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/" && pathname?.startsWith(item.href + "/"));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Right — Admin + User */}
+          <div className="ml-auto flex items-center gap-1">
+
+            {/* Admin Dropdown */}
+            {isAdmin && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setAdminDropdownOpen(!adminDropdownOpen)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    adminDropdownOpen
+                      ? "text-primary bg-primary/10"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <Shield className="w-4 h-4 shrink-0" />
+                  Admin
+                  <ChevronDown
+                    className={`w-3 h-3 transition-transform ${adminDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {adminDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-52 bg-card border border-border rounded-xl shadow-xl z-50 py-1 overflow-hidden">
+                    {adminLinks.map((link) => {
+                      const LinkIcon = link.icon;
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setAdminDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                        >
+                          <LinkIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                          {link.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Profile link */}
+            <Link
+              href="/profil"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                pathname === "/profil"
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+            >
+              <User className="w-4 h-4 shrink-0" />
+              {userName || "Profil"}
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── Mobile Bottom Navigation ───────────────────────────────── */}
+      <nav className="lg:hidden fixed bottom-7 left-0 right-0 z-50 px-4 pb-safe">
         <div className="max-w-sm mx-auto">
           <div className="bg-card/40 backdrop-blur-2xl border border-border/30 rounded-3xl shadow-lg shadow-black/10 p-2">
             <div className="flex justify-around items-center h-14 px-1">
               {items.map((item) => {
                 const Icon = iconMap[item.icon];
-                const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
-                
+                const isActive =
+                  pathname === item.href ||
+                  (item.href !== "/" && pathname?.startsWith(item.href + "/"));
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     className={`flex flex-col items-center justify-center gap-0.5 px-2 py-1.5 rounded-lg transition-all ${
-                      isActive
-                        ? "text-primary"
-                        : "text-muted-foreground"
+                      isActive ? "text-primary" : "text-muted-foreground"
                     }`}
                   >
                     <Icon className="w-4 h-4" />
