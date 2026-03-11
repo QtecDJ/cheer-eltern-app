@@ -90,12 +90,55 @@ export function AnwesenheitContent({
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
   const [saving, setSaving] = useState<number | null>(null);
+  const [excusedCount, setExcusedCount] = useState(initialExcusedCount);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const previousAttendanceRef = useRef<Record<number, AttendanceStatus> | null>(null);
   const toggleCacheRef = useRef<Map<number, (status: AttendanceStatus) => void>>(new Map());
+  const savingSetRef = useRef<Set<number>>(new Set());
   
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Auto-refresh: Daten alle 15 Sekunden nachladen
+  useEffect(() => {
+    async function fetchFresh() {
+      // Wenn gerade jemand gespeichert wird, überspringen
+      if (savingSetRef.current.size > 0) return;
+      try {
+        const res = await fetch(`/api/coaches/training-attendance?trainingId=${training.id}`, { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const fresh: ExistingAttendance[] = data.attendances || [];
+        setAttendance(prev => {
+          const next = { ...prev };
+          fresh.forEach(att => {
+            // Nur updaten wenn der Member gerade nicht gespeichert wird
+            if (!savingSetRef.current.has(att.memberId)) {
+              if (att.status === 'present') next[att.memberId] = 'present';
+              else if (att.status === 'absent' || att.status === 'excused') next[att.memberId] = 'absent';
+              else next[att.memberId] = null;
+            }
+          });
+          // Members die nicht mehr in fresh sind → null setzen (nur wenn nicht saving)
+          Object.keys(next).forEach(key => {
+            const id = Number(key);
+            if (!savingSetRef.current.has(id) && !fresh.find(a => a.memberId === id)) {
+              next[id] = null;
+            }
+          });
+          return next;
+        });
+        setExcusedCount(fresh.filter(a => a.status === 'excused').length);
+        setLastRefreshed(new Date());
+      } catch (_) {
+        // Stille Fehler beim Polling – User muss nicht gestört werden
+      }
+    }
+
+    const interval = setInterval(fetchFresh, 15000);
+    return () => clearInterval(interval);
+  }, [training.id]);
 
   // Initialisiere Anwesenheit nur einmal (Performance)
   const [attendance, setAttendance] = useState<Record<number, AttendanceStatus>>(() => {
@@ -147,6 +190,7 @@ export function AnwesenheitContent({
 
     // Zeige Speicher-Status
     setSaving(memberId);
+    savingSetRef.current.add(memberId);
 
     try {
       const response = await fetch("/api/attendance", {
@@ -171,6 +215,7 @@ export function AnwesenheitContent({
       alert("Fehler beim Speichern. Bitte versuche es erneut.");
     } finally {
       setSaving(null);
+      savingSetRef.current.delete(memberId);
     }
   }, [training.id]);
 
@@ -188,9 +233,6 @@ export function AnwesenheitContent({
   const presentCount = useMemo(() => Object.values(attendance).filter(s => s === "present").length, [attendance]);
   const absentCount = useMemo(() => Object.values(attendance).filter(s => s === "absent").length, [attendance]);
   
-  // Verwende den vom Server berechneten excusedCount für Hydration-Konsistenz
-  const excusedCount = initialExcusedCount;
-  
   // Nicht markiert = alle außer anwesend, abwesend und entschuldigt
   const notMarkedCount = filteredMembers.length - presentCount - absentCount - excusedCount; 
 
@@ -200,6 +242,11 @@ export function AnwesenheitContent({
       <header className="mb-6 animate-fade-in">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-2xl font-bold">Anwesenheit</h1>
+          {mounted && lastRefreshed && (
+            <span className="text-xs text-muted-foreground">
+              Aktualisiert {lastRefreshed.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
         </div>
         
         {/* Admin Team Selector */}

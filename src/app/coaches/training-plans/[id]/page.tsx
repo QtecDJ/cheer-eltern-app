@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTrainingPlanById } from "@/lib/queries";
 import ClientTrainingPlanFallback from '@/components/coaches/ClientTrainingPlanFallback';
+import RichTextDisplay from '@/components/coaches/RichTextDisplay';
 
 export default async function TrainingPlanDetailPage(props: any) {
   // `params` can be an unresolved Promise in Next.js — await it when present
@@ -40,10 +41,9 @@ export default async function TrainingPlanDetailPage(props: any) {
   return (
     <div className="py-6">
       <div className="max-w-3xl mx-auto bg-card p-4 rounded">
-        <h2 className="text-xl font-semibold">{plan.title}</h2>
         <div className="text-sm text-muted-foreground">{new Date(plan.date).toLocaleString()}</div>
-        {plan.location && <div className="text-sm">Ort: {plan.location}</div>}
-        {plan.description && <div className="mt-2">{plan.description}</div>}
+        {plan.team?.name && <div className="text-sm">Team: {plan.team.name}</div>}
+        {plan.description && <RichTextDisplay html={plan.description} className="mt-2" />}
         {plan.objectives && (
           <div className="mt-3">
             <strong>Ziele:</strong>

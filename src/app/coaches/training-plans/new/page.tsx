@@ -13,11 +13,9 @@ export default async function NewTrainingPlanPage() {
   const teams = await getTeamsMinimal();
 
   return (
-    <div className="py-6">
-      <div className="max-w-3xl mx-auto">
-        {/* @ts-ignore */}
-        <PlannerForm currentUserId={session.id} teams={teams} />
-      </div>
+    <div>
+      {/* @ts-ignore */}
+      <PlannerForm currentUserId={session.id} teams={teams} />
     </div>
   );
 }

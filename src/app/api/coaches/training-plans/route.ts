@@ -31,11 +31,12 @@ export async function POST(req: Request) {
   if (!roles.includes("coach") && !roles.includes("admin")) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   try {
     const body = await req.json();
-    if (!body?.title || !body?.date) return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+    const planDate = body?.date ? new Date(body.date) : new Date();
+    const autoTitle = body?.title || `Trainingsplan ${planDate.toLocaleDateString("de-DE")}`;
     const created = await createTrainingPlan({
-      title: body.title,
+      title: autoTitle,
       description: body.description,
-      date: new Date(body.date),
+      date: planDate,
       startAt: body.startAt ? new Date(body.startAt) : null,
       endAt: body.endAt ? new Date(body.endAt) : null,
       location: body.location || null,
