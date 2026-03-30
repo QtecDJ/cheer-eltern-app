@@ -66,7 +66,9 @@ export async function updatePassword(formData: FormData) {
     return { success: false, error: "Nicht eingeloggt" };
   }
 
-  const activeProfileId = await getActiveProfileWithParentMapping(session);
+  // Passwort immer für den eingeloggten User (session.id) ändern,
+  // NICHT für das aktive Kind-Profil (activeProfileId)
+  const loginMemberId = session.id;
 
   const currentPassword = formData.get("currentPassword") as string;
   const newPassword = formData.get("newPassword") as string;
@@ -86,7 +88,7 @@ export async function updatePassword(formData: FormData) {
 
   try {
     const user = await prisma.member.findUnique({
-      where: { id: activeProfileId },
+      where: { id: loginMemberId },
       select: { passwordHash: true },
     });
 
@@ -111,7 +113,7 @@ export async function updatePassword(formData: FormData) {
     // Neues Passwort setzen
     const hashedPassword = await hashPassword(newPassword);
     await prisma.member.update({
-      where: { id: activeProfileId },
+      where: { id: loginMemberId },
       data: { passwordHash: hashedPassword },
     });
 

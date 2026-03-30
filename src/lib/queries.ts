@@ -215,7 +215,6 @@ export async function getTrainingsList(teamId: number) {
   const baseWhere = {
     teamId,
     isArchived: false,
-    type: "training",
   };
 
   const selectFields = {
@@ -266,7 +265,6 @@ export async function getUpcomingAndOngoingTrainings(teamId?: number, limit = 50
   const today = new Date().toISOString().split('T')[0];
   const where: any = {
     isArchived: false,
-    type: 'training',
     OR: [
       { status: 'upcoming', date: { gte: today } },
       { status: 'ongoing' },
@@ -315,7 +313,6 @@ export async function getUpcomingTrainingsMinimal(teamId: number) {
       teamId,
       isArchived: false,
       date: { gte: today },
-      type: "training",
     },
     orderBy: { date: "asc" },
     take: 3, // Nur nächste 3
