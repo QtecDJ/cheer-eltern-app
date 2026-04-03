@@ -13,6 +13,7 @@ import {
   getLatestAssessmentMinimal,
   getMessagesForStaff,
   getResolvedMessageCount,
+  getTodaysBirthdays,
 } from "@/lib/queries";
 
 // ISR with 2-minute cache - reduces Function Invocations by ~90%
@@ -67,13 +68,14 @@ export default async function HomePage() {
 
   const isOrga = (session.roles || []).includes("orga") || (session.userRole || "").toString().toLowerCase().split(',').includes('orga');
 
-  const [upcomingTrainings, attendanceStats, announcements, latestAssessment] = await Promise.all([
+  const [upcomingTrainings, attendanceStats, announcements, latestAssessment, birthdays] = await Promise.all([
     getUpcomingTrainingsMinimal(child.teamId!),
     getAttendanceStats(child.id),
     // Orga users should get announcements with poll data (to inspect votes)
     // Provide `undefined` team filter for orga so they see polls across teams
     isOrga ? (getEventAnnouncementsWithPolls as any)(undefined, activeProfileId) : getAnnouncementsMinimal(child.teamId ?? undefined),
     getLatestAssessmentMinimal(child.id),
+    getTodaysBirthdays(child.teamId ?? undefined),
   ]);
 
   // If orga, also fetch raw polls (team-independent) to surface them on the home dashboard
@@ -136,6 +138,7 @@ export default async function HomePage() {
       resolvedMessageCount={resolvedMessageCount}
       isOrga={isOrga}
       parentInfo={parentInfo}
+      birthdays={birthdays.filter((b) => b.id === child.id)}
     />
   );
 }

@@ -94,6 +94,14 @@ interface HomeContentProps {
     lastName: string;
     photoUrl: string | null;
   } | null;
+  birthdays?: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    photoUrl: string | null;
+    daysUntil: number;
+    age: number;
+  }>;
 }
 
 export function HomeContent({
@@ -109,6 +117,7 @@ export function HomeContent({
   resolvedMessageCount = 0,
   isOrga = false,
   parentInfo = null,
+  birthdays = [],
 }: HomeContentProps) {
   const age = calculateAge(child.birthDate);
   const attendanceRate = calculateAttendanceRate(
@@ -204,6 +213,37 @@ export function HomeContent({
               <p className="text-white/90 text-sm">{theme.motivationalText}</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Geburtstags-Banner */}
+      {birthdays.length > 0 && (
+        <div className="mb-4 space-y-2 animate-fade-in">
+          {birthdays.map((bday) => {
+            const isToday = bday.daysUntil === 0;
+            const isTomorrow = bday.daysUntil === 1;
+            const label = isToday
+              ? `Heute wird ${bday.firstName} ${bday.age} Jahre alt! 🎉`
+              : isTomorrow
+              ? `Morgen hat ${bday.firstName} Geburtstag! 🎂`
+              : `In 2 Tagen: ${bday.firstName}s Geburtstag 🎈`;
+            return (
+              <div
+                key={bday.id}
+                className="p-3 rounded-2xl bg-gradient-to-r from-pink-500/20 via-purple-500/15 to-yellow-500/15 border border-pink-300/30 flex items-center gap-3"
+              >
+                <span className="text-3xl shrink-0">{isToday ? "🎉" : "🎂"}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm leading-snug">{label}</p>
+                  {isToday && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Herzlichen Glückwunsch, {bday.firstName}! 🥳
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 

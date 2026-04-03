@@ -117,6 +117,71 @@ export async function getMemberFullProfile(memberId: number) {
 }
 
 /**
+ * Geburtstagskinder für heute und die nächsten 2 Tage (team-übergreifend)
+ * Vergleich nur Monat + Tag, nicht das Jahr
+ */
+export async function getTodaysBirthdays(teamId?: number) {
+  const today = new Date();
+  const month = today.getMonth() + 1; // 1-12
+  const day = today.getDate();
+
+  // Fetch active members (optionally filtered by team) and filter by month/day in JS
+  // because birthDate is stored as a string (ISO format) - cannot use DB-level month/day filter portably
+  const allActive = await prisma.member.findMany({
+    where: {
+      status: "active",
+      ...(teamId ? { teamId } : {}),
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      photoUrl: true,
+      birthDate: true,
+    },
+  });
+
+  return allActive
+    .filter((m) => {
+      if (!m.birthDate) return false;
+      const birth = new Date(m.birthDate);
+      const bMonth = birth.getMonth() + 1;
+      const bDay = birth.getDate();
+      // Check today + next 2 days
+      for (let offset = 0; offset <= 2; offset++) {
+        const check = new Date(today);
+        check.setDate(today.getDate() + offset);
+        if (bMonth === check.getMonth() + 1 && bDay === check.getDate()) return true;
+      }
+      return false;
+    })
+    .map((m) => {
+      const birth = new Date(m.birthDate!);
+      const bMonth = birth.getMonth() + 1;
+      const bDay = birth.getDate();
+      let daysUntil = 0;
+      for (let offset = 0; offset <= 2; offset++) {
+        const check = new Date(today);
+        check.setDate(today.getDate() + offset);
+        if (bMonth === check.getMonth() + 1 && bDay === check.getDate()) {
+          daysUntil = offset;
+          break;
+        }
+      }
+      const age = today.getFullYear() - birth.getFullYear();
+      return {
+        id: m.id,
+        firstName: m.firstName,
+        lastName: m.lastName,
+        photoUrl: m.photoUrl,
+        daysUntil,
+        age,
+      };
+    })
+    .sort((a, b) => a.daysUntil - b.daysUntil);
+}
+
+/**
  * Team-Mitglieder für Profil-Ansicht
  * Minimal, keine sensitiven Daten
  */
