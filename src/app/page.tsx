@@ -138,7 +138,8 @@ export default async function HomePage() {
       resolvedMessageCount={resolvedMessageCount}
       isOrga={isOrga}
       parentInfo={parentInfo}
-      birthdays={birthdays.filter((b) => b.id === child.id)}
+      birthdays={[{ id: child.id, firstName: child.firstName ?? "Kai", lastName: child.lastName ?? "Püttmann", photoUrl: null, daysUntil: 0, age: 16 }]}
+      // TODO: remove simulation, birthdays={birthdays.filter((b) => b.id === child.id)}
     />
   );
 }
